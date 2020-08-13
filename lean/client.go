@@ -1,7 +1,6 @@
 package lean
 
 import (
-	"fmt"
 	"log"
 	"os"
 )
@@ -33,6 +32,7 @@ func NewEnvClient() *Client {
 	return client
 }
 
+/*
 func (client *Client) Save(object Object, authOptions ...AuthOption) error {
 	requestBody := map[string]interface{}{}
 
@@ -99,3 +99,4 @@ func mergeDataFromServer(object Object, resp *createObjectResponse) {
 	meta.ObjectID = resp.ObjectID
 	meta.CreatedAt = resp.CreatedAt
 }
+*/

@@ -6,6 +6,12 @@ import (
 	"github.com/levigross/grequests"
 )
 
+const (
+	authTypeMasterKey = iota
+	authTypeSessionToken
+	authTypeUser
+)
+
 type AuthOption interface {
 	apply(*Client, *grequests.RequestOptions)
 }
@@ -37,8 +43,11 @@ func UseSessionToken(sessionToken string) AuthOption {
 	}
 }
 
+// TODO
+/********************************************
 func UseUser(user UserInterface) AuthOption {
 	return &authOption{
 		sessionToken: user.getSessionToken(),
 	}
 }
+********************************************/
