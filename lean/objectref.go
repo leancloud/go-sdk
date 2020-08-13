@@ -6,21 +6,10 @@ type ObjectRef struct {
 	ID    string
 }
 
-type OpType string
-
-const (
-	BitAnd         OpType = "BitAnd"
-	BitOr          OpType = "BitOr"
-	BitXor         OpType = "BitXor"
-	Increment      OpType = "Increment"
-	Decrement      OpType = "Decrement"
-	Add            OpType = "Add"
-	AddUnique      OpType = "AddUnique"
-	AddRelation    OpType = "AddRelation"
-	Remove         OpType = "Remove"
-	RemoveRelation OpType = "RemoveRelation"
-	Delete         OpType = "Delete"
-)
+func (client *Client) Object(name, id string) *ObjectRef {
+	// TODO
+	return nil
+}
 
 func (r *ObjectRef) Get() (*Object, error) {
 	// TODO
@@ -42,30 +31,64 @@ func (r *ObjectRef) Delete() error {
 	return nil
 }
 
-func Op(op OpType, data interface{}) map[string]interface{} {
-	opObject := make(map[string]interface{})
-	opObject["__op"] = op
+func OpIncrement(amount int) map[string]interface{} {
+	op := make(map[string]interface{})
 
-	switch op {
-	case Increment:
-	case Decrement:
-		opObject["amount"] = data
-		break
-	case BitAnd:
-	case BitOr:
-	case BitXor:
-		opObject["value"] = data
-	case Add:
-	case AddUnique:
-	case AddRelation:
-	case Remove:
-	case RemoveRelation:
-		opObject["objects"] = data
-		break
-	case Delete:
-		opObject["delete"] = data
-		break
-	}
+	op["__op"] = "Increment"
+	op["amount"] = amount
 
-	return opObject
+	return op
+}
+
+func OpDecrement(amount int) map[string]interface{} {
+	op := make(map[string]interface{})
+
+	op["__op"] = "Decrement"
+	op["amount"] = amount
+
+	return op
+}
+
+func OpAdd(objects interface{}) map[string]interface{} {
+	op := make(map[string]interface{})
+
+	op["__op"] = "Add"
+	op["objects"] = objects
+
+	return op
+}
+
+func OpAddUnique(objects interface{}) map[string]interface{} {
+	op := make(map[string]interface{})
+
+	op["__op"] = "AddUnique"
+	op["objects"] = objects
+
+	return op
+}
+
+func OpAddRelation() {
+	// TODO after Pointer implementation
+}
+
+func OpRemove(objects interface{}) map[string]interface{} {
+	op := make(map[string]interface{})
+
+	op["__op"] = "Remove"
+	op["objects"] = objects
+
+	return op
+}
+
+func OpRemoveRelation() {
+	// TODO after Pointer implementation
+}
+
+func OpDelete(delete bool) map[string]interface{} {
+	op := make(map[string]interface{})
+
+	op["__op"] = "Delete"
+	op["delete"] = delete
+
+	return op
 }
