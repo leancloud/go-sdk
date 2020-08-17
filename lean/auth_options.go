@@ -6,12 +6,6 @@ import (
 	"github.com/levigross/grequests"
 )
 
-const (
-	authTypeMasterKey = iota
-	authTypeSessionToken
-	authTypeUser
-)
-
 type AuthOption interface {
 	apply(*Client, *grequests.RequestOptions)
 }

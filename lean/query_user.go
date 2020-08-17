@@ -59,7 +59,7 @@ func (r *UserQuery) GreaterThan(key string, value interface{}) *UserQuery {
 	return nil
 }
 
-func (r *UserQuery) GreaterThanEqualTo(key string, value interface{}) *UserQuery {
+func (r *UserQuery) GreaterThanOrEqualTo(key string, value interface{}) *UserQuery {
 	// TODO
 	return nil
 }
@@ -69,7 +69,7 @@ func (r *UserQuery) LessThan(key string, value interface{}) *UserQuery {
 	return nil
 }
 
-func (r *UserQuery) LessThanEqualTo(key string, value interface{}) *UserQuery {
+func (r *UserQuery) LessThanOrEqualTo(key string, value interface{}) *UserQuery {
 	// TODO
 	return nil
 }

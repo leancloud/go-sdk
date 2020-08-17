@@ -34,7 +34,7 @@ func (r *ObjectRef) Get(auth ...AuthOption) (*Object, error) {
 	}
 
 	return &Object{
-		fields: &resBody,
+		fields: resBody,
 	}, nil
 }
 

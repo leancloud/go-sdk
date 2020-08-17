@@ -6,7 +6,7 @@ type Object struct {
 	ID        string    `json:"objectId"`
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
-	fields    *map[string]interface{}
+	fields    map[string]interface{}
 }
 
 func (object *Object) GetMap() map[string]interface{} {

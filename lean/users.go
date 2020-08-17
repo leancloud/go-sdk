@@ -18,3 +18,8 @@ func (c *Client) NewUserQuery() *UserQuery {
 	// TODO
 	return nil
 }
+
+func (r *UsersRef) Become(sessionToken string) (*User, error) {
+	// TODO
+	return nil, nil
+}

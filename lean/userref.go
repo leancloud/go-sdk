@@ -64,8 +64,3 @@ func (r *UserRef) Delete() error {
 	// TODO
 	return nil
 }
-
-func (r *UsersRef) Become(sessionToken string) (*User, error) {
-	// TODO
-	return nil, nil
-}
