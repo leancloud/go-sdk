@@ -15,21 +15,27 @@ type Client struct {
 	requestLogger *log.Logger
 }
 
-func NewEnvClient() *Client {
+func NewClient(region, appID, appKey, masterKey string) *Client {
 	client := &Client{
-		region:    NewRegionFromString(os.Getenv("LEANCLOUD_REGION")),
-		appID:     os.Getenv("LEANCLOUD_APP_ID"),
-		appKey:    os.Getenv("LEANCLOUD_APP_KEY"),
-		masterKey: os.Getenv("LEANCLOUD_APP_MASTER_KEY"),
+		region:    NewRegionFromString(region),
+		appID:     appID,
+		appKey:    appKey,
+		masterKey: masterKey,
 	}
 
-	_, foundDebugEnv := os.LookupEnv("LEANCLOUD_DEBUG")
+	_, debugEnabled := os.LookupEnv("LEANCLOUD_DEBUG")
 
-	if foundDebugEnv {
+	if debugEnabled {
 		client.requestLogger = log.New(os.Stdout, "", log.LstdFlags)
 	}
 
 	return client
+}
+func NewEnvClient() *Client {
+	return NewClient(os.Getenv("LEANCLOUD_REGION"),
+		os.Getenv("LEANCLOUD_APP_ID"),
+		os.Getenv("LEANCLOUD_APP_KEY"),
+		os.Getenv("LEANCLOUD_APP_MASTER_KEY"))
 }
 
 /*

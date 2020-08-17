@@ -44,10 +44,9 @@ func UseSessionToken(sessionToken string) AuthOption {
 }
 
 // TODO
-/********************************************
-func UseUser(user UserInterface) AuthOption {
+
+func UseUser(user *UserRef) AuthOption {
 	return &authOption{
 		sessionToken: user.getSessionToken(),
 	}
 }
-********************************************/

@@ -1,15 +1,10 @@
 package lean
 
-import "time"
-
 type Object struct {
-	ID        string
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	Fields    *map[string]interface{}
+	fields *map[string]interface{}
 }
 
-func (ss *Object) Data() map[string]interface{} {
+func (ss *Object) Map() map[string]interface{} {
 	// TODO
 	return nil
 }
