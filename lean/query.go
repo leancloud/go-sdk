@@ -14,12 +14,52 @@ func (r *Query) Find() (*[]ObjectRef, error) {
 	return nil, nil
 }
 
+func (r *Query) First() (*ObjectRef, error) {
+	// TODO
+	return nil, nil
+}
+
+func (r *Query) Count() (int, error) {
+	// TODO
+	return 0, nil
+}
+
+func (r *Query) Or() *Query {
+	// TODO
+	return nil
+}
+
+func (r *Query) And() *Query {
+	// TODO
+	return nil
+}
+
+func (r *Query) Skip() *Query {
+	// TODO
+	return nil
+}
+
+func (r *Query) Limit() *Query {
+	// TODO
+	return nil
+}
+
+func (r *Query) Order() *Query {
+	// TODO
+	return nil
+}
+
 func (r *Query) EqualTo(key string, value string) *Query {
 	// TODO
 	return nil
 }
 
 func (r *Query) NotEqualTo(key string, value string) *Query {
+	// TODO
+	return nil
+}
+
+func (r *Query) SizeEqualTo() *Query {
 	// TODO
 	return nil
 }
@@ -70,6 +110,26 @@ func (r *Query) Select() *Query {
 }
 
 func (r *Query) Exclude() *Query {
+	// TODO
+	return nil
+}
+
+func (r *Query) Regexp() *Query {
+	// TODO
+	return nil
+}
+
+func (r *Query) Contains() *Query {
+	// TODO
+	return nil
+}
+
+func (r *Query) ContainsAll() *Query {
+	// TODO
+	return nil
+}
+
+func (r *Query) StartsWith() *Query {
 	// TODO
 	return nil
 }
