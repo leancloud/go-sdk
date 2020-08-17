@@ -48,7 +48,7 @@ func (r *ObjectRef) Update(data map[string]interface{}, authOption ...AuthOption
 	return nil
 }
 
-func (r *ObjectRef) UpdateWithQuery(data map[string]interface{}, query *ObjectQuery, authOption ...AuthOption) error {
+func (r *ObjectRef) UpdateWithQuery(data map[string]interface{}, query *Query, authOption ...AuthOption) error {
 	return nil
 }
 

@@ -20,13 +20,13 @@ func (r *Class) Object(id string) *ObjectRef {
 	}
 }
 
-func (r *Class) Create(data interface{}) (*ObjectRef, error) {
+func (r *Class) Create(data interface{}, auth ...AuthOption) (*ObjectRef, error) {
 	// TODO
 	return nil, nil
 }
 
-func (r *Class) NewObjectQuery() *ObjectQuery {
-	return &ObjectQuery{
+func (r *Class) NewQuery() *Query {
+	return &Query{
 		c:        r.c,
 		classRef: r,
 	}

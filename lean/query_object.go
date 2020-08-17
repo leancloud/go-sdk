@@ -1,6 +1,6 @@
 package lean
 
-type ObjectQuery struct {
+type Query struct {
 	c        *Client
 	classRef *Class
 	where    map[string]string
@@ -9,117 +9,127 @@ type ObjectQuery struct {
 	skip     int
 }
 
-func (r *ObjectQuery) Find() ([]Object, error) {
+func (r *Query) Find(auth ...AuthOption) ([]Object, error) {
 	// TODO
 	return nil, nil
 }
 
-func (r *ObjectQuery) First() (*Object, error) {
+func (r *Query) First() (*Object, error) {
 	// TODO
 	return nil, nil
 }
 
-func (r *ObjectQuery) Count() (int, error) {
+func (r *Query) Count() (int, error) {
 	// TODO
 	return 0, nil
 }
 
-func (r *ObjectQuery) Skip() *ObjectQuery {
+func (r *Query) Skip(count int) *Query {
 	// TODO
 	return nil
 }
 
-func (r *ObjectQuery) Limit() *ObjectQuery {
+func (r *Query) Limit(limit int) *Query {
 	// TODO
 	return nil
 }
 
-func (r *ObjectQuery) Order() *ObjectQuery {
+func (r *Query) Order(keys ...string) *Query {
 	// TODO
 	return nil
 }
 
-func (r *ObjectQuery) EqualTo(key string, value string) *ObjectQuery {
+func (r *Query) EqualToInt(key string, value int) *Query {
 	// TODO
 	return nil
 }
 
-func (r *ObjectQuery) NotEqualTo(key string, value string) *ObjectQuery {
+func (r *Query) NotEqualToInt(key string, value int) *Query {
 	// TODO
 	return nil
 }
 
-func (r *ObjectQuery) SizeEqualTo() *ObjectQuery {
+func (r *Query) EqualToFloat(key string, value float64) *Query {
 	// TODO
 	return nil
 }
 
-func (r *ObjectQuery) Greater(key string, value string) *ObjectQuery {
+func (r *Query) NotEqualToFloat(key string, value float64) *Query {
 	// TODO
 	return nil
 }
 
-func (r *ObjectQuery) GreaterEqual() *ObjectQuery {
+func (r *Query) SizeEqualTo(key string, count int) *Query {
 	// TODO
 	return nil
 }
 
-func (r *ObjectQuery) Less(key string, value string) *ObjectQuery {
+func (r *Query) GreaterThanInt(key string, value int) *Query {
 	// TODO
 	return nil
 }
 
-func (r *ObjectQuery) LessEqual() *ObjectQuery {
+func (r *Query) GreaterThanFloat(key string, value float64) *Query {
 	// TODO
 	return nil
 }
 
-func (r *ObjectQuery) In(key string, value string) *ObjectQuery {
+func (r *Query) GreaterThanEqualToInt(key string, value int) *Query {
 	// TODO
 	return nil
 }
 
-func (r *ObjectQuery) NotIn(key string, value string) *ObjectQuery {
+func (r *Query) GreaterThanEqualToFloat(key string, value float64) *Query {
 	// TODO
 	return nil
 }
 
-func (r *ObjectQuery) All() *ObjectQuery {
+func (r *Query) LessThanInt(key string, value int) *Query {
 	// TODO
 	return nil
 }
 
-func (r *ObjectQuery) Exists() *ObjectQuery {
+func (r *Query) LessThanFloat(key string, value float64) *Query {
 	// TODO
 	return nil
 }
 
-func (r *ObjectQuery) Select() *ObjectQuery {
+func (r *Query) LessThanEqualToInt(key string, value int) *Query {
 	// TODO
 	return nil
 }
 
-func (r *ObjectQuery) Exclude() *ObjectQuery {
+func (r *Query) LessThanEqualToFloat(key string, value float64) *Query {
 	// TODO
 	return nil
 }
 
-func (r *ObjectQuery) Regexp() *ObjectQuery {
+func (r *Query) In(key string, data interface{}) *Query {
 	// TODO
 	return nil
 }
 
-func (r *ObjectQuery) Contains() *ObjectQuery {
+func (r *Query) NotIn(key string, data interface{}) *Query {
 	// TODO
 	return nil
 }
 
-func (r *ObjectQuery) ContainsAll() *ObjectQuery {
+func (r *Query) Regexp(expr, options string) *Query {
 	// TODO
 	return nil
 }
 
-func (r *ObjectQuery) StartsWith() *ObjectQuery {
+func (r *Query) Contains(key, substring string) *Query {
+	// TODO
+	return nil
+}
+
+func (r *Query) ContainsAll(key string, objects interface{}) *Query {
+	// TODO
+	return nil
+}
+
+func (r *Query) StartsWith(key, prefix string) *Query {
 	// TODO
 	return nil
 }

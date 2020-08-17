@@ -9,17 +9,17 @@ type Object struct {
 	fields    *map[string]interface{}
 }
 
-func (ss *Object) GetMap() map[string]interface{} {
+func (object *Object) GetMap() map[string]interface{} {
 	// TODO
 	return nil
 }
 
-func (ss *Object) ToStruct(p interface{}) error {
+func (object *Object) ToStruct(p interface{}) error {
 	// TODO
 	return nil
 }
 
-func (ss *Object) Get(filed string) interface{} {
+func (object *Object) Get(filed string) interface{} {
 	// TODO
 	return nil
 }
