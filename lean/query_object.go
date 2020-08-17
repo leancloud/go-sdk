@@ -39,22 +39,12 @@ func (r *Query) Order(keys ...string) *Query {
 	return nil
 }
 
-func (r *Query) EqualToInt(key string, value int) *Query {
+func (r *Query) EqualTo(key string, value interface{}) *User {
 	// TODO
 	return nil
 }
 
-func (r *Query) NotEqualToInt(key string, value int) *Query {
-	// TODO
-	return nil
-}
-
-func (r *Query) EqualToFloat(key string, value float64) *Query {
-	// TODO
-	return nil
-}
-
-func (r *Query) NotEqualToFloat(key string, value float64) *Query {
+func (r *Query) NotEqualTo(key string, value interface{}) *Query {
 	// TODO
 	return nil
 }
@@ -64,42 +54,22 @@ func (r *Query) SizeEqualTo(key string, count int) *Query {
 	return nil
 }
 
-func (r *Query) GreaterThanInt(key string, value int) *Query {
+func (r *Query) GreaterThan(key string, value interface{}) *Query {
 	// TODO
 	return nil
 }
 
-func (r *Query) GreaterThanFloat(key string, value float64) *Query {
+func (r *Query) GreaterThanEqualTo(key string, value interface{}) *Query {
 	// TODO
 	return nil
 }
 
-func (r *Query) GreaterThanEqualToInt(key string, value int) *Query {
+func (r *Query) LessThan(key string, value interface{}) *Query {
 	// TODO
 	return nil
 }
 
-func (r *Query) GreaterThanEqualToFloat(key string, value float64) *Query {
-	// TODO
-	return nil
-}
-
-func (r *Query) LessThanInt(key string, value int) *Query {
-	// TODO
-	return nil
-}
-
-func (r *Query) LessThanFloat(key string, value float64) *Query {
-	// TODO
-	return nil
-}
-
-func (r *Query) LessThanEqualToInt(key string, value int) *Query {
-	// TODO
-	return nil
-}
-
-func (r *Query) LessThanEqualToFloat(key string, value float64) *Query {
+func (r *Query) LessThanEqualTo(key string, value interface{}) *Query {
 	// TODO
 	return nil
 }
