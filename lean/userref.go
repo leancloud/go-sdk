@@ -32,6 +32,32 @@ func (client *Client) User(id string) *UserRef {
 }
 
 func (*UserRef) Login() error {
+	// TODO
+	return nil
+}
+
+func (r *UserRef) Signup() error {
+	// TODO
+	return nil
+}
+
+func (r *UserRef) ResetToken() error {
+	// TODO
+	return nil
+}
+
+func (r *UserRef) VerifyEmail() error {
+	// TODO
+	return nil
+}
+
+func (r *UserRef) VerifyPhoneNumber() error {
+	// TODO
+	return nil
+}
+
+func (r *UserRef) ResetPassword() error {
+	// TODO
 	return nil
 }
 
