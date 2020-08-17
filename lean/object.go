@@ -1,15 +1,20 @@
 package lean
 
+import "time"
+
 type Object struct {
-	fields *map[string]interface{}
+	ID        string    `json:"objectId"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
+	fields    *map[string]interface{}
 }
 
-func (ss *Object) Map() map[string]interface{} {
+func (ss *Object) GetMap() map[string]interface{} {
 	// TODO
 	return nil
 }
 
-func (ss *Object) Struct(p interface{}) error {
+func (ss *Object) ToStruct(p interface{}) error {
 	// TODO
 	return nil
 }

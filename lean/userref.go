@@ -6,7 +6,6 @@ type UserRef struct {
 	c     *Client
 	class string
 	ID    string
-	token string
 }
 
 type signupResponse struct {
@@ -41,26 +40,6 @@ func (r *UserRef) Signup() error {
 	return nil
 }
 
-func (r *UserRef) ResetToken() error {
-	// TODO
-	return nil
-}
-
-func (r *UserRef) VerifyEmail() error {
-	// TODO
-	return nil
-}
-
-func (r *UserRef) VerifyPhoneNumber() error {
-	// TODO
-	return nil
-}
-
-func (r *UserRef) ResetPassword() error {
-	// TODO
-	return nil
-}
-
 func (r *UserRef) Get(authOption ...AuthOption) (*User, error) {
 	// TODO
 	return nil, nil
@@ -76,7 +55,7 @@ func (r *UserRef) Update(data map[string]interface{}, authOption ...AuthOption) 
 	return nil
 }
 
-func (r *UserRef) UpdateWithQuery(data map[string]interface{}, query *Query, authOption ...AuthOption) error {
+func (r *UserRef) UpdateWithQuery(data map[string]interface{}, query *UserQuery, authOption ...AuthOption) error {
 	// TODO
 	return nil
 }
@@ -86,6 +65,7 @@ func (r *UserRef) Delete() error {
 	return nil
 }
 
-func (r *UserRef) getSessionToken() string {
-	return r.token
+func (r *UsersRef) Become(sessionToken string) (*User, error) {
+	// TODO
+	return nil, nil
 }

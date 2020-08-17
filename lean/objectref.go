@@ -48,73 +48,11 @@ func (r *ObjectRef) Update(data map[string]interface{}, authOption ...AuthOption
 	return nil
 }
 
-func (r *ObjectRef) UpdateWithQuery(data map[string]interface{}, query *Query, authOption ...AuthOption) error {
+func (r *ObjectRef) UpdateWithQuery(data map[string]interface{}, query *ObjectQuery, authOption ...AuthOption) error {
 	return nil
 }
 
-func (r *ObjectRef) Delete() error {
+func (r *ObjectRef) Destroy() error {
 	// TODO
 	return nil
-}
-
-func OpIncrement(amount int) map[string]interface{} {
-	op := make(map[string]interface{})
-
-	op["__op"] = "Increment"
-	op["amount"] = amount
-
-	return op
-}
-
-func OpDecrement(amount int) map[string]interface{} {
-	op := make(map[string]interface{})
-
-	op["__op"] = "Decrement"
-	op["amount"] = amount
-
-	return op
-}
-
-func OpAdd(objects interface{}) map[string]interface{} {
-	op := make(map[string]interface{})
-
-	op["__op"] = "Add"
-	op["objects"] = objects
-
-	return op
-}
-
-func OpAddUnique(objects interface{}) map[string]interface{} {
-	op := make(map[string]interface{})
-
-	op["__op"] = "AddUnique"
-	op["objects"] = objects
-
-	return op
-}
-
-func OpAddRelation() {
-	// TODO after Pointer implementation
-}
-
-func OpRemove(objects interface{}) map[string]interface{} {
-	op := make(map[string]interface{})
-
-	op["__op"] = "Remove"
-	op["objects"] = objects
-
-	return op
-}
-
-func OpRemoveRelation() {
-	// TODO after Pointer implementation
-}
-
-func OpDelete(delete bool) map[string]interface{} {
-	op := make(map[string]interface{})
-
-	op["__op"] = "Delete"
-	op["delete"] = delete
-
-	return op
 }
