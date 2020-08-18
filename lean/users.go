@@ -4,12 +4,12 @@ type Users struct {
 	c *Client
 }
 
-func (r *Users) Login(username, password string) (*User, error) {
+func (r *Users) LogIn(username, password string) (*User, error) {
 	// TODO
 	return nil, nil
 }
 
-func (r *Users) Signup(username, password string) (*User, error) {
+func (r *Users) SignUp(username, password string) (*User, error) {
 	// TODO
 	return nil, nil
 }

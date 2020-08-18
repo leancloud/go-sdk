@@ -30,16 +30,6 @@ func (client *Client) User(id string) *UserRef {
 	return nil
 }
 
-func (*UserRef) Login() error {
-	// TODO
-	return nil
-}
-
-func (r *UserRef) Signup() error {
-	// TODO
-	return nil
-}
-
 func (r *UserRef) Get(authOption ...AuthOption) (*User, error) {
 	// TODO
 	return nil, nil
