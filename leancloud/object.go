@@ -1,4 +1,4 @@
-package lean
+package leancloud
 
 import "time"
 

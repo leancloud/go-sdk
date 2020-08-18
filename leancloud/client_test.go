@@ -1,4 +1,4 @@
-package lean
+package leancloud
 
 import "testing"
 
@@ -11,10 +11,6 @@ func TestNewENVClient(t *testing.T) {
 }
 
 func TestClientClass(t *testing.T) {
-
-}
-
-func TestClientClasses(t *testing.T) {
 
 }
 

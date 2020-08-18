@@ -1,4 +1,4 @@
-package lean
+package leancloud
 
 type User struct {
 	Object

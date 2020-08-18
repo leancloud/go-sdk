@@ -1,4 +1,4 @@
-package lean
+package leancloud
 
 type Users struct {
 	c *Client

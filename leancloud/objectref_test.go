@@ -1,4 +1,4 @@
-package lean
+package leancloud
 
 import (
 	"testing"
@@ -17,6 +17,10 @@ func TestObjectRefSet(t *testing.T) {
 }
 
 func TestObjectRefUpdate(t *testing.T) {
+	// TODO
+}
+
+func TestObjectRefUpdateWithQuery(t *testing.T) {
 	// TODO
 }
 

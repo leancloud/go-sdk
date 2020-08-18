@@ -1,4 +1,4 @@
-package lean
+package leancloud
 
 type Operator interface {
 	MarshalJSON() ([]byte, error)

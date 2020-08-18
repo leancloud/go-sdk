@@ -1,4 +1,4 @@
-package lean
+package leancloud
 
 type UserQuery struct {
 	c        *Client
