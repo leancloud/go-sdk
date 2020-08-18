@@ -1,15 +1,15 @@
 package lean
 
-type UsersRef struct {
+type Users struct {
 	c *Client
 }
 
-func (r *UsersRef) Login(username, password string) (*User, error) {
+func (r *Users) Login(username, password string) (*User, error) {
 	// TODO
 	return nil, nil
 }
 
-func (r *UsersRef) Signup(username, password string) (*User, error) {
+func (r *Users) Signup(username, password string) (*User, error) {
 	// TODO
 	return nil, nil
 }
@@ -19,7 +19,7 @@ func (c *Client) NewUserQuery() *UserQuery {
 	return nil
 }
 
-func (r *UsersRef) Become(sessionToken string) (*User, error) {
+func (r *Users) Become(sessionToken string) (*User, error) {
 	// TODO
 	return nil, nil
 }

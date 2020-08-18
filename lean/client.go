@@ -13,7 +13,7 @@ type Client struct {
 	appKey        string
 	masterKey     string
 	requestLogger *log.Logger
-	Users         UsersRef
+	Users         Users
 }
 
 func NewClient(region, appID, appKey, masterKey string) *Client {
