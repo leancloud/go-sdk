@@ -1,4 +1,4 @@
-package lean
+package leancloud
 
 import (
 	"fmt"
@@ -37,8 +37,10 @@ func UseSessionToken(sessionToken string) AuthOption {
 	}
 }
 
-func UseUser(user UserInterface) AuthOption {
+// TODO
+
+func UseUser(user *User) AuthOption {
 	return &authOption{
-		sessionToken: user.getSessionToken(),
+		sessionToken: user.GetSessionToken(),
 	}
 }
