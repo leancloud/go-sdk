@@ -13,21 +13,17 @@ func TestNewClient(t *testing.T) {
 		if client == nil {
 			t.Fatal(errors.New("unable to create a client"))
 		}
-		if client.region == Region(region) {
-			if client.appID == appID {
-				if client.appKey == appKey {
-					if client.masterKey == masterKey {
-					} else {
-						t.Fatal(errors.New("LEANCLOUD_APP_MASTER_KEY unmatch"))
-					}
-				} else {
-					t.Fatal(errors.New("LEANCLOUD_APP_KEY unmatch"))
-				}
-			} else {
-				t.Fatal(errors.New("LEANCLOUD_APP_ID unmatch"))
-			}
-		} else {
+		if client.region != Region(region) {
 			t.Fatal(errors.New("LEANCLOUD_REGION unmatch"))
+		}
+		if client.appID != appID {
+			t.Fatal(errors.New("LEANCLOUD_APP_ID unmatch"))
+		}
+		if client.appKey != appKey {
+			t.Fatal(errors.New("LEANCLOUD_APP_KEY unmatch"))
+		}
+		if client.masterKey != masterKey {
+			t.Fatal(errors.New("LEANCLOUD_APP_MASTER_KEY unmatch"))
 		}
 	})
 
@@ -39,25 +35,20 @@ func TestNewClient(t *testing.T) {
 		if client == nil {
 			t.Fatal(errors.New("unable to create a client"))
 		}
-		if client.region == Region(region) {
-			if client.appID == appID {
-				if client.appKey == appKey {
-					if client.masterKey == masterKey {
-						if client.requestLogger != nil {
-						} else {
-							t.Fatal(errors.New("unable to set logger"))
-						}
-					} else {
-						t.Fatal(errors.New("LEANCLOUD_APP_MASTER_KEY unmatch"))
-					}
-				} else {
-					t.Fatal(errors.New("LEANCLOUD_APP_KEY unmatch"))
-				}
-			} else {
-				t.Fatal(errors.New("LEANCLOUD_APP_ID unmatch"))
-			}
-		} else {
+		if client.region != Region(region) {
 			t.Fatal(errors.New("LEANCLOUD_REGION unmatch"))
+		}
+		if client.appID != appID {
+			t.Fatal(errors.New("LEANCLOUD_APP_ID unmatch"))
+		}
+		if client.appKey != appKey {
+			t.Fatal(errors.New("LEANCLOUD_APP_KEY unmatch"))
+		}
+		if client.masterKey != masterKey {
+			t.Fatal(errors.New("LEANCLOUD_APP_MASTER_KEY unmatch"))
+		}
+		if client.requestLogger == nil {
+			t.Fatal(errors.New("unable to set logger"))
 		}
 	})
 }
@@ -69,21 +60,17 @@ func TestNewEnvClient(t *testing.T) {
 		if client == nil {
 			t.Fatal(errors.New("unable to create a client"))
 		}
-		if client.region == Region(region) {
-			if client.appID == appID {
-				if client.appKey == appKey {
-					if client.masterKey == masterKey {
-					} else {
-						t.Fatal(errors.New("LEANCLOUD_APP_MASTER_KEY unmatch"))
-					}
-				} else {
-					t.Fatal(errors.New("LEANCLOUD_APP_KEY unmatch"))
-				}
-			} else {
-				t.Fatal(errors.New("LEANCLOUD_APP_ID unmatch"))
-			}
-		} else {
+		if client.region != Region(region) {
 			t.Fatal(errors.New("LEANCLOUD_REGION unmatch"))
+		}
+		if client.appID != appID {
+			t.Fatal(errors.New("LEANCLOUD_APP_ID unmatch"))
+		}
+		if client.appKey != appKey {
+			t.Fatal(errors.New("LEANCLOUD_APP_KEY unmatch"))
+		}
+		if client.masterKey != masterKey {
+			t.Fatal(errors.New("LEANCLOUD_APP_MASTER_KEY unmatch"))
 		}
 	})
 
@@ -95,25 +82,20 @@ func TestNewEnvClient(t *testing.T) {
 		if client == nil {
 			t.Fatal(errors.New("unable to create a client"))
 		}
-		if client.region == Region(region) {
-			if client.appID == appID {
-				if client.appKey == appKey {
-					if client.masterKey == masterKey {
-						if client.requestLogger != nil {
-						} else {
-							t.Fatal(errors.New("unable to set logger"))
-						}
-					} else {
-						t.Fatal(errors.New("LEANCLOUD_APP_MASTER_KEY unmatch"))
-					}
-				} else {
-					t.Fatal(errors.New("LEANCLOUD_APP_KEY unmatch"))
-				}
-			} else {
-				t.Fatal(errors.New("LEANCLOUD_APP_ID unmatch"))
-			}
-		} else {
+		if client.region != Region(region) {
 			t.Fatal(errors.New("LEANCLOUD_REGION unmatch"))
+		}
+		if client.appID != appID {
+			t.Fatal(errors.New("LEANCLOUD_APP_ID unmatch"))
+		}
+		if client.appKey != appKey {
+			t.Fatal(errors.New("LEANCLOUD_APP_KEY unmatch"))
+		}
+		if client.masterKey != masterKey {
+			t.Fatal(errors.New("LEANCLOUD_APP_MASTER_KEY unmatch"))
+		}
+		if client.requestLogger == nil {
+			t.Fatal(errors.New("unable to set logger"))
 		}
 	})
 }
@@ -121,29 +103,24 @@ func TestNewEnvClient(t *testing.T) {
 func TestClientClass(t *testing.T) {
 	client := &Client{}
 	class := client.Class("class")
-	if class.c == client {
-		if class.Name == "class" {
-		} else {
-			t.Fatal(errors.New("name of class unmatch"))
-		}
-	} else {
+	if class.c != client {
 		t.Fatal(errors.New("client unmatch"))
+	}
+	if class.Name != "class" {
+		t.Fatal(errors.New("name of class unmatch"))
 	}
 }
 
 func TestClientObject(t *testing.T) {
 	client := &Client{}
-	ref := client.Object("class", "f47ac10b58cc4372a5670e02b2c3d479 ")
-	if ref.c == client {
-		if ref.class == "class" {
-			if ref.ID == "f47ac10b58cc4372a5670e02b2c3d479 " {
-			} else {
-				t.Fatal(errors.New("ID unmatch"))
-			}
-		} else {
-			t.Fatal(errors.New("name of class unmatch"))
-		}
-	} else {
+	ref := client.Object("class", "f47ac10b58cc4372a5670e02b2c3d479")
+	if ref.c != client {
 		t.Fatal(errors.New("client unmatch"))
+	}
+	if ref.class != "class" {
+		t.Fatal(errors.New("name of class unmatch"))
+	}
+	if ref.ID != "f47ac10b58cc4372a5670e02b2c3d479" {
+		t.Fatal(errors.New("ID unmatch"))
 	}
 }

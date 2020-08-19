@@ -30,27 +30,27 @@ func (client *Client) User(id string) *UserRef {
 	return nil
 }
 
-func (r *UserRef) Get(authOption ...AuthOption) (*User, error) {
+func (ref *UserRef) Get(authOption ...AuthOption) (*User, error) {
 	// TODO
 	return nil, nil
 }
 
-func (r *UserRef) Set(field string, value interface{}, authOption ...AuthOption) error {
+func (ref *UserRef) Set(field string, value interface{}, authOption ...AuthOption) error {
 	// TODO
 	return nil
 }
 
-func (r *UserRef) Update(data map[string]interface{}, authOption ...AuthOption) error {
+func (ref *UserRef) Update(data map[string]interface{}, authOption ...AuthOption) error {
 	// TODO
 	return nil
 }
 
-func (r *UserRef) UpdateWithQuery(data map[string]interface{}, query *UserQuery, authOption ...AuthOption) error {
+func (ref *UserRef) UpdateWithQuery(data map[string]interface{}, query *UserQuery, authOption ...AuthOption) error {
 	// TODO
 	return nil
 }
 
-func (r *UserRef) Delete() error {
+func (ref *UserRef) Delete() error {
 	// TODO
 	return nil
 }

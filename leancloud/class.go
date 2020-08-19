@@ -1,5 +1,11 @@
 package leancloud
 
+import (
+	"encoding/json"
+	"errors"
+	"fmt"
+)
+
 type Class struct {
 	c    *Client
 	Name string
@@ -12,22 +18,45 @@ func (client *Client) Class(name string) *Class {
 	}
 }
 
-func (r *Class) Object(id string) *ObjectRef {
+func (ref *Class) Object(id string) *ObjectRef {
 	return &ObjectRef{
-		c:     r.c,
-		class: r.Name,
+		c:     ref.c,
+		class: ref.Name,
 		ID:    id,
 	}
 }
 
-func (r *Class) Create(data interface{}, auth ...AuthOption) (*ObjectRef, error) {
-	// TODO
-	return nil, nil
+func (ref *Class) Create(data interface{}, authOptions ...AuthOption) (*ObjectRef, error) {
+	method := methodPost
+	path := fmt.Sprint("/1.1/classes/", ref.Name)
+
+	options := ref.c.getRequestOptions()
+	options.JSON = data
+
+	resp, err := ref.c.request(ServiceAPI, method, path, options, authOptions...)
+	if err != nil {
+		return nil, err
+	}
+
+	respJSON := map[string]interface{}{}
+	if err := json.Unmarshal(resp.Bytes(), &respJSON); err != nil {
+		return nil, err
+	}
+
+	objectID, ok := respJSON["objectId"].(string)
+	if !ok {
+		return nil, errors.New("unable to fetch objectId from response")
+	}
+	return &ObjectRef{
+		c:     ref.c,
+		class: ref.Name,
+		ID:    objectID,
+	}, nil
 }
 
-func (r *Class) NewQuery() *Query {
+func (ref *Class) NewQuery() *Query {
 	return &Query{
-		c:        r.c,
-		classRef: r,
+		c:        ref.c,
+		classRef: ref,
 	}
 }

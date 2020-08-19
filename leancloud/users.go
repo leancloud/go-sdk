@@ -19,7 +19,7 @@ func (c *Client) NewUserQuery() *UserQuery {
 	return nil
 }
 
-func (r *Users) Become(sessionToken string) (*User, error) {
+func (ref *Users) Become(sessionToken string) (*User, error) {
 	// TODO
 	return nil, nil
 }

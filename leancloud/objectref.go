@@ -20,11 +20,10 @@ func (client *Client) Object(name, id string) *ObjectRef {
 	}
 }
 
-func (r *ObjectRef) Get(authOption ...AuthOption) (*Object, error) {
-	method := methodGet
-	path := fmt.Sprint("/1.1/classes/", r.class, "/", r.ID)
-	options := r.c.getRequestOptions()
-	resp, err := r.c.request(ServiceAPI, method, path, options, authOption...)
+func (ref *ObjectRef) Get(authOptions ...AuthOption) (*Object, error) {
+	path := fmt.Sprint("/1.1/classes/", ref.class, "/", ref.ID)
+
+	resp, err := ref.c.request(ServiceAPI, methodGet, path, ref.c.getRequestOptions(), authOptions...)
 	if err != nil {
 		return nil, err
 	}
@@ -39,21 +38,18 @@ func (r *ObjectRef) Get(authOption ...AuthOption) (*Object, error) {
 	}, nil
 }
 
-func (r *ObjectRef) Set(field string, value interface{}, authOption ...AuthOption) error {
-	method := methodPut
-	path := fmt.Sprint("/1.1/classes/", r.class)
-
-	if r.ID != "" {
-		method = methodPost
-		path = fmt.Sprint(path, "/", r.ID)
+func (ref *ObjectRef) Set(field string, value interface{}, authOptions ...AuthOption) error {
+	if ref.ID == "" {
+		return errors.New("no reference to object")
 	}
 
-	options := r.c.getRequestOptions()
+	path := fmt.Sprint("/1.1/classes/", ref.class)
+	options := ref.c.getRequestOptions()
 	options.JSON = map[string]interface{}{
 		field: value,
 	}
 
-	resp, err := r.c.request(ServiceAPI, method, path, options, authOption...)
+	resp, err := ref.c.request(ServiceAPI, methodPut, path, options, authOptions...)
 
 	if err != nil {
 		return err
@@ -64,30 +60,30 @@ func (r *ObjectRef) Set(field string, value interface{}, authOption ...AuthOptio
 		return err
 	}
 
-	if r.ID == "" {
+	if ref.ID == "" {
 		objectID, ok := respJSON["objectId"].(string)
 		if !ok {
 			return errors.New("unable to fetch object id from response")
 		}
-		r.ID = objectID
+		ref.ID = objectID
 	}
 
 	return nil
 }
 
-func (r *ObjectRef) Update(data map[string]interface{}, authOption ...AuthOption) error {
+func (ref *ObjectRef) Update(data map[string]interface{}, authOptions ...AuthOption) error {
 	method := methodPut
-	path := fmt.Sprint("/1.1/classes/", r.class)
+	path := fmt.Sprint("/1.1/classes/", ref.class)
 
-	if r.ID != "" {
+	if ref.ID != "" {
 		method = methodPut
-		path = fmt.Sprint(path, "/", r.ID)
+		path = fmt.Sprint(path, "/", ref.ID)
 	}
 
-	options := r.c.getRequestOptions()
+	options := ref.c.getRequestOptions()
 	options.JSON = data
 
-	resp, err := r.c.request(ServiceAPI, method, path, options, authOption...)
+	resp, err := ref.c.request(ServiceAPI, method, path, options, authOptions...)
 
 	if err != nil {
 		return err
@@ -98,31 +94,29 @@ func (r *ObjectRef) Update(data map[string]interface{}, authOption ...AuthOption
 		return err
 	}
 
-	if r.ID == "" {
+	if ref.ID == "" {
 		objectID, ok := respJSON["objectId"].(string)
 		if !ok {
 			return errors.New("unable to fetch object id from response")
 		}
-		r.ID = objectID
+		ref.ID = objectID
 	}
 
 	return nil
 }
 
-func (r *ObjectRef) UpdateWithQuery(data map[string]interface{}, query *Query, authOption ...AuthOption) error {
+func (ref *ObjectRef) UpdateWithQuery(data map[string]interface{}, query *Query, authOptions ...AuthOption) error {
 	// TODO
 	return nil
 }
 
-func (r *ObjectRef) Destroy(authOption ...AuthOption) error {
-	if r.ID == "" {
+func (ref *ObjectRef) Destroy(authOptions ...AuthOption) error {
+	if ref.ID == "" {
 		return errors.New("cannot destroy nonexist object")
 	}
-	method := methodDelete
-	path := fmt.Sprint("/1.1/classes/", r.class, "/", r.ID)
-	options := r.c.getRequestOptions()
+	path := fmt.Sprint("/1.1/classes/", ref.class, "/", ref.ID)
 
-	_, err := r.c.request(ServiceAPI, method, path, options, authOption...)
+	_, err := ref.c.request(ServiceAPI, methodDelete, path, ref.c.getRequestOptions(), authOptions...)
 	if err != nil {
 		return err
 	}
