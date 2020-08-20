@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"reflect"
+	"time"
 )
 
 type ObjectRef struct {
@@ -33,8 +35,20 @@ func (ref *ObjectRef) Get(authOptions ...AuthOption) (*Object, error) {
 		return nil, err
 	}
 
+	createdAt, err := time.Parse(time.RFC3339, resBody["createdAt"].(string))
+	if err != nil {
+		return nil, err
+	}
+	updatedAt, err := time.Parse(time.RFC3339, resBody["updatedAt"].(string))
+	if err != nil {
+		return nil, err
+	}
+
 	return &Object{
-		fields: resBody,
+		ID:        resBody["objectId"].(string),
+		CreatedAt: createdAt,
+		UpdatedAt: updatedAt,
+		fields:    resBody,
 	}, nil
 }
 
@@ -43,11 +57,12 @@ func (ref *ObjectRef) Set(field string, value interface{}, authOptions ...AuthOp
 		return errors.New("no reference to object")
 	}
 
-	path := fmt.Sprint("/1.1/classes/", ref.class)
+	path := fmt.Sprint("/1.1/classes/", ref.class, "/", ref.ID)
 	options := ref.c.getRequestOptions()
-	options.JSON = map[string]interface{}{
+
+	options.JSON = objectSerialize(map[string]interface{}{
 		field: value,
-	}
+	})
 
 	resp, err := ref.c.request(ServiceAPI, methodPut, path, options, authOptions...)
 
@@ -71,7 +86,7 @@ func (ref *ObjectRef) Set(field string, value interface{}, authOptions ...AuthOp
 	return nil
 }
 
-func (ref *ObjectRef) Update(data map[string]interface{}, authOptions ...AuthOption) error {
+func (ref *ObjectRef) Update(data interface{}, authOptions ...AuthOption) error {
 	method := methodPut
 	path := fmt.Sprint("/1.1/classes/", ref.class)
 
@@ -81,7 +96,7 @@ func (ref *ObjectRef) Update(data map[string]interface{}, authOptions ...AuthOpt
 	}
 
 	options := ref.c.getRequestOptions()
-	options.JSON = data
+	options.JSON = objectSerialize(data)
 
 	resp, err := ref.c.request(ServiceAPI, method, path, options, authOptions...)
 
@@ -122,4 +137,43 @@ func (ref *ObjectRef) Destroy(authOptions ...AuthOption) error {
 	}
 
 	return nil
+}
+
+func objectSerialize(object interface{}) map[string]interface{} {
+	mapObject := make(map[string]interface{})
+	if reflect.TypeOf(object).Kind() == reflect.Struct {
+		v := reflect.ValueOf(object)
+		s := reflect.TypeOf(object)
+		for i := 0; i < v.NumField(); i++ {
+			switch v.Field(i).Type() {
+			case reflect.TypeOf(time.Time{}):
+				date := v.Field(i).Interface().(time.Time)
+				mapObject[s.Field(i).Tag.Get("json")] = map[string]interface{}{
+					"__type": "Date",
+					"iso":    fmt.Sprint(date.In(time.FixedZone("UTC", 0)).Format("2006-01-02T15:04:05.000Z")),
+				}
+				break
+			default:
+				mapObject[s.Field(i).Tag.Get("json")] = v.Field(i).Interface()
+			}
+		}
+	}
+	if reflect.TypeOf(object).Kind() == reflect.Map {
+		iter := reflect.ValueOf(object).MapRange()
+		for iter.Next() {
+			switch iter.Value().Elem().Type() {
+			case reflect.TypeOf(time.Time{}):
+				date := iter.Value().Interface().(time.Time)
+				mapObject[iter.Key().String()] = map[string]interface{}{
+					"__type": "Date",
+					"iso":    fmt.Sprint(date.In(time.FixedZone("UTC", 0)).Format("2006-01-02T15:04:05.000Z")),
+				}
+				break
+			default:
+				mapObject[iter.Key().String()] = iter.Value().Interface()
+			}
+		}
+	}
+
+	return mapObject
 }
