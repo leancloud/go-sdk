@@ -31,7 +31,7 @@ func (ref *Class) Create(data interface{}, authOptions ...AuthOption) (*ObjectRe
 	path := fmt.Sprint("/1.1/classes/", ref.Name)
 
 	options := ref.c.getRequestOptions()
-	options.JSON = data
+	options.JSON = encodeObject(data)
 
 	resp, err := ref.c.request(ServiceAPI, method, path, options, authOptions...)
 	if err != nil {
@@ -45,7 +45,7 @@ func (ref *Class) Create(data interface{}, authOptions ...AuthOption) (*ObjectRe
 
 	objectID, ok := respJSON["objectId"].(string)
 	if !ok {
-		return nil, errors.New("unable to fetch objectId from response")
+		return nil, errors.New("unable to parse objectId from response")
 	}
 	return &ObjectRef{
 		c:     ref.c,

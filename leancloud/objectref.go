@@ -60,7 +60,7 @@ func (ref *ObjectRef) Set(field string, value interface{}, authOptions ...AuthOp
 	path := fmt.Sprint("/1.1/classes/", ref.class, "/", ref.ID)
 	options := ref.c.getRequestOptions()
 
-	options.JSON = objectSerialize(map[string]interface{}{
+	options.JSON = encodeObject(map[string]interface{}{
 		field: value,
 	})
 
@@ -75,30 +75,16 @@ func (ref *ObjectRef) Set(field string, value interface{}, authOptions ...AuthOp
 		return err
 	}
 
-	if ref.ID == "" {
-		objectID, ok := respJSON["objectId"].(string)
-		if !ok {
-			return errors.New("unable to fetch object id from response")
-		}
-		ref.ID = objectID
-	}
-
 	return nil
 }
 
 func (ref *ObjectRef) Update(data interface{}, authOptions ...AuthOption) error {
-	method := methodPut
-	path := fmt.Sprint("/1.1/classes/", ref.class)
-
-	if ref.ID != "" {
-		method = methodPut
-		path = fmt.Sprint(path, "/", ref.ID)
-	}
+	path := fmt.Sprint("/1.1/classes/", ref.class, "/", ref.ID)
 
 	options := ref.c.getRequestOptions()
-	options.JSON = objectSerialize(data)
+	options.JSON = encodeObject(data)
 
-	resp, err := ref.c.request(ServiceAPI, method, path, options, authOptions...)
+	resp, err := ref.c.request(ServiceAPI, methodPut, path, options, authOptions...)
 
 	if err != nil {
 		return err
@@ -139,19 +125,20 @@ func (ref *ObjectRef) Destroy(authOptions ...AuthOption) error {
 	return nil
 }
 
-func objectSerialize(object interface{}) map[string]interface{} {
+func encodeObject(object interface{}) map[string]interface{} {
 	mapObject := make(map[string]interface{})
 	if reflect.TypeOf(object).Kind() == reflect.Struct {
 		v := reflect.ValueOf(object)
 		s := reflect.TypeOf(object)
 		for i := 0; i < v.NumField(); i++ {
+			tag, ok := s.Field(i).Tag.Lookup("json")
+			if !ok || tag == "" {
+				tag = s.Field(i).Name
+			}
 			switch v.Field(i).Type() {
 			case reflect.TypeOf(time.Time{}):
 				date := v.Field(i).Interface().(time.Time)
-				mapObject[s.Field(i).Tag.Get("json")] = map[string]interface{}{
-					"__type": "Date",
-					"iso":    fmt.Sprint(date.In(time.FixedZone("UTC", 0)).Format("2006-01-02T15:04:05.000Z")),
-				}
+				mapObject[tag] = encodeDate(date)
 				break
 			default:
 				mapObject[s.Field(i).Tag.Get("json")] = v.Field(i).Interface()
@@ -164,10 +151,7 @@ func objectSerialize(object interface{}) map[string]interface{} {
 			switch iter.Value().Elem().Type() {
 			case reflect.TypeOf(time.Time{}):
 				date := iter.Value().Interface().(time.Time)
-				mapObject[iter.Key().String()] = map[string]interface{}{
-					"__type": "Date",
-					"iso":    fmt.Sprint(date.In(time.FixedZone("UTC", 0)).Format("2006-01-02T15:04:05.000Z")),
-				}
+				mapObject[iter.Key().String()] = encodeDate(date)
 				break
 			default:
 				mapObject[iter.Key().String()] = iter.Value().Interface()
@@ -176,4 +160,11 @@ func objectSerialize(object interface{}) map[string]interface{} {
 	}
 
 	return mapObject
+}
+
+func encodeDate(date time.Time) map[string]interface{} {
+	return map[string]interface{}{
+		"__type": "Date",
+		"iso":    fmt.Sprint(date.In(time.FixedZone("UTC", 0)).Format("2006-01-02T15:04:05.000Z")),
+	}
 }
