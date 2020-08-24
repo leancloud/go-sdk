@@ -1,9 +1,7 @@
 package leancloud
 
 import (
-	"encoding/json"
 	"errors"
-	"fmt"
 	"time"
 )
 
@@ -38,113 +36,50 @@ func (client *Client) User(id string) *UserRef {
 	}
 }
 
-func (ref *UserRef) Get(authOption ...AuthOption) (*User, error) {
-	path := fmt.Sprint("/1.1/classes/users/", ref.ID)
-
-	resp, err := ref.c.request(ServiceAPI, methodGet, path, ref.c.getRequestOptions(), authOption...)
-	if err != nil {
+func (ref *UserRef) Get(authOptions ...AuthOption) (*User, error) {
+	user := new(User)
+	if err := objectGet(ref, user, authOptions...); err != nil {
 		return nil, err
 	}
 
-	resBody := make(map[string]interface{})
-
-	if err := json.Unmarshal(resp.Bytes(), &resBody); err != nil {
-		return nil, err
-	}
-
-	createdAt, err := time.Parse(time.RFC3339, resBody["createdAt"].(string))
-	if err != nil {
-		return nil, err
-	}
-	updatedAt, err := time.Parse(time.RFC3339, resBody["updatedAt"].(string))
-	if err != nil {
-		return nil, err
-	}
-
-	sessionToken, ok := resBody["sessionToken"].(string)
-	if !ok {
-		return nil, errors.New("unable to parse sessionToken from response")
-	}
-	objectID, ok := resBody["objectId"].(string)
-	if !ok {
-		return nil, errors.New("unable to parse objectId from response")
-	}
-
-	return &User{
-		sessionToken: sessionToken,
-		Object: Object{
-			ID:        objectID,
-			CreatedAt: createdAt,
-			UpdatedAt: updatedAt,
-			fields:    resBody,
-		},
-	}, nil
+	return user, nil
 }
 
-func (ref *UserRef) Set(field string, value interface{}, authOption ...AuthOption) error {
+func (ref *UserRef) Set(field string, value interface{}, authOptions ...AuthOption) error {
 	if ref.ID == "" {
 		return errors.New("no reference to user")
 	}
 
-	path := fmt.Sprint("/1.1/classes/users/", ref.ID)
-	options := ref.c.getRequestOptions()
-	options.JSON = encodeObject(map[string]interface{}{
-		field: value,
-	})
-
-	resp, err := ref.c.request(ServiceAPI, methodPut, path, options, authOption...)
-	if err != nil {
-		return err
-	}
-
-	respJSON := map[string]interface{}{}
-	if err := json.Unmarshal(resp.Bytes(), &respJSON); err != nil {
+	if err := objectSet(ref, field, value, authOptions...); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (ref *UserRef) Update(data map[string]interface{}, authOption ...AuthOption) error {
+func (ref *UserRef) Update(data map[string]interface{}, authOptions ...AuthOption) error {
 	if ref.ID == "" {
 		return errors.New("no reference to user")
 	}
 
-	path := fmt.Sprint("/1.1/classes/users/", ref.ID)
-	options := ref.c.getRequestOptions()
-	options.JSON = encodeObject(data)
-
-	resp, err := ref.c.request(ServiceAPI, methodPut, path, options, authOption...)
-	if err != nil {
-		return err
-	}
-
-	respJSON := map[string]interface{}{}
-	if err := json.Unmarshal(resp.Bytes(), &respJSON); err != nil {
+	if err := objectUpdate(ref, data, authOptions...); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (ref *UserRef) UpdateWithQuery(data map[string]interface{}, query *UserQuery, authOption ...AuthOption) error {
+func (ref *UserRef) UpdateWithQuery(data map[string]interface{}, query *UserQuery, authOptions ...AuthOption) error {
 	// TODO
 	return nil
 }
 
-func (ref *UserRef) Delete(authOption ...AuthOption) error {
+func (ref *UserRef) Delete(authOptions ...AuthOption) error {
 	if ref.ID == "" {
 		return errors.New("no reference to user")
 	}
 
-	path := fmt.Sprint("/1.1/classes/users/", ref.ID)
-	resp, err := ref.c.request(ServiceAPI, methodDelete, path, ref.c.getRequestOptions(), authOption...)
-	if err != nil {
-		return err
-	}
-
-	respJSON := map[string]interface{}{}
-	if err := json.Unmarshal(resp.Bytes(), &respJSON); err != nil {
+	if err := objectDestroy(ref, authOptions...); err != nil {
 		return err
 	}
 
