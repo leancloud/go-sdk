@@ -26,7 +26,7 @@ func encodeObject(object interface{}) map[string]interface{} {
 				mapObject[tag] = encodeDate(date)
 				break
 			default:
-				mapObject[t.Field(i).Tag.Get("json")] = v.Field(i).Interface()
+				mapObject[tag] = v.Field(i).Interface()
 			}
 		}
 	} else if reflect.TypeOf(object).Kind() == reflect.Map {
