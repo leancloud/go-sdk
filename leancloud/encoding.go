@@ -58,7 +58,7 @@ func decodeFields(fields map[string]interface{}) map[string]interface{} {
 	iter := reflect.ValueOf(fields).MapRange()
 	for iter.Next() {
 		switch iter.Value().Elem().Kind() {
-		case reflect.Interface:
+		case reflect.Map:
 			intf, _ := iter.Value().Interface().(map[string]interface{})
 			if reflect.ValueOf(intf["__type"]).IsValid() {
 				switch intf["__type"].(string) {
@@ -78,38 +78,39 @@ func decodeFields(fields map[string]interface{}) map[string]interface{} {
 }
 
 func decodeObject(fields map[string]interface{}, object interface{}) {
-	v := reflect.ValueOf(object)
-	s := reflect.TypeOf(object)
-	sv := reflect.ValueOf(&object).Elem()
+	v := reflect.Indirect(reflect.ValueOf(object))
+	t := v.Type()
+
 	for i := 0; i < v.NumField(); i++ {
-		tag, ok := s.Field(i).Tag.Lookup("json")
+		tag, ok := t.Field(i).Tag.Lookup("json")
 		if !ok || tag == "" {
-			tag = s.Field(i).Name
+			tag = t.Field(i).Name
 		}
+
 		fv := reflect.ValueOf(fields[tag])
 		if fv.IsValid() {
 			switch fv.Kind() {
-			case reflect.Interface:
-				intf, _ := fields[tag].(map[string]interface{})
-				switch intf["__type"].(string) {
+			case reflect.Map:
+				data, _ := fields[tag].(map[string]interface{})
+				switch data["__type"].(string) {
 				case "Date":
-					sv.Field(i).Set(reflect.ValueOf(intf))
-					break
+					date, _ := decodeDate(data)
+					v.Field(i).Set(reflect.ValueOf(date))
 				}
 				break
 			default:
-				sv.Field(i).Set(fv)
+				v.Field(i).Set(fv.Convert(v.Field(i).Type()))
 			}
 		}
 	}
 }
 
-func decodeDate(data map[string]interface{}) (*time.Time, error) {
+func decodeDate(data map[string]interface{}) (time.Time, error) {
 	date, err := time.Parse(time.RFC3339, data["iso"].(string))
 	if err != nil {
-		return nil, err
+		return time.Time{}, err
 	}
-	return &date, nil
+	return date, nil
 }
 
 func parseTag(tag string) (name string, option string) {

@@ -26,13 +26,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestObjectRefCreate(t *testing.T) {
-	todo := struct {
-		Title      string    `json:"title"`
-		Priority   int       `json:"priority"`
-		Done       bool      `json:"done"`
-		Progress   float64   `json:"progress"`
-		FinishedAt time.Time `json:"finishedAt"`
-	}{
+	todo := Todo{
 		Title:      "Team Meeting",
 		Priority:   1,
 		Done:       false,
