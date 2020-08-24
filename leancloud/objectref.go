@@ -2,7 +2,6 @@ package leancloud
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"time"
 )
@@ -36,11 +35,12 @@ func (ref *ObjectRef) Get(authOptions ...AuthOption) (*Object, error) {
 
 	createdAt, err := time.Parse(time.RFC3339, resBody["createdAt"].(string))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to parse createdAt from response %w", err)
 	}
+
 	updatedAt, err := time.Parse(time.RFC3339, resBody["updatedAt"].(string))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to parse updatedAt from response %w", err)
 	}
 
 	return &Object{
@@ -53,7 +53,7 @@ func (ref *ObjectRef) Get(authOptions ...AuthOption) (*Object, error) {
 
 func (ref *ObjectRef) Set(field string, value interface{}, authOptions ...AuthOption) error {
 	if ref.ID == "" {
-		return errors.New("no reference to object")
+		return fmt.Errorf("no reference to object")
 	}
 
 	path := fmt.Sprint("/1.1/classes/", ref.class, "/", ref.ID)
@@ -78,6 +78,10 @@ func (ref *ObjectRef) Set(field string, value interface{}, authOptions ...AuthOp
 }
 
 func (ref *ObjectRef) Update(data map[string]interface{}, authOptions ...AuthOption) error {
+	if ref.ID == "" {
+		return fmt.Errorf("no reference to object")
+	}
+
 	path := fmt.Sprint("/1.1/classes/", ref.class, "/", ref.ID)
 
 	options := ref.c.getRequestOptions()
@@ -94,14 +98,6 @@ func (ref *ObjectRef) Update(data map[string]interface{}, authOptions ...AuthOpt
 		return err
 	}
 
-	if ref.ID == "" {
-		objectID, ok := respJSON["objectId"].(string)
-		if !ok {
-			return errors.New("unable to fetch object id from response")
-		}
-		ref.ID = objectID
-	}
-
 	return nil
 }
 
@@ -112,7 +108,7 @@ func (ref *ObjectRef) UpdateWithQuery(data map[string]interface{}, query *Query,
 
 func (ref *ObjectRef) Destroy(authOptions ...AuthOption) error {
 	if ref.ID == "" {
-		return errors.New("cannot destroy nonexist object")
+		return fmt.Errorf("no reference to object")
 	}
 	path := fmt.Sprint("/1.1/classes/", ref.class, "/", ref.ID)
 
