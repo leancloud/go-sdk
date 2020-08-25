@@ -77,18 +77,16 @@ func objectCreate(class interface{}, data interface{}, object interface{}, authO
 	var c *Client
 	var options *grequests.RequestOptions
 
-	switch class.(type) {
+	switch v := class.(type) {
 	case *Class:
-		class := class.(*Class)
-		path = fmt.Sprint(path, "classes/", class.Name)
-		c = class.c
+		path = fmt.Sprint(path, "classes/", v.Name)
+		c = v.c
 		options = c.getRequestOptions()
 		options.JSON = encodeObject(data)
 		break
 	case *Users:
-		users := class.(*Users)
 		path = fmt.Sprint(path, "users")
-		c = users.c
+		c = v.c
 		options = c.getRequestOptions()
 		options.JSON = data
 		break
@@ -99,34 +97,23 @@ func objectCreate(class interface{}, data interface{}, object interface{}, authO
 		return err
 	}
 
-	respJSON := make(map[string]interface{})
-	if err := json.Unmarshal(resp.Bytes(), &respJSON); err != nil {
+	objectID, sessionToken, createdAt, _, respJSON, err := extracMetadata(resp.Bytes())
+	if err != nil {
 		return err
 	}
 
-	createdAt, err := time.Parse(time.RFC3339, respJSON["createdAt"].(string))
-	if err != nil {
-		return fmt.Errorf("unable to parse createdAt from response %w", err)
-	}
-
-	objectID, ok := respJSON["objectId"].(string)
-	if !ok {
-		return fmt.Errorf("unable to parse objectId from response")
-	}
-
-	switch class.(type) {
+	switch v := class.(type) {
 	case *Class:
-		class := class.(*Class)
 		object := object.(*ObjectRef)
 		object.ID = objectID
-		object.class = class.Name
-		object.c = class.c
+		object.class = v.Name
+		object.c = v.c
 		break
 	case *Users:
 		user := object.(*User)
 		user.ID = objectID
 		user.CreatedAt = createdAt
-		user.sessionToken = respJSON["sessionToken"].(string)
+		user.sessionToken = sessionToken
 		user.fields = respJSON
 		break
 	}
@@ -139,18 +126,16 @@ func objectGet(ref interface{}, object interface{}, authOptions ...AuthOption) e
 	id := ""
 	var c *Client
 
-	switch ref.(type) {
+	switch v := ref.(type) {
 	case *ObjectRef:
-		objectRef := ref.(*ObjectRef)
-		path = fmt.Sprint(path, "classes/", objectRef.class, "/", objectRef.ID)
-		id = objectRef.ID
-		c = objectRef.c
+		path = fmt.Sprint(path, "classes/", v.class, "/", v.ID)
+		id = v.ID
+		c = v.c
 		break
 	case *UserRef:
-		userRef := ref.(*UserRef)
-		path = fmt.Sprint(path, "users/", userRef.ID)
-		id = userRef.ID
-		c = userRef.c
+		path = fmt.Sprint(path, "users/", v.ID)
+		id = v.ID
+		c = v.c
 		break
 	}
 
@@ -159,20 +144,9 @@ func objectGet(ref interface{}, object interface{}, authOptions ...AuthOption) e
 		return err
 	}
 
-	respJSON := make(map[string]interface{})
-
-	if err := json.Unmarshal(resp.Bytes(), &respJSON); err != nil {
+	_, sessionToken, createdAt, updatedAt, respJSON, err := extracMetadata(resp.Bytes())
+	if err != nil {
 		return err
-	}
-
-	createdAt, err := time.Parse(time.RFC3339, respJSON["createdAt"].(string))
-	if err != nil {
-		return fmt.Errorf("unable to parse createdAt from response %w", err)
-	}
-
-	updatedAt, err := time.Parse(time.RFC3339, respJSON["updatedAt"].(string))
-	if err != nil {
-		return fmt.Errorf("unable to parse updatedAt from response %w", err)
 	}
 
 	switch ref.(type) {
@@ -184,7 +158,6 @@ func objectGet(ref interface{}, object interface{}, authOptions ...AuthOption) e
 		object.fields = respJSON
 		break
 	case *UserRef:
-		sessionToken := respJSON["sessionToken"].(string)
 		user := object.(*User)
 		user.ID = id
 		user.CreatedAt = createdAt
@@ -201,16 +174,14 @@ func objectSet(ref interface{}, field string, data interface{}, authOptions ...A
 	path := "/1.1/"
 	var c *Client
 
-	switch ref.(type) {
+	switch v := ref.(type) {
 	case *ObjectRef:
-		objectRef := ref.(*ObjectRef)
-		path = fmt.Sprint(path, "classes/", objectRef.class, "/", objectRef.ID)
-		c = objectRef.c
+		path = fmt.Sprint(path, "classes/", v.class, "/", v.ID)
+		c = v.c
 		break
 	case *UserRef:
-		userRef := ref.(*UserRef)
-		path = fmt.Sprint(path, "classes/users/", userRef.ID)
-		c = userRef.c
+		path = fmt.Sprint(path, "classes/users/", v.ID)
+		c = v.c
 		break
 	}
 
@@ -236,16 +207,14 @@ func objectUpdate(ref interface{}, data map[string]interface{}, authOptions ...A
 	path := "/1.1/"
 	var c *Client
 
-	switch ref.(type) {
+	switch v := ref.(type) {
 	case *ObjectRef:
-		objectRef := ref.(*ObjectRef)
-		path = fmt.Sprint(path, "classes/", objectRef.class, "/", objectRef.ID)
-		c = objectRef.c
+		path = fmt.Sprint(path, "classes/", v.class, "/", v.ID)
+		c = v.c
 		break
 	case *UserRef:
-		userRef := ref.(*UserRef)
-		path = fmt.Sprint(path, "classes/users/", userRef.ID)
-		c = userRef.c
+		path = fmt.Sprint(path, "classes/users/", v.ID)
+		c = v.c
 		break
 	}
 
@@ -269,16 +238,14 @@ func objectDestroy(ref interface{}, authOptions ...AuthOption) error {
 	path := "/1.1/"
 	var c *Client
 
-	switch ref.(type) {
+	switch v := ref.(type) {
 	case *ObjectRef:
-		objectRef := ref.(*ObjectRef)
-		path = fmt.Sprint(path, "classes/", objectRef.class, "/", objectRef.ID)
-		c = objectRef.c
+		path = fmt.Sprint(path, "classes/", v.class, "/", v.ID)
+		c = v.c
 		break
 	case *UserRef:
-		userRef := ref.(*UserRef)
-		path = fmt.Sprint(path, "classes/users/", userRef.ID)
-		c = userRef.c
+		path = fmt.Sprint(path, "classes/users/", v.ID)
+		c = v.c
 		break
 	}
 
@@ -293,4 +260,58 @@ func objectDestroy(ref interface{}, authOptions ...AuthOption) error {
 	}
 
 	return nil
+}
+
+func extracMetadata(respBody []byte) (id, token string, createdAt, updatedAt time.Time, fields map[string]interface{}, err error) {
+	respJSON := make(map[string]interface{})
+	if err := json.Unmarshal(respBody, &respJSON); err != nil {
+		return "", "", time.Time{}, time.Time{}, nil, fmt.Errorf("unable to parse response body %w", err)
+	}
+
+	ok := false
+	if respJSON["objectId"] != nil {
+		id, ok = respJSON["objectId"].(string)
+		if !ok {
+			return "", "", time.Time{}, time.Time{}, nil, fmt.Errorf("unable to parse objectId from response")
+		}
+	}
+
+	if respJSON["sessionToken"] != nil {
+		token, ok = respJSON["sessionToken"].(string)
+		if !ok {
+			return "", "", time.Time{}, time.Time{}, nil, fmt.Errorf("unable to parse sessionToken from response")
+		}
+	}
+
+	if respJSON["createdAt"] != nil {
+		dateStr, ok := respJSON["createdAt"].(string)
+		if !ok {
+			return "", "", time.Time{}, time.Time{}, nil, fmt.Errorf("unable to parse createdAt from response")
+		}
+
+		if dateStr != "" {
+			date, err := time.Parse(time.RFC3339, dateStr)
+			if err != nil {
+				return "", "", time.Time{}, time.Time{}, nil, fmt.Errorf("unable to parse createdAt from response")
+			}
+			createdAt = date
+		}
+	}
+
+	if respJSON["updatedAt"] != nil {
+		dateStr, ok := respJSON["updatedAt"].(string)
+		if !ok {
+			return "", "", time.Time{}, time.Time{}, nil, fmt.Errorf("unable to parse updatedAt from response")
+		}
+
+		if dateStr != "" {
+			date, err := time.Parse(time.RFC3339, dateStr)
+			if err != nil {
+				return "", "", time.Time{}, time.Time{}, nil, fmt.Errorf("unable to parse updatedAt from response")
+			}
+			updatedAt = date
+		}
+	}
+
+	return id, token, createdAt, updatedAt, respJSON, nil
 }
