@@ -1,11 +1,5 @@
 package leancloud
 
-import (
-	"encoding/json"
-	"errors"
-	"fmt"
-)
-
 type Class struct {
 	c    *Client
 	Name string
@@ -27,31 +21,12 @@ func (ref *Class) Object(id string) *ObjectRef {
 }
 
 func (ref *Class) Create(data interface{}, authOptions ...AuthOption) (*ObjectRef, error) {
-	method := methodPost
-	path := fmt.Sprint("/1.1/classes/", ref.Name)
-
-	options := ref.c.getRequestOptions()
-	options.JSON = encodeObject(data)
-
-	resp, err := ref.c.request(ServiceAPI, method, path, options, authOptions...)
-	if err != nil {
+	objectRef := new(ObjectRef)
+	if err := objectCreate(ref, data, objectRef, authOptions...); err != nil {
 		return nil, err
 	}
 
-	respJSON := map[string]interface{}{}
-	if err := json.Unmarshal(resp.Bytes(), &respJSON); err != nil {
-		return nil, err
-	}
-
-	objectID, ok := respJSON["objectId"].(string)
-	if !ok {
-		return nil, errors.New("unable to parse objectId from response")
-	}
-	return &ObjectRef{
-		c:     ref.c,
-		class: ref.Name,
-		ID:    objectID,
-	}, nil
+	return objectRef, nil
 }
 
 func (ref *Class) NewQuery() *Query {

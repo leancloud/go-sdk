@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"time"
+
+	"github.com/levigross/grequests"
 )
 
 type ObjectRef struct {
@@ -65,6 +67,68 @@ func (ref *ObjectRef) Destroy(authOptions ...AuthOption) error {
 
 	if err := objectDestroy(ref); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func objectCreate(class interface{}, data interface{}, object interface{}, authOptions ...AuthOption) error {
+	path := "/1.1/"
+	var c *Client
+	var options *grequests.RequestOptions
+
+	switch class.(type) {
+	case *Class:
+		class := class.(*Class)
+		path = fmt.Sprint(path, "classes/", class.Name)
+		c = class.c
+		options = c.getRequestOptions()
+		options.JSON = encodeObject(data)
+		break
+	case *Users:
+		users := class.(*Users)
+		path = fmt.Sprint(path, "users")
+		c = users.c
+		options = c.getRequestOptions()
+		options.JSON = data
+		break
+	}
+
+	resp, err := c.request(ServiceAPI, methodPost, path, options, authOptions...)
+	if err != nil {
+		return err
+	}
+
+	respJSON := make(map[string]interface{})
+	if err := json.Unmarshal(resp.Bytes(), &respJSON); err != nil {
+		return err
+	}
+
+	createdAt, err := time.Parse(time.RFC3339, respJSON["createdAt"].(string))
+	if err != nil {
+		return fmt.Errorf("unable to parse createdAt from response %w", err)
+	}
+
+	objectID, ok := respJSON["objectId"].(string)
+	if !ok {
+		return fmt.Errorf("unable to parse objectId from response")
+	}
+
+	switch class.(type) {
+	case *Class:
+		class := class.(*Class)
+		object := object.(*ObjectRef)
+		object.ID = objectID
+		object.class = class.Name
+		object.c = class.c
+		break
+	case *Users:
+		user := object.(*User)
+		user.ID = objectID
+		user.CreatedAt = createdAt
+		user.sessionToken = respJSON["sessionToken"].(string)
+		user.fields = respJSON
+		break
 	}
 
 	return nil

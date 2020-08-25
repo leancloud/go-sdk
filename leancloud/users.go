@@ -60,45 +60,16 @@ func (r *Users) LogIn(username, password string) (*User, error) {
 }
 
 func (r *Users) SignUp(username, password string) (*User, error) {
-	path := fmt.Sprint("/1.1/users")
-	options := r.c.getRequestOptions()
-	options.JSON = map[string]string{
+	user := new(User)
+	reqJSON := map[string]string{
 		"username": username,
 		"password": password,
 	}
-
-	resp, err := r.c.request(ServiceAPI, methodPost, path, options)
-	if err != nil {
+	if err := objectCreate(r, reqJSON, user); err != nil {
 		return nil, err
 	}
 
-	respJSON := map[string]interface{}{}
-	if err := json.Unmarshal(resp.Bytes(), &respJSON); err != nil {
-		return nil, err
-	}
-
-	objectID, ok := respJSON["objectId"].(string)
-	if !ok {
-		return nil, fmt.Errorf("unable to parse objectId from response")
-	}
-
-	createdAt, err := time.Parse(time.RFC3339, respJSON["createdAt"].(string))
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse createdAt from response %w", err)
-	}
-
-	sessionToken, ok := respJSON["sessionToken"].(string)
-	if !ok {
-		return nil, fmt.Errorf("unable to parse sessionToken from response")
-	}
-
-	return &User{
-		sessionToken: sessionToken,
-		Object: Object{
-			ID:        objectID,
-			CreatedAt: createdAt,
-		},
-	}, nil
+	return user, nil
 }
 
 func (c *Client) NewUserQuery() *UserQuery {
