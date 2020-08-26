@@ -55,7 +55,7 @@ func (c *Client) NewUserQuery() *UserQuery {
 }
 
 func (ref *Users) Become(sessionToken string) (*User, error) {
-	resp, err := ref.c.request(ServiceAPI, methodPost, "/1.1/users/me", nil, UseSessionToken(sessionToken))
+	resp, err := ref.c.request(ServiceAPI, methodGet, "/1.1/users/me", ref.c.getRequestOptions(), UseSessionToken(sessionToken))
 	if err != nil {
 		return nil, err
 	}

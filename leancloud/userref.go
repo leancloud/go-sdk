@@ -74,7 +74,7 @@ func (ref *UserRef) UpdateWithQuery(data map[string]interface{}, query *UserQuer
 	return nil
 }
 
-func (ref *UserRef) Delete(authOptions ...AuthOption) error {
+func (ref *UserRef) Destroy(authOptions ...AuthOption) error {
 	if ref.ID == "" {
 		return errors.New("no reference to user")
 	}

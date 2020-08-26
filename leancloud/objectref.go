@@ -97,7 +97,7 @@ func objectCreate(class interface{}, data interface{}, object interface{}, authO
 		return err
 	}
 
-	objectID, sessionToken, createdAt, _, respJSON, err := extracMetadata(resp.Bytes())
+	objectID, sessionToken, createdAt, updatedAt, respJSON, err := extracMetadata(resp.Bytes())
 	if err != nil {
 		return err
 	}
@@ -113,6 +113,7 @@ func objectCreate(class interface{}, data interface{}, object interface{}, authO
 		user := object.(*User)
 		user.ID = objectID
 		user.CreatedAt = createdAt
+		user.UpdatedAt = updatedAt
 		user.sessionToken = sessionToken
 		user.fields = respJSON
 		break
@@ -180,7 +181,7 @@ func objectSet(ref interface{}, field string, data interface{}, authOptions ...A
 		c = v.c
 		break
 	case *UserRef:
-		path = fmt.Sprint(path, "classes/users/", v.ID)
+		path = fmt.Sprint(path, "users/", v.ID)
 		c = v.c
 		break
 	}
@@ -213,7 +214,7 @@ func objectUpdate(ref interface{}, data map[string]interface{}, authOptions ...A
 		c = v.c
 		break
 	case *UserRef:
-		path = fmt.Sprint(path, "classes/users/", v.ID)
+		path = fmt.Sprint(path, "users/", v.ID)
 		c = v.c
 		break
 	}
@@ -244,7 +245,7 @@ func objectDestroy(ref interface{}, authOptions ...AuthOption) error {
 		c = v.c
 		break
 	case *UserRef:
-		path = fmt.Sprint(path, "classes/users/", v.ID)
+		path = fmt.Sprint(path, "users/", v.ID)
 		c = v.c
 		break
 	}

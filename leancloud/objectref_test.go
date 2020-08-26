@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/rand"
 	"os"
 	"testing"
 	"time"
@@ -21,6 +22,7 @@ var c *Client
 
 func TestMain(m *testing.M) {
 	c = NewEnvClient()
+	rand.Seed(time.Now().UnixNano())
 
 	os.Exit(m.Run())
 }
@@ -62,15 +64,6 @@ func TestObjectRefCreate(t *testing.T) {
 	if date.Unix() != todo.FinishedAt.Unix() {
 		t.Fatal(errors.New("value of finishedAt field unmatch"))
 	}
-
-	marshalJSON, _ := json.MarshalIndent(respJSON, "", "  ")
-	t.Log("\n" + string(marshalJSON))
-
-}
-
-func (object *Object) String() string {
-	marshaledJSON, _ := json.MarshalIndent(object, "", "  ")
-	return string(marshaledJSON)
 }
 
 func TestObjectRefGet(t *testing.T) {
@@ -108,8 +101,6 @@ func TestObjectRefGet(t *testing.T) {
 	if date.Unix() != todo.FinishedAt.Unix() {
 		t.Fatal(errors.New("value of finishedAt field unmatch"))
 	}
-
-	t.Log(fmt.Sprint("\n", object))
 }
 
 func TestObjectRefSet(t *testing.T) {

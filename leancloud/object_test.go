@@ -54,8 +54,6 @@ func TestObjectGetMap(t *testing.T) {
 	if mapObject["objectId"].(string) != ref.ID {
 		t.Fatal("objectId unmatch")
 	}
-
-	t.Log(mapObject)
 }
 
 func TestObjectToStruct(t *testing.T) {
@@ -99,6 +97,4 @@ func TestObjectToStruct(t *testing.T) {
 	if dup.FinishedAt.Unix() != todo.FinishedAt.Unix() {
 		t.Fatal(fmt.Errorf("finishedAt unmatch"))
 	}
-
-	t.Log(dup)
 }
