@@ -6,7 +6,7 @@ type User struct {
 }
 
 func (user *User) GetMap() map[string]interface{} {
-	return decodeFields(user.fields)
+	return user.fields
 }
 
 func (user *User) ToStruct(p interface{}) {
