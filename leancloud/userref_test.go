@@ -84,11 +84,7 @@ func TestUserRefUpdate(t *testing.T) {
 		t.Fatal(fmt.Errorf("floatNumber unmatch"))
 	}
 
-	date := userByID.fields["extraDate"].(map[string]interface{})
-	extraDate, err := time.Parse(time.RFC3339, date["iso"].(string))
-	if err != nil {
-		t.Fatal(fmt.Errorf("unable to parse date from fields %w", err))
-	}
+	extraDate := userByID.fields["extraDate"].(time.Time)
 
 	if extraDate.Unix() != now.Unix() {
 		t.Fatal(fmt.Errorf("extraDate unmatch"))

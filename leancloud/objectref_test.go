@@ -96,9 +96,8 @@ func TestObjectRefGet(t *testing.T) {
 	if object.fields["progress"].(float64) != todo.Progress {
 		t.Fatal(errors.New("value of progress field unmatch"))
 	}
-	finishedAt := object.fields["finishedAt"].(map[string]interface{})
-	date, _ := decodeDate(finishedAt)
-	if date.Unix() != todo.FinishedAt.Unix() {
+	finishedAt := object.fields["finishedAt"].(time.Time)
+	if finishedAt.Unix() != todo.FinishedAt.Unix() {
 		t.Fatal(errors.New("value of finishedAt field unmatch"))
 	}
 }
@@ -171,9 +170,8 @@ func TestObjectRefUpdate(t *testing.T) {
 	if object.fields["progress"].(float64) != updateMap["progress"] {
 		t.Fatal(errors.New("value of progress field unmatch"))
 	}
-	finishedAt := object.fields["finishedAt"].(map[string]interface{})
-	date, _ := decodeDate(finishedAt)
-	if date.Unix() != updateMap["finishedAt"].(time.Time).Unix() {
+	finishedAt := object.fields["finishedAt"].(time.Time)
+	if finishedAt.Unix() != updateMap["finishedAt"].(time.Time).Unix() {
 		t.Fatal(errors.New("value of finishedAt field unmatch"))
 	}
 }

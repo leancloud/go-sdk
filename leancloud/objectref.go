@@ -156,7 +156,7 @@ func objectGet(ref interface{}, object interface{}, authOptions ...AuthOption) e
 		object.ID = id
 		object.CreatedAt = createdAt
 		object.UpdatedAt = updatedAt
-		object.fields = respJSON
+		object.fields = decodeFields(respJSON)
 		break
 	case *UserRef:
 		user := object.(*User)
@@ -164,7 +164,7 @@ func objectGet(ref interface{}, object interface{}, authOptions ...AuthOption) e
 		user.CreatedAt = createdAt
 		user.UpdatedAt = updatedAt
 		user.sessionToken = sessionToken
-		user.fields = respJSON
+		user.fields = decodeFields(respJSON)
 		break
 	}
 

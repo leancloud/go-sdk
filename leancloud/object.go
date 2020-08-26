@@ -12,7 +12,7 @@ type Object struct {
 }
 
 func (object *Object) GetMap() map[string]interface{} {
-	return decodeFields(object.fields)
+	return object.fields
 }
 
 func (object *Object) ToStruct(p interface{}) {
