@@ -31,7 +31,7 @@ func (ref *Class) Create(data interface{}, authOptions ...AuthOption) (*ObjectRe
 
 func (ref *Class) NewQuery() *Query {
 	return &Query{
-		c:        ref.c,
-		classRef: ref,
+		c:     ref.c,
+		class: ref,
 	}
 }

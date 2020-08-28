@@ -33,7 +33,7 @@ func TestNewQuery(t *testing.T) {
 	if query.c != client {
 		t.Fatal(errors.New("client unmatch"))
 	}
-	if query.classRef.Name != "class" {
+	if query.class.Name != "class" {
 		t.Fatal(errors.New("name of class unmatch"))
 	}
 }
