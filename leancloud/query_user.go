@@ -1,105 +1,134 @@
 package leancloud
 
+import "fmt"
+
 type UserQuery struct {
-	c        *Client
-	classRef *Class
-	where    map[string]string
-	order    []string
-	limit    int
-	skip     int
+	c     *Client
+	class *Class
+	where map[string]interface{}
+	order []string
+	limit int
+	skip  int
 }
 
-func (r *UserQuery) Find(auth ...AuthOption) ([]Object, error) {
-	// TODO
-	return nil, nil
+func (q *UserQuery) Find(authOptions ...AuthOption) ([]User, error) {
+	respUsers, err := objectQuery(q, false, false, authOptions...)
+	if err != nil {
+		return nil, err
+	}
+
+	users, ok := respUsers.([]User)
+	if !ok {
+		return nil, fmt.Errorf("unable to complete current query")
+	}
+
+	return users, nil
 }
 
-func (r *UserQuery) First() (*Object, error) {
-	// TODO
-	return nil, nil
+func (q *UserQuery) First(authOptions ...AuthOption) (*User, error) {
+	respUsers, err := objectQuery(q, false, true, authOptions...)
+	if err != nil {
+		return nil, err
+	}
+
+	users, ok := respUsers.([]User)
+	if !ok || len(users) > 1 {
+		return nil, fmt.Errorf("unable to complete current query")
+	}
+
+	return &users[0], nil
 }
 
-func (r *UserQuery) Count() (int, error) {
-	// TODO
-	return 0, nil
+func (q *UserQuery) Count(authOptions ...AuthOption) (int, error) {
+	resp, err := objectQuery(q, true, false, authOptions...)
+	if err != nil {
+		return 0, err
+	}
+
+	count, ok := resp.(float64)
+	if !ok {
+		return 0, fmt.Errorf("unable to complete current query")
+	}
+
+	return int(count), nil
 }
 
-func (r *UserQuery) Skip(count int) *UserQuery {
-	// TODO
+func (q *UserQuery) Skip(count int) *UserQuery {
+	q.skip = count
+	return q
+}
+
+func (q *UserQuery) Limit(limit int) *UserQuery {
+	q.limit = limit
+	return q
+}
+
+func (q *UserQuery) Order(keys ...string) *UserQuery {
+	q.order = keys
+	return q
+}
+
+func (q *UserQuery) EqualTo(key string, value interface{}) *UserQuery {
+	q.where[key] = wrapCondition("", value, "")
+	return q
+}
+
+func (q *UserQuery) NotEqualTo(key string, value interface{}) *UserQuery {
+	q.where[key] = wrapCondition("$ne", value, "")
+	return q
+}
+
+func (q *UserQuery) SizeEqualTo(key string, count int) *UserQuery {
+	q.where[key] = wrapCondition("$size", count, "")
 	return nil
 }
 
-func (r *UserQuery) Limit(limit int) *UserQuery {
-	// TODO
+func (q *UserQuery) GreaterThan(key string, value interface{}) *UserQuery {
+	q.where[key] = wrapCondition("$gt", value, "")
+	return q
+}
+
+func (q *UserQuery) GreaterThanOrEqualTo(key string, value interface{}) *UserQuery {
+	q.where[key] = wrapCondition("$lte", value, "")
+	return q
+}
+
+func (q *UserQuery) LessThan(key string, value interface{}) *UserQuery {
+	q.where[key] = wrapCondition("$lt", value, "")
+	return q
+}
+
+func (q *UserQuery) LessThanOrEqualTo(key string, value interface{}) *UserQuery {
+	q.where[key] = wrapCondition("$lte", value, "")
 	return nil
 }
 
-func (r *UserQuery) Order(keys ...string) *UserQuery {
-	// TODO
-	return nil
+func (q *UserQuery) In(key string, data interface{}) *UserQuery {
+	q.where[key] = wrapCondition("$in", data, "")
+	return q
 }
 
-func (r *UserQuery) EqualTo(key string, value interface{}) *UserQuery {
-	// TODO
-	return nil
+func (q *UserQuery) NotIn(key string, data interface{}) *UserQuery {
+	q.where[key] = wrapCondition("$nin", data, "")
+	return q
 }
 
-func (r *UserQuery) NotEqualTo(key string, value interface{}) *UserQuery {
-	// TODO
-	return nil
+func (q *UserQuery) Regexp(key, expr, options string) *UserQuery {
+	q.where[key] = wrapCondition("$regex", expr, options)
+	return q
 }
 
-func (r *UserQuery) SizeEqualTo(key string, count int) *UserQuery {
-	// TODO
-	return nil
+func (q *UserQuery) Contains(key, substring string) *UserQuery {
+	q.Regexp(key, substring, "")
+	return q
 }
 
-func (r *UserQuery) GreaterThan(key string, value interface{}) *UserQuery {
-	// TODO
-	return nil
+func (q *UserQuery) ContainsAll(key string, objects interface{}) *UserQuery {
+	q.where[key] = wrapCondition("$all", objects, "")
+	return q
 }
 
-func (r *UserQuery) GreaterThanOrEqualTo(key string, value interface{}) *UserQuery {
-	// TODO
-	return nil
-}
-
-func (r *UserQuery) LessThan(key string, value interface{}) *UserQuery {
-	// TODO
-	return nil
-}
-
-func (r *UserQuery) LessThanOrEqualTo(key string, value interface{}) *UserQuery {
-	// TODO
-	return nil
-}
-
-func (r *UserQuery) In(key string, data interface{}) *UserQuery {
-	// TODO
-	return nil
-}
-
-func (r *UserQuery) NotIn(key string, data interface{}) *UserQuery {
-	// TODO
-	return nil
-}
-
-func (r *UserQuery) Regexp(expr, options string) *UserQuery {
-	// TODO
-	return nil
-}
-
-func (r *UserQuery) Contains(key, substring string) *UserQuery {
-	// TODO
-	return nil
-}
-
-func (r *UserQuery) ContainsAll(key string, objects interface{}) *UserQuery {
-	// TODO
-	return nil
-}
-
-func (r *UserQuery) StartsWith(key, prefix string) *UserQuery {
-	// TODO
+func (q *UserQuery) StartsWith(key, prefix string) *UserQuery {
+	q.Regexp(key, fmt.Sprint("^", prefix), "")
 	return nil
 }

@@ -39,7 +39,7 @@ func (q *Query) First(authOptions ...AuthOption) (*Object, error) {
 	}
 
 	objects, ok := respObjects.([]Object)
-	if !ok || len(objects) != 1 {
+	if !ok || len(objects) > 1 {
 		return nil, fmt.Errorf("unable to complete current query")
 	}
 
