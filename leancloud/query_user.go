@@ -130,5 +130,5 @@ func (q *UserQuery) ContainsAll(key string, objects interface{}) *UserQuery {
 
 func (q *UserQuery) StartsWith(key, prefix string) *UserQuery {
 	q.Regexp(key, fmt.Sprint("^", prefix), "")
-	return nil
+	return q
 }
