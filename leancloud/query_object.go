@@ -215,21 +215,20 @@ func objectQuery(query interface{}, count bool, first bool, authOptions ...AuthO
 		return respJSON["count"], nil
 	}
 
-	var objects []Object
-	var users []User
-
 	results := respJSON["results"].([]map[string]interface{})
 	switch query.(type) {
 	case *Query:
+		var objects []Object
 		for i := 0; i < len(results); i++ {
 			decodeObject(results[i], &objects[i])
-			return objects, nil
 		}
+		return objects, nil
 	case *UserQuery:
+		var users []User
 		for i := 0; i < len(results); i++ {
 			decodeObject(results[i], &users[i])
-			return users, nil
 		}
+		return users, nil
 	}
 
 	return nil, nil
