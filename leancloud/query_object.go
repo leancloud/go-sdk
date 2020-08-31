@@ -26,7 +26,7 @@ func (q *Query) Find(authOptions ...AuthOption) ([]Object, error) {
 
 	objects, ok := respObjects.([]Object)
 	if !ok {
-		return nil, fmt.Errorf("unable to complete current query")
+		return nil, fmt.Errorf("unable to parse objects from response")
 	}
 
 	return objects, nil
@@ -39,8 +39,12 @@ func (q *Query) First(authOptions ...AuthOption) (*Object, error) {
 	}
 
 	objects, ok := respObjects.([]Object)
-	if !ok || len(objects) > 1 {
-		return nil, fmt.Errorf("unable to complete current query")
+	if !ok {
+		return nil, fmt.Errorf("unable to parse object from response")
+	}
+
+	if len(objects) > 1 {
+		return nil, fmt.Errorf("wrong count of response")
 	}
 
 	return &objects[0], nil
@@ -54,7 +58,7 @@ func (q *Query) Count(authOptions ...AuthOption) (int, error) {
 
 	count, ok := resp.(float64)
 	if !ok {
-		return 0, fmt.Errorf("unable to complete current query")
+		return 0, fmt.Errorf("unable to parse count from response")
 	}
 
 	return int(count), nil

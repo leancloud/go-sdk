@@ -19,7 +19,7 @@ func (q *UserQuery) Find(authOptions ...AuthOption) ([]User, error) {
 
 	users, ok := respUsers.([]User)
 	if !ok {
-		return nil, fmt.Errorf("unable to complete current query")
+		return nil, fmt.Errorf("unable to parse users from response")
 	}
 
 	return users, nil
@@ -32,8 +32,12 @@ func (q *UserQuery) First(authOptions ...AuthOption) (*User, error) {
 	}
 
 	users, ok := respUsers.([]User)
-	if !ok || len(users) > 1 {
-		return nil, fmt.Errorf("unable to complete current query")
+	if !ok {
+		return nil, fmt.Errorf("unable to parse user from response")
+	}
+
+	if len(users) > 1 {
+		return nil, fmt.Errorf("wrong count of response")
 	}
 
 	return &users[0], nil
@@ -47,7 +51,7 @@ func (q *UserQuery) Count(authOptions ...AuthOption) (int, error) {
 
 	count, ok := resp.(float64)
 	if !ok {
-		return 0, fmt.Errorf("unable to complete current query")
+		return 0, fmt.Errorf("unable to parse count from response")
 	}
 
 	return int(count), nil
