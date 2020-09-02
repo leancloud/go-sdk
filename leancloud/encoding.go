@@ -88,20 +88,37 @@ func decodeObject(fields map[string]interface{}, object interface{}) {
 		}
 
 		fv := reflect.ValueOf(fields[tag])
-		if fv.IsValid() {
+		if fields[tag] != nil {
 			switch fv.Kind() {
 			case reflect.Map:
 				data, _ := fields[tag].(map[string]interface{})
-				switch data["__type"].(string) {
+				mapType, _ := data["__type"].(string)
+				switch mapType {
 				case "Date":
 					date, _ := decodeDate(data)
 					v.Field(i).Set(reflect.ValueOf(date))
 				}
-				break
+			case reflect.String:
+				if tag == "createdAt" || tag == "updatedAt" {
+					timeAt, err := time.Parse(time.RFC3339, fv.String())
+					if err != nil {
+						panic(err)
+					}
+					v.Field(i).Set(reflect.ValueOf(timeAt))
+				} else {
+					v.Field(i).Set(fv)
+				}
 			default:
-				v.Field(i).Set(fv.Convert(v.Field(i).Type()))
+				v.Field(i).Set(fv.Convert(t.Field(i).Type))
 			}
 		}
+	}
+
+	switch v := object.(type) {
+	case *Object:
+		v.fields = fields
+	case *User:
+		v.fields = fields
 	}
 }
 

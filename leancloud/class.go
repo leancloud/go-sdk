@@ -33,5 +33,6 @@ func (ref *Class) NewQuery() *Query {
 	return &Query{
 		c:     ref.c,
 		class: ref,
+		where: make(map[string]interface{}),
 	}
 }

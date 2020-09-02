@@ -89,18 +89,13 @@ func (q *Query) NotEqualTo(key string, value interface{}) *Query {
 	return q
 }
 
-func (q *Query) SizeEqualTo(key string, count int) *Query {
-	q.where[key] = wrapCondition("$size", count, "")
-	return nil
-}
-
 func (q *Query) GreaterThan(key string, value interface{}) *Query {
 	q.where[key] = wrapCondition("$gt", value, "")
 	return q
 }
 
 func (q *Query) GreaterThanOrEqualTo(key string, value interface{}) *Query {
-	q.where[key] = wrapCondition("$lte", value, "")
+	q.where[key] = wrapCondition("$gte", value, "")
 	return q
 }
 
@@ -111,7 +106,7 @@ func (q *Query) LessThan(key string, value interface{}) *Query {
 
 func (q *Query) LessThanOrEqualTo(key string, value interface{}) *Query {
 	q.where[key] = wrapCondition("$lte", value, "")
-	return nil
+	return q
 }
 
 func (q *Query) In(key string, data interface{}) *Query {
@@ -141,20 +136,26 @@ func (q *Query) ContainsAll(key string, objects interface{}) *Query {
 
 func (q *Query) StartsWith(key, prefix string) *Query {
 	q.Regexp(key, fmt.Sprint("^", prefix), "")
-	return nil
+	return q
 }
 
 func wrapCondition(verb string, value interface{}, options string) interface{} {
 	switch verb {
 	case "$ne":
+		fallthrough
 	case "$lt":
+		fallthrough
 	case "$lte":
+		fallthrough
 	case "$gt":
+		fallthrough
 	case "$gte":
+		fallthrough
 	case "$in":
+		fallthrough
 	case "$nin":
+		fallthrough
 	case "$all":
-	case "$size":
 		switch v := value.(type) {
 		case time.Time:
 			return map[string]interface{}{
@@ -178,7 +179,6 @@ func wrapCondition(verb string, value interface{}, options string) interface{} {
 			return value
 		}
 	}
-	return nil
 }
 
 func objectQuery(query interface{}, count bool, first bool, authOptions ...AuthOption) (interface{}, error) {
@@ -192,12 +192,12 @@ func objectQuery(query interface{}, count bool, first bool, authOptions ...AuthO
 
 	switch v := query.(type) {
 	case *Query:
-		path = fmt.Sprint("classes/", v.class.Name)
+		path = fmt.Sprint(path, "classes/", v.class.Name)
 		options = v.c.getRequestOptions()
 		client = v.c
 		break
 	case *UserQuery:
-		path = fmt.Sprint("users/")
+		path = fmt.Sprint(path, "users/")
 		options = v.c.getRequestOptions()
 		client = v.c
 		break
@@ -219,18 +219,24 @@ func objectQuery(query interface{}, count bool, first bool, authOptions ...AuthO
 		return respJSON["count"], nil
 	}
 
-	results := respJSON["results"].([]map[string]interface{})
+	results := respJSON["results"].([]interface{})
 	switch query.(type) {
 	case *Query:
 		var objects []Object
 		for i := 0; i < len(results); i++ {
-			decodeObject(results[i], &objects[i])
+			result := results[i].(map[string]interface{})
+			object := new(Object)
+			decodeObject(result, object)
+			objects = append(objects, *object)
 		}
 		return objects, nil
 	case *UserQuery:
 		var users []User
 		for i := 0; i < len(results); i++ {
-			decodeObject(results[i], &users[i])
+			result := results[i].(map[string]interface{})
+			user := new(User)
+			decodeObject(result, user)
+			users = append(users, *user)
 		}
 		return users, nil
 	}
@@ -263,9 +269,18 @@ func wrapParams(query interface{}, count, first bool) (map[string]string, error)
 
 	params := map[string]string{
 		"where": string(whereString),
-		"order": strings.Join(order, ","),
-		"skip":  fmt.Sprintf("%d", skip),
-		"limit": fmt.Sprintf("%d", limit),
+	}
+
+	if skip != 0 {
+		params["skip"] = fmt.Sprintf("%d", skip)
+	}
+
+	if limit != 0 {
+		params["limit"] = fmt.Sprintf("%d", limit)
+	}
+
+	if len(order) != 0 {
+		params["order"] = strings.Join(order, ",")
 	}
 
 	if count {
@@ -276,10 +291,5 @@ func wrapParams(query interface{}, count, first bool) (map[string]string, error)
 		params["limit"] = "1"
 	}
 
-	return map[string]string{
-		"where": string(whereString),
-		"order": strings.Join(order, ","),
-		"skip":  fmt.Sprintf("%d", skip),
-		"limit": fmt.Sprintf("%d", limit),
-	}, nil
+	return params, nil
 }
