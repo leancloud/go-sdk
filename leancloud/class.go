@@ -12,22 +12,27 @@ func (client *Client) Class(name string) *Class {
 	}
 }
 
-func (r *Class) Object(id string) *ObjectRef {
+func (ref *Class) Object(id string) *ObjectRef {
 	return &ObjectRef{
-		c:     r.c,
-		class: r.Name,
+		c:     ref.c,
+		class: ref.Name,
 		ID:    id,
 	}
 }
 
-func (r *Class) Create(data interface{}, auth ...AuthOption) (*ObjectRef, error) {
-	// TODO
-	return nil, nil
+func (ref *Class) Create(data interface{}, authOptions ...AuthOption) (*ObjectRef, error) {
+	objectRef := new(ObjectRef)
+	if err := objectCreate(ref, data, objectRef, authOptions...); err != nil {
+		return nil, err
+	}
+
+	return objectRef, nil
 }
 
-func (r *Class) NewQuery() *Query {
+func (ref *Class) NewQuery() *Query {
 	return &Query{
-		c:        r.c,
-		classRef: r,
+		c:     ref.c,
+		class: ref,
+		where: make(map[string]interface{}),
 	}
 }

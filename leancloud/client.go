@@ -30,6 +30,8 @@ func NewClient(region, appID, appKey, masterKey string) *Client {
 		client.requestLogger = log.New(os.Stdout, "", log.LstdFlags)
 	}
 
+	client.Users.c = client
+
 	return client
 }
 func NewEnvClient() *Client {

@@ -1,6 +1,9 @@
 package leancloud
 
-import "time"
+import (
+	"errors"
+	"time"
+)
 
 type UserRef struct {
 	c     *Client
@@ -26,31 +29,59 @@ type signinResponse struct {
 }
 
 func (client *Client) User(id string) *UserRef {
+	return &UserRef{
+		c:     client,
+		class: "users",
+		ID:    id,
+	}
+}
+
+func (ref *UserRef) Get(authOptions ...AuthOption) (*User, error) {
+	user := new(User)
+	if err := objectGet(ref, user, authOptions...); err != nil {
+		return nil, err
+	}
+
+	return user, nil
+}
+
+func (ref *UserRef) Set(field string, value interface{}, authOptions ...AuthOption) error {
+	if ref.ID == "" {
+		return errors.New("no reference to user")
+	}
+
+	if err := objectSet(ref, field, value, authOptions...); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (ref *UserRef) Update(data map[string]interface{}, authOptions ...AuthOption) error {
+	if ref.ID == "" {
+		return errors.New("no reference to user")
+	}
+
+	if err := objectUpdate(ref, data, authOptions...); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (ref *UserRef) UpdateWithQuery(data map[string]interface{}, query *UserQuery, authOptions ...AuthOption) error {
 	// TODO
 	return nil
 }
 
-func (r *UserRef) Get(authOption ...AuthOption) (*User, error) {
-	// TODO
-	return nil, nil
-}
+func (ref *UserRef) Destroy(authOptions ...AuthOption) error {
+	if ref.ID == "" {
+		return errors.New("no reference to user")
+	}
 
-func (r *UserRef) Set(field string, value interface{}, authOption ...AuthOption) error {
-	// TODO
-	return nil
-}
+	if err := objectDestroy(ref, authOptions...); err != nil {
+		return err
+	}
 
-func (r *UserRef) Update(data map[string]interface{}, authOption ...AuthOption) error {
-	// TODO
-	return nil
-}
-
-func (r *UserRef) UpdateWithQuery(data map[string]interface{}, query *UserQuery, authOption ...AuthOption) error {
-	// TODO
-	return nil
-}
-
-func (r *UserRef) Delete() error {
-	// TODO
 	return nil
 }

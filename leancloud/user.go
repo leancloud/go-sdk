@@ -6,18 +6,15 @@ type User struct {
 }
 
 func (user *User) GetMap() map[string]interface{} {
-	// TODO
-	return nil
+	return user.fields
 }
 
-func (user *User) ToStruct(p interface{}) error {
-	// TODO
-	return nil
+func (user *User) ToStruct(p interface{}) {
+	decodeObject(user.fields, p)
 }
 
 func (user *User) Get(field string) interface{} {
-	// TODO
-	return nil
+	return user.fields[field]
 }
 
 func (user *User) GetSessionToken() string {

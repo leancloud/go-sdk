@@ -1,6 +1,8 @@
 package leancloud
 
-import "time"
+import (
+	"time"
+)
 
 type Object struct {
 	ID        string    `json:"objectId"`
@@ -10,16 +12,13 @@ type Object struct {
 }
 
 func (object *Object) GetMap() map[string]interface{} {
-	// TODO
-	return nil
+	return object.fields
 }
 
-func (object *Object) ToStruct(p interface{}) error {
-	// TODO
-	return nil
+func (object *Object) ToStruct(p interface{}) {
+	decodeObject(object.fields, p)
 }
 
-func (object *Object) Get(filed string) interface{} {
-	// TODO
-	return nil
+func (object *Object) Get(field string) interface{} {
+	return object.fields[field]
 }
