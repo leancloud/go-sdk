@@ -53,17 +53,23 @@ func encodeDate(date time.Time) map[string]interface{} {
 	}
 }
 
-func decodeFields(fields map[string]interface{}) map[string]interface{} {
+func decodeFields(fields map[string]interface{}) (map[string]interface{}, error) {
 	objectMap := make(map[string]interface{})
 	iter := reflect.ValueOf(fields).MapRange()
 	for iter.Next() {
 		switch iter.Value().Elem().Kind() {
 		case reflect.Map:
-			intf, _ := iter.Value().Interface().(map[string]interface{})
+			intf, ok := iter.Value().Interface().(map[string]interface{})
+			if !ok {
+				return nil, fmt.Errorf("unable to assert type map from fields")
+			}
 			if reflect.ValueOf(intf["__type"]).IsValid() {
 				switch intf["__type"].(string) {
 				case "Date":
-					date, _ := decodeDate(intf)
+					date, err := decodeDate(intf)
+					if err != nil {
+						return nil, fmt.Errorf("unable to decode Date %w", err)
+					}
 					objectMap[iter.Key().String()] = date
 					break
 				}
@@ -74,10 +80,10 @@ func decodeFields(fields map[string]interface{}) map[string]interface{} {
 		}
 	}
 
-	return objectMap
+	return objectMap, nil
 }
 
-func decodeObject(fields map[string]interface{}, object interface{}) {
+func decodeObject(fields map[string]interface{}, object interface{}) error {
 	v := reflect.Indirect(reflect.ValueOf(object))
 	t := v.Type()
 
@@ -87,15 +93,25 @@ func decodeObject(fields map[string]interface{}, object interface{}) {
 			tag = t.Field(i).Name
 		}
 
-		fv := reflect.ValueOf(fields[tag])
 		if fields[tag] != nil {
+			fv := reflect.ValueOf(fields[tag])
 			switch fv.Kind() {
 			case reflect.Map:
-				data, _ := fields[tag].(map[string]interface{})
-				mapType, _ := data["__type"].(string)
+				data, ok := fields[tag].(map[string]interface{})
+				if !ok {
+					return fmt.Errorf("unable to assert type map from fields")
+				}
+				mapType, ok := data["__type"].(string)
+				if !ok {
+					return fmt.Errorf("unable to assert type string from fields")
+				}
 				switch mapType {
 				case "Date":
-					date, _ := decodeDate(data)
+					date, err := decodeDate(data)
+					if err != nil {
+						object = nil
+						return fmt.Errorf("unable to decode Date %w", err)
+					}
 					v.Field(i).Set(reflect.ValueOf(date))
 				}
 			case reflect.String:
@@ -120,6 +136,8 @@ func decodeObject(fields map[string]interface{}, object interface{}) {
 	case *User:
 		v.fields = fields
 	}
+
+	return nil
 }
 
 func decodeDate(data map[string]interface{}) (time.Time, error) {

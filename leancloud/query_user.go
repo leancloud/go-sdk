@@ -33,11 +33,7 @@ func (q *UserQuery) First(authOptions ...AuthOption) (*User, error) {
 
 	users, ok := respUsers.([]User)
 	if !ok {
-		return nil, fmt.Errorf("unable to parse user from response")
-	}
-
-	if len(users) > 1 {
-		return nil, fmt.Errorf("wrong count of response")
+		return nil, fmt.Errorf("unable to parse user from response: ")
 	}
 
 	return &users[0], nil

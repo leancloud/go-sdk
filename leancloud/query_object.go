@@ -43,10 +43,6 @@ func (q *Query) First(authOptions ...AuthOption) (*Object, error) {
 		return nil, fmt.Errorf("unable to parse object from response")
 	}
 
-	if len(objects) > 1 {
-		return nil, fmt.Errorf("wrong count of response")
-	}
-
 	return &objects[0], nil
 }
 
