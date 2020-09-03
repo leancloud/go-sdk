@@ -152,7 +152,7 @@ func objectGet(ref interface{}, object interface{}, authOptions ...AuthOption) e
 
 	fields, err := decodeFields(respJSON)
 	if err != nil {
-
+		return err
 	}
 
 	switch ref.(type) {
