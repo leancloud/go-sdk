@@ -72,7 +72,7 @@ func (client *Client) getServerURL(service ServiceModule) string {
 	return GetServiceURL(client.region, client.appID, service)
 }
 
-func (client *Client) getRequestOptions() *grequests.RequestOptions {
+func (client *Client) GetRequestOptions() *grequests.RequestOptions {
 	return &grequests.RequestOptions{
 		UserAgent: getUserAgent(),
 		Headers: map[string]string{
@@ -82,9 +82,9 @@ func (client *Client) getRequestOptions() *grequests.RequestOptions {
 	}
 }
 
-func (client *Client) request(service ServiceModule, method requestMethod, path string, options *grequests.RequestOptions, authOptions ...AuthOption) (*grequests.Response, error) {
+func (client *Client) Request(service ServiceModule, method requestMethod, path string, options *grequests.RequestOptions, authOptions ...AuthOption) (*grequests.Response, error) {
 	if options == nil {
-		options = client.getRequestOptions()
+		options = client.GetRequestOptions()
 	}
 
 	for _, authOption := range authOptions {

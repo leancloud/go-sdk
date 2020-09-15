@@ -189,19 +189,19 @@ func objectQuery(query interface{}, count bool, first bool, authOptions ...AuthO
 	switch v := query.(type) {
 	case *Query:
 		path = fmt.Sprint(path, "classes/", v.class.Name)
-		options = v.c.getRequestOptions()
+		options = v.c.GetRequestOptions()
 		client = v.c
 		break
 	case *UserQuery:
 		path = fmt.Sprint(path, "users/")
-		options = v.c.getRequestOptions()
+		options = v.c.GetRequestOptions()
 		client = v.c
 		break
 	}
 
 	options.Params = params
 
-	resp, err := client.request(ServiceAPI, methodGet, path, options, authOptions...)
+	resp, err := client.Request(ServiceAPI, methodGet, path, options, authOptions...)
 	if err != nil {
 		return nil, err
 	}

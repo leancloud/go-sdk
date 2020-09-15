@@ -107,7 +107,7 @@ func TestUserRefDestroy(t *testing.T) {
 	}
 
 	path := fmt.Sprint("/1.1/users/", user.ID)
-	_, err = c.request(ServiceAPI, methodGet, path, c.getRequestOptions())
+	_, err = c.Request(ServiceAPI, methodGet, path, c.GetRequestOptions())
 	if !strings.Contains(err.Error(), "Could not find user.") {
 		t.Fatal(err)
 	}
