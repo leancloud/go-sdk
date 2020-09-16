@@ -92,7 +92,7 @@ func objectCreate(class interface{}, data interface{}, object interface{}, authO
 		break
 	}
 
-	resp, err := c.Request(ServiceAPI, methodPost, path, options, authOptions...)
+	resp, err := c.Request(ServiceAPI, MethodPost, path, options, authOptions...)
 	if err != nil {
 		return err
 	}
@@ -140,7 +140,7 @@ func objectGet(ref interface{}, object interface{}, authOptions ...AuthOption) e
 		break
 	}
 
-	resp, err := c.Request(ServiceAPI, methodGet, path, c.GetRequestOptions(), authOptions...)
+	resp, err := c.Request(ServiceAPI, MethodGet, path, c.GetRequestOptions(), authOptions...)
 	if err != nil {
 		return err
 	}
@@ -196,7 +196,7 @@ func objectSet(ref interface{}, field string, data interface{}, authOptions ...A
 		field: data,
 	})
 
-	resp, err := c.Request(ServiceAPI, methodPut, path, options, authOptions...)
+	resp, err := c.Request(ServiceAPI, MethodPut, path, options, authOptions...)
 	if err != nil {
 		return err
 	}
@@ -227,7 +227,7 @@ func objectUpdate(ref interface{}, data map[string]interface{}, authOptions ...A
 	options := c.GetRequestOptions()
 	options.JSON = encodeObject(data)
 
-	resp, err := c.Request(ServiceAPI, methodPut, path, options, authOptions...)
+	resp, err := c.Request(ServiceAPI, MethodPut, path, options, authOptions...)
 	if err != nil {
 		return err
 	}
@@ -255,7 +255,7 @@ func objectDestroy(ref interface{}, authOptions ...AuthOption) error {
 		break
 	}
 
-	resp, err := c.Request(ServiceAPI, methodDelete, path, c.GetRequestOptions(), authOptions...)
+	resp, err := c.Request(ServiceAPI, MethodDelete, path, c.GetRequestOptions(), authOptions...)
 	if err != nil {
 		return err
 	}

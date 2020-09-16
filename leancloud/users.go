@@ -16,7 +16,7 @@ func (ref *Users) LogIn(username, password string) (*User, error) {
 		"password": password,
 	}
 
-	resp, err := ref.c.Request(ServiceAPI, methodPost, path, options)
+	resp, err := ref.c.Request(ServiceAPI, MethodPost, path, options)
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +55,7 @@ func (c *Client) NewUserQuery() *UserQuery {
 }
 
 func (ref *Users) Become(sessionToken string) (*User, error) {
-	resp, err := ref.c.Request(ServiceAPI, methodGet, "/1.1/users/me", ref.c.GetRequestOptions(), UseSessionToken(sessionToken))
+	resp, err := ref.c.Request(ServiceAPI, MethodGet, "/1.1/users/me", ref.c.GetRequestOptions(), UseSessionToken(sessionToken))
 	if err != nil {
 		return nil, err
 	}

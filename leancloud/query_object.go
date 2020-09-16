@@ -201,7 +201,7 @@ func objectQuery(query interface{}, count bool, first bool, authOptions ...AuthO
 
 	options.Params = params
 
-	resp, err := client.Request(ServiceAPI, methodGet, path, options, authOptions...)
+	resp, err := client.Request(ServiceAPI, MethodGet, path, options, authOptions...)
 	if err != nil {
 		return nil, err
 	}
