@@ -58,12 +58,7 @@ func define(name string, fn function, option *DefineOption) error {
 	functions[name] = new(functionType)
 
 	if option != nil {
-		if !option.NotFetchUser {
-			functions[name].NotFetchUser = false
-		}
-		if option.Internal {
-			functions[name].Internal = true
-		}
+		functions[name].DefineOption = *option
 	} else {
 		functions[name].DefineOption = DefineOption{
 			NotFetchUser: true,
@@ -150,10 +145,27 @@ func RPC(name string, payload interface{}) (interface{}, error) {
 	return rpc(name, payload, nil)
 }
 
-func RPCWithOption(name string, payload interface{}, option *RunOption) (interface{}, error) {
-	return rpc(name, payload, option)
+func RPCWithOption(name string, payload interface{}, options *RunOption) (interface{}, error) {
+	return rpc(name, payload, options)
 }
 
-func rpc(name string, payload interface{}, option *RunOption) (interface{}, error) {
+func rpc(name string, payload interface{}, options *RunOption) (interface{}, error) {
+	resp, err := run(name, payload, options)
+	if err != nil {
+		return nil, err
+	}
+	switch resp.(type) {
+	case []interface{}:
+
+	case interface{}:
+	}
+	return nil, nil
+}
+
+func rpcLocal(name string, payload interface{}, options *RunOption) (interface{}, error) {
+	return nil, nil
+}
+
+func rpcRemote(name string, payload interface{}, options *RunOption) (interface{}, error) {
 	return nil, nil
 }
