@@ -82,7 +82,7 @@ func objectCreate(class interface{}, data interface{}, object interface{}, authO
 		path = fmt.Sprint(path, "classes/", v.Name)
 		c = v.c
 		options = c.GetRequestOptions()
-		options.JSON = encodeObject(data)
+		options.JSON = EncodeObject(data)
 		break
 	case *Users:
 		path = fmt.Sprint(path, "users")
@@ -192,7 +192,7 @@ func objectSet(ref interface{}, field string, data interface{}, authOptions ...A
 	}
 
 	options := c.GetRequestOptions()
-	options.JSON = encodeObject(map[string]interface{}{
+	options.JSON = EncodeObject(map[string]interface{}{
 		field: data,
 	})
 
@@ -225,7 +225,7 @@ func objectUpdate(ref interface{}, data map[string]interface{}, authOptions ...A
 	}
 
 	options := c.GetRequestOptions()
-	options.JSON = encodeObject(data)
+	options.JSON = EncodeObject(data)
 
 	resp, err := c.Request(ServiceAPI, MethodPut, path, options, authOptions...)
 	if err != nil {

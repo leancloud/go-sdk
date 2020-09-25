@@ -12,10 +12,6 @@ type metadataResponse struct {
 	Result []string `json:"result"`
 }
 
-type mux map[string]http.HandlerFunc
-
-var router mux
-
 func Handler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		uri := strings.Split(r.RequestURI, "/")
@@ -50,39 +46,13 @@ func metadataHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func functionHandler(w http.ResponseWriter, r *http.Request, uri []string) {
-	body, err := ioutil.ReadAll(r.Body)
+	request, err := generateRequest(r, uri)
 	if err != nil {
 		fmt.Fprintln(w, err)
 		w.WriteHeader(http.StatusInternalServerError)
 	}
-	bodyMap := new(map[string]interface{})
-	if err := json.Unmarshal(body, bodyMap); err != nil {
-		fmt.Fprintln(w, err)
-		w.WriteHeader(http.StatusInternalServerError)
-	}
 
-	req := Request{
-		Params: bodyMap,
-		Meta: http.Request{
-			RemoteAddr: r.RemoteAddr,
-		},
-	}
-
-	if !functions[uri[3]].NotFetchUser {
-		sessionToken := r.Header.Get("X-LC-Session")
-		user, err := client.Users.Become(sessionToken)
-		if err != nil {
-			fmt.Fprintln(w, err)
-			w.WriteHeader(http.StatusInternalServerError)
-		}
-		req.CurrentUser = user
-	}
-
-	if r.Header.Get("X-LC-Session") != "" {
-		req.SessionToken = r.Header.Get("X-LC-Session")
-	}
-
-	resp, err := functions[uri[3]].call(&req)
+	resp, err := functions[uri[3]].call(request)
 	if err != nil {
 		fmt.Fprintln(w, err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -97,6 +67,44 @@ func functionHandler(w http.ResponseWriter, r *http.Request, uri []string) {
 
 func rpcHandler(w http.ResponseWriter, r *http.Request) {
 
+}
+
+func marshalBody(r *http.Request) (interface{}, error) {
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	bodyJSON := new(map[string]interface{})
+	if err := json.Unmarshal(body, bodyJSON); err != nil {
+		return nil, err
+	}
+
+	return bodyJSON, nil
+}
+
+func generateRequest(r *http.Request, uri []string) (*Request, error) {
+	request := new(Request)
+	request.Meta = http.Request{
+		RemoteAddr: r.RemoteAddr,
+	}
+	sessionToken := r.Header.Get("X-LC-Session")
+	if !functions[uri[3]].NotFetchUser && sessionToken != "" {
+		user, err := client.Users.Become(sessionToken)
+		if err != nil {
+			return nil, err
+		}
+		request.CurrentUser = user
+		request.SessionToken = sessionToken
+	}
+
+	params, err := marshalBody(r)
+	if err != nil {
+		return nil, err
+	}
+	request.Params = params
+
+	return request, nil
 }
 
 func generateMetadata() ([]byte, error) {
