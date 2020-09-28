@@ -20,7 +20,7 @@ func Handler() http.Handler {
 				metadataHandler(w, r)
 			} else {
 				if functions[uri[3]] != nil {
-					functionHandler(w, r, uri)
+					functionHandler(w, r, uri[3])
 				} else {
 					w.WriteHeader(http.StatusNotFound)
 				}
@@ -40,28 +40,30 @@ func Handler() http.Handler {
 func metadataHandler(w http.ResponseWriter, r *http.Request) {
 	meta, err := generateMetadata()
 	if err != nil {
-		fmt.Fprintln(w, err)
+		errorResponse(w, err)
 	}
+
+	w.Header().Add("Content-Type", "application/json; charset=UTF-8")
 	fmt.Fprintln(w, meta)
+	w.WriteHeader(http.StatusOK)
 }
 
-func functionHandler(w http.ResponseWriter, r *http.Request, uri []string) {
-	request, err := generateRequest(r, uri)
+func functionHandler(w http.ResponseWriter, r *http.Request, name string) {
+	request, err := constructRequest(r, name)
 	if err != nil {
-		fmt.Fprintln(w, err)
-		w.WriteHeader(http.StatusInternalServerError)
+		errorResponse(w, err)
 	}
 
-	resp, err := functions[uri[3]].call(request)
+	resp, err := functions[name].call(request)
 	if err != nil {
-		fmt.Fprintln(w, err)
-		w.WriteHeader(http.StatusInternalServerError)
+		errorResponse(w, err)
 	}
 	respJSON, err := json.Marshal(resp)
 	if err != nil {
-		fmt.Fprintln(w, err)
-		w.WriteHeader(http.StatusInternalServerError)
+		errorResponse(w, err)
 	}
+
+	w.Header().Add("Contetn-Type", "application/json; charset=UTF-8")
 	fmt.Fprintln(w, respJSON)
 }
 
@@ -69,27 +71,27 @@ func rpcHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func marshalBody(r *http.Request) (interface{}, error) {
-	body, err := ioutil.ReadAll(r.Body)
+func unmarshalBody(r *http.Request) (interface{}, error) {
+	bodyJSON, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		return nil, err
 	}
 
-	bodyJSON := new(map[string]interface{})
-	if err := json.Unmarshal(body, bodyJSON); err != nil {
+	body := new(map[string]interface{})
+	if err := json.Unmarshal(bodyJSON, body); err != nil {
 		return nil, err
 	}
 
 	return bodyJSON, nil
 }
 
-func generateRequest(r *http.Request, uri []string) (*Request, error) {
+func constructRequest(r *http.Request, name string) (*Request, error) {
 	request := new(Request)
-	request.Meta = http.Request{
-		RemoteAddr: r.RemoteAddr,
+	request.Meta = map[string]string{
+		"remoteAddr": r.RemoteAddr,
 	}
 	sessionToken := r.Header.Get("X-LC-Session")
-	if !functions[uri[3]].NotFetchUser && sessionToken != "" {
+	if !functions[name].NotFetchUser && sessionToken != "" {
 		user, err := client.Users.Become(sessionToken)
 		if err != nil {
 			return nil, err
@@ -98,13 +100,25 @@ func generateRequest(r *http.Request, uri []string) (*Request, error) {
 		request.SessionToken = sessionToken
 	}
 
-	params, err := marshalBody(r)
+	params, err := unmarshalBody(r)
 	if err != nil {
 		return nil, err
 	}
 	request.Params = params
 
 	return request, nil
+}
+
+func errorResponse(w http.ResponseWriter, err error) {
+	w.Header().Add("Contetn-Type", "application/json; charset=UTF-8")
+	switch err.(type) {
+	case *functionError:
+		fmt.Fprintln(w, err.Error())
+		w.WriteHeader(http.StatusBadRequest)
+	default:
+		fmt.Fprintln(w, Error(err.Error()))
+		w.WriteHeader(http.StatusInternalServerError)
+	}
 }
 
 func generateMetadata() ([]byte, error) {

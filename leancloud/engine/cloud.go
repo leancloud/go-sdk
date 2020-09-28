@@ -3,7 +3,6 @@ package engine
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"reflect"
 
 	"github.com/leancloud/go-sdk/leancloud"
@@ -16,7 +15,7 @@ type Request struct {
 	Params       interface{}
 	CurrentUser  *leancloud.User
 	SessionToken string
-	Meta         http.Request
+	Meta         map[string]string
 }
 
 type DefineOption struct {
@@ -33,6 +32,11 @@ type RunOption struct {
 type functionType struct {
 	call function
 	DefineOption
+}
+
+type functionError struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
 }
 
 var client *leancloud.Client
@@ -99,8 +103,8 @@ func run(name string, payload interface{}, options *RunOption) (interface{}, err
 func runLocal(name string, payload interface{}, options *RunOption) (interface{}, error) {
 	request := Request{
 		Params: payload,
-		Meta: http.Request{
-			RemoteAddr: "127.0.0.1",
+		Meta: map[string]string{
+			"remoteAddr": "127.0.0.1",
 		},
 	}
 	if options.SessionToken != "" {
@@ -167,6 +171,29 @@ func rpc(name string, payload interface{}, object interface{}, options *RunOptio
 	}
 
 	return nil
+}
+
+func (ferr *functionError) Error() string {
+	errString, err := json.Marshal(ferr)
+	if err != nil {
+		return fmt.Sprint(err)
+	}
+
+	return string(errString)
+}
+
+func ErrorWithCode(code int, message string) *functionError {
+	return &functionError{
+		Code:    code,
+		Message: message,
+	}
+}
+
+func Error(message string) *functionError {
+	return &functionError{
+		Code:    1,
+		Message: message,
+	}
 }
 
 func encode(payload interface{}) (interface{}, error) {

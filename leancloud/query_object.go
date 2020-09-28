@@ -222,7 +222,7 @@ func objectQuery(query interface{}, count bool, first bool, authOptions ...AuthO
 		for i := 0; i < len(results); i++ {
 			result := results[i].(map[string]interface{})
 			object := new(Object)
-			decodeObject(result, object)
+			DecodeObject(result, object)
 			objects = append(objects, *object)
 		}
 		return objects, nil
@@ -231,7 +231,7 @@ func objectQuery(query interface{}, count bool, first bool, authOptions ...AuthO
 		for i := 0; i < len(results); i++ {
 			result := results[i].(map[string]interface{})
 			user := new(User)
-			decodeObject(result, user)
+			DecodeObject(result, user)
 			users = append(users, *user)
 		}
 		return users, nil
