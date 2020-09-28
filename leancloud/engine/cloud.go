@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"reflect"
 
 	"github.com/leancloud/go-sdk/leancloud"
 	"github.com/levigross/grequests"
@@ -141,31 +142,68 @@ func runRemote(name string, payload interface{}, options *RunOption) (interface{
 	return respJSON, err
 }
 
-func RPC(name string, payload interface{}) (interface{}, error) {
-	return rpc(name, payload, nil)
+func RPC(name string, payload interface{}, object interface{}) error {
+	return rpc(name, payload, object, nil)
 }
 
-func RPCWithOption(name string, payload interface{}, options *RunOption) (interface{}, error) {
-	return rpc(name, payload, options)
+func RPCWithOption(name string, payload interface{}, object interface{}, options *RunOption) error {
+	return rpc(name, payload, object, options)
 }
 
-func rpc(name string, payload interface{}, options *RunOption) (interface{}, error) {
-	resp, err := run(name, payload, options)
+func rpc(name string, payload interface{}, object interface{}, options *RunOption) error {
+	encodedPayload, err := encode(payload)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	switch resp.(type) {
-	case []interface{}:
 
-	case interface{}:
+	resp, err := run(name, encodedPayload, options)
+	if err != nil {
+		return err
 	}
-	return nil, nil
+
+	decode(resp, object)
+	if err := decode(resp, object); err != nil {
+		return err
+	}
+
+	return nil
 }
 
-func rpcLocal(name string, payload interface{}, options *RunOption) (interface{}, error) {
-	return nil, nil
+func encode(payload interface{}) (interface{}, error) {
+	payloadMap := new(map[string]interface{})
+	payloadValue := reflect.ValueOf(payload)
+	payloadType := payloadValue.Type()
+
+	switch payloadType.Kind() {
+	case reflect.Array:
+		fallthrough
+	case reflect.Slice:
+	case reflect.Struct:
+		return leancloud.EncodeObject(payload), nil
+	default:
+		return payload, nil
+	}
+
+	return payloadMap, nil
 }
 
-func rpcRemote(name string, payload interface{}, options *RunOption) (interface{}, error) {
-	return nil, nil
+func decode(payload interface{}, object interface{}) error {
+	payloadValue := reflect.ValueOf(payload)
+	payloadType := payloadValue.Type()
+
+	switch payloadType.Kind() {
+	case reflect.Array:
+		fallthrough
+	case reflect.Slice:
+	case reflect.Map:
+		payloadMap, ok := payload.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("unexpected payload format for decoding")
+		}
+		return leancloud.DecodeObject(payloadMap, object)
+	default:
+		object = payload
+		return nil
+	}
+	return nil
 }
