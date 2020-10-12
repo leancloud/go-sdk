@@ -3,7 +3,7 @@ package engine
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"strings"
 )
@@ -12,7 +12,7 @@ type metadataResponse struct {
 	Result []string `json:"result"`
 }
 
-func Handler() http.Handler {
+func Handler(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		uri := strings.Split(r.RequestURI, "/")
 		if strings.HasPrefix(r.RequestURI, "/1.1/functions/") {
@@ -31,8 +31,6 @@ func Handler() http.Handler {
 			} else {
 				w.WriteHeader(http.StatusNotFound)
 			}
-		} else {
-			w.WriteHeader(http.StatusNotFound)
 		}
 	})
 }
@@ -41,10 +39,11 @@ func metadataHandler(w http.ResponseWriter, r *http.Request) {
 	meta, err := generateMetadata()
 	if err != nil {
 		errorResponse(w, err)
+		return
 	}
 
 	w.Header().Add("Content-Type", "application/json; charset=UTF-8")
-	fmt.Fprintln(w, meta)
+	fmt.Fprintln(w, string(meta))
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -52,19 +51,17 @@ func functionHandler(w http.ResponseWriter, r *http.Request, name string) {
 	request, err := constructRequest(r, name)
 	if err != nil {
 		errorResponse(w, err)
+		return
 	}
 
 	resp, err := functions[name].call(request)
 	if err != nil {
 		errorResponse(w, err)
-	}
-	respJSON, err := json.Marshal(resp)
-	if err != nil {
-		errorResponse(w, err)
+		return
 	}
 
 	w.Header().Add("Contetn-Type", "application/json; charset=UTF-8")
-	fmt.Fprintln(w, respJSON)
+	fmt.Fprintln(w, resp)
 }
 
 func rpcHandler(w http.ResponseWriter, r *http.Request) {
@@ -72,17 +69,20 @@ func rpcHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func unmarshalBody(r *http.Request) (interface{}, error) {
-	bodyJSON, err := ioutil.ReadAll(r.Body)
-	if err != nil {
+	body := make(map[string]interface{})
+	err := json.NewDecoder(r.Body).Decode(&body)
+
+	if err == io.EOF {
+		return nil, nil
+	}
+
+	if err != nil && err != io.EOF {
 		return nil, err
 	}
 
-	body := new(map[string]interface{})
-	if err := json.Unmarshal(bodyJSON, body); err != nil {
-		return nil, err
-	}
+	defer r.Body.Close()
 
-	return bodyJSON, nil
+	return body, nil
 }
 
 func constructRequest(r *http.Request, name string) (*Request, error) {
@@ -100,6 +100,10 @@ func constructRequest(r *http.Request, name string) (*Request, error) {
 		request.SessionToken = sessionToken
 	}
 
+	if r.Body == nil {
+		request.Params = nil
+		return request, nil
+	}
 	params, err := unmarshalBody(r)
 	if err != nil {
 		return nil, err
