@@ -63,8 +63,17 @@ func functionHandler(w http.ResponseWriter, r *http.Request, name string) {
 		return
 	}
 
+	funcResp := functionResponse{
+		Result: resp,
+	}
+	respJSON, err := json.Marshal(funcResp)
+	if err != nil {
+		errorResponse(w, err)
+		return
+	}
+
 	w.Header().Add("Contetn-Type", "application/json; charset=UTF-8")
-	fmt.Fprintln(w, resp)
+	fmt.Fprintln(w, string(respJSON))
 }
 
 func unmarshalBody(r *http.Request) (interface{}, error) {
