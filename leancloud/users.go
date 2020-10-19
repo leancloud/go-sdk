@@ -8,15 +8,15 @@ type Users struct {
 	c *Client
 }
 
-func (r *Users) LogIn(username, password string) (*User, error) {
+func (ref *Users) LogIn(username, password string) (*User, error) {
 	path := fmt.Sprint("/1.1/login")
-	options := r.c.getRequestOptions()
+	options := ref.c.GetRequestOptions()
 	options.JSON = map[string]string{
 		"username": username,
 		"password": password,
 	}
 
-	resp, err := r.c.request(ServiceAPI, methodPost, path, options)
+	resp, err := ref.c.Request(ServiceAPI, MethodPost, path, options)
 	if err != nil {
 		return nil, err
 	}
@@ -37,13 +37,13 @@ func (r *Users) LogIn(username, password string) (*User, error) {
 	}, nil
 }
 
-func (r *Users) SignUp(username, password string) (*User, error) {
+func (ref *Users) SignUp(username, password string) (*User, error) {
 	user := new(User)
 	reqJSON := map[string]string{
 		"username": username,
 		"password": password,
 	}
-	if err := objectCreate(r, reqJSON, user); err != nil {
+	if err := objectCreate(ref, reqJSON, user); err != nil {
 		return nil, err
 	}
 
@@ -55,7 +55,7 @@ func (c *Client) NewUserQuery() *UserQuery {
 }
 
 func (ref *Users) Become(sessionToken string) (*User, error) {
-	resp, err := ref.c.request(ServiceAPI, methodGet, "/1.1/users/me", ref.c.getRequestOptions(), UseSessionToken(sessionToken))
+	resp, err := ref.c.Request(ServiceAPI, MethodGet, "/1.1/users/me", ref.c.GetRequestOptions(), UseSessionToken(sessionToken))
 	if err != nil {
 		return nil, err
 	}

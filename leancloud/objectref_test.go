@@ -42,7 +42,7 @@ func TestObjectRefCreate(t *testing.T) {
 	}
 
 	path := fmt.Sprint("/1.1/classes/Todo/", ref.ID)
-	resp, err := c.request(ServiceAPI, methodGet, path, ref.c.getRequestOptions())
+	resp, err := c.Request(ServiceAPI, MethodGet, path, ref.c.GetRequestOptions())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -198,7 +198,7 @@ func TestObjectRefDestroy(t *testing.T) {
 	}
 
 	path := fmt.Sprint("/1.1/classes/Todo/", ref.ID)
-	resp, err := c.request(ServiceAPI, methodGet, path, c.getRequestOptions())
+	resp, err := c.Request(ServiceAPI, MethodGet, path, c.GetRequestOptions())
 	if err != nil {
 		t.Fatal(err)
 	}
