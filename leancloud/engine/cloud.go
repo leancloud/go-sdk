@@ -40,6 +40,7 @@ type functionError struct {
 }
 
 var client *leancloud.Client
+
 var functions map[string]*functionType
 
 func init() {
@@ -47,17 +48,17 @@ func init() {
 	client = leancloud.NewEnvClient()
 }
 
-func Define(name string, fn function) error {
-	return define(name, fn, nil)
+func Define(name string, fn function) {
+	define(name, fn, nil)
 }
 
-func DefineWithOption(name string, fn function, option *DefineOption) error {
-	return define(name, fn, option)
+func DefineWithOption(name string, fn function, option *DefineOption) {
+	define(name, fn, option)
 }
 
-func define(name string, fn function, option *DefineOption) error {
+func define(name string, fn function, option *DefineOption) {
 	if functions[name] != nil {
-		return fmt.Errorf("%s alreay defined", name)
+		panic(fmt.Errorf("%s alreay defined", name))
 	}
 
 	functions[name] = new(functionType)
@@ -72,8 +73,6 @@ func define(name string, fn function, option *DefineOption) error {
 	}
 
 	functions[name].call = fn
-
-	return nil
 }
 
 func Run(name string, payload interface{}) (interface{}, error) {
@@ -86,7 +85,7 @@ func RunWithOption(name string, payload interface{}, option *RunOption) (interfa
 
 func run(name string, payload interface{}, options *RunOption) (interface{}, error) {
 	if options == nil {
-		return runRemote(name, payload, options)
+		return runRemote(name, payload, nil)
 	}
 
 	if options.SessionToken != "" && options.User != nil {
@@ -126,7 +125,9 @@ func runRemote(name string, payload interface{}, options *RunOption) (interface{
 	var err error
 	path := fmt.Sprint("/1.1/functions/", name)
 	option := client.GetRequestOptions()
-	option.JSON = payload
+	if payload != nil {
+		option.JSON = payload
+	}
 	if options == nil {
 		resp, err = client.Request(leancloud.ServiceAPI, leancloud.MethodPost, path, option)
 	} else {
@@ -134,43 +135,48 @@ func runRemote(name string, payload interface{}, options *RunOption) (interface{
 			resp, err = client.Request(leancloud.ServiceAPI, leancloud.MethodPost, path, option, leancloud.UseSessionToken(options.SessionToken))
 		} else if options.User != nil {
 			resp, err = client.Request(leancloud.ServiceAPI, leancloud.MethodPost, path, option, leancloud.UseUser(options.User))
+		} else {
+			resp, err = client.Request(leancloud.ServiceAPI, leancloud.MethodPost, path, option)
 		}
 	}
 	if err != nil {
 		return nil, err
 	}
-	respJSON := new(map[string]interface{})
+
+	respJSON := new(functionResponse)
 	if err := json.Unmarshal(resp.Bytes(), respJSON); err != nil {
 		return nil, err
 	}
-	return respJSON, err
+
+	return respJSON.Result, err
 }
 
-func RPC(name string, payload interface{}, object interface{}) error {
-	return rpc(name, payload, object, nil)
+func RPC(name string, payload interface{}) (interface{}, error) {
+	return rpc(name, payload, nil)
 }
 
-func RPCWithOption(name string, payload interface{}, object interface{}, options *RunOption) error {
-	return rpc(name, payload, object, options)
+func RPCWithOption(name string, payload interface{}, options *RunOption) (interface{}, error) {
+	return rpc(name, payload, options)
 }
 
-func rpc(name string, payload interface{}, object interface{}, options *RunOption) error {
+func rpc(name string, payload interface{}, options *RunOption) (interface{}, error) {
 	encodedPayload, err := encode(payload)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	resp, err := run(name, encodedPayload, options)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
+	object := new(leancloud.Object)
 	decode(resp, object)
 	if err := decode(resp, object); err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return object, nil
 }
 
 func (ferr *functionError) Error() string {

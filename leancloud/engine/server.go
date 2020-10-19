@@ -12,6 +12,10 @@ type metadataResponse struct {
 	Result []string `json:"result"`
 }
 
+type functionResponse struct {
+	Result interface{} `json:"result"`
+}
+
 func Handler(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		uri := strings.Split(r.RequestURI, "/")
@@ -44,7 +48,6 @@ func metadataHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Add("Content-Type", "application/json; charset=UTF-8")
 	fmt.Fprintln(w, string(meta))
-	w.WriteHeader(http.StatusOK)
 }
 
 func functionHandler(w http.ResponseWriter, r *http.Request, name string) {
@@ -64,9 +67,16 @@ func functionHandler(w http.ResponseWriter, r *http.Request, name string) {
 	fmt.Fprintln(w, resp)
 }
 
-func rpcHandler(w http.ResponseWriter, r *http.Request) {
-
-}
+//func rpcHandler(w http.ResponseWriter, r *http.Request, name string) {
+//	request, err := constructRequest(r, name)
+//	if err != nil {
+//		errorResponse(w, err)
+//		return
+//	}
+//
+//	objectRef := new(leancloud.ObjectRef)
+//
+//}
 
 func unmarshalBody(r *http.Request) (interface{}, error) {
 	body := make(map[string]interface{})
@@ -76,7 +86,7 @@ func unmarshalBody(r *http.Request) (interface{}, error) {
 		return nil, nil
 	}
 
-	if err != nil && err != io.EOF {
+	if err != nil {
 		return nil, err
 	}
 
