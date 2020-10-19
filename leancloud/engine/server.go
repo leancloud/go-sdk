@@ -126,7 +126,10 @@ func errorResponse(w http.ResponseWriter, err error) {
 }
 
 func generateMetadata() ([]byte, error) {
-	meta := new(metadataResponse)
+	meta := metadataResponse{
+		Result: []string{},
+	}
+
 	for k := range functions {
 		meta.Result = append(meta.Result, k)
 	}
