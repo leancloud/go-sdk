@@ -31,7 +31,7 @@ func Handler(handler http.Handler) http.Handler {
 			}
 		} else if strings.HasPrefix(r.RequestURI, "/1.1/call/") {
 			if functions[uri[3]] != nil {
-
+				// TODO: RPC Calling
 			} else {
 				w.WriteHeader(http.StatusNotFound)
 			}
@@ -66,17 +66,6 @@ func functionHandler(w http.ResponseWriter, r *http.Request, name string) {
 	w.Header().Add("Contetn-Type", "application/json; charset=UTF-8")
 	fmt.Fprintln(w, resp)
 }
-
-//func rpcHandler(w http.ResponseWriter, r *http.Request, name string) {
-//	request, err := constructRequest(r, name)
-//	if err != nil {
-//		errorResponse(w, err)
-//		return
-//	}
-//
-//	objectRef := new(leancloud.ObjectRef)
-//
-//}
 
 func unmarshalBody(r *http.Request) (interface{}, error) {
 	body := make(map[string]interface{})

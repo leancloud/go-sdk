@@ -3,7 +3,6 @@ package engine
 import (
 	"encoding/json"
 	"fmt"
-	"reflect"
 
 	"github.com/leancloud/go-sdk/leancloud"
 	"github.com/levigross/grequests"
@@ -117,6 +116,9 @@ func runLocal(name string, payload interface{}, options *RunOption) (interface{}
 		request.CurrentUser = options.User
 		request.SessionToken = options.User.GetSessionToken()
 	}
+	if functions[name] == nil {
+		return nil, fmt.Errorf("no such cloud function %s", name)
+	}
 	return functions[name].call(&request)
 }
 
@@ -151,6 +153,7 @@ func runRemote(name string, payload interface{}, options *RunOption) (interface{
 	return respJSON.Result, err
 }
 
+/*
 func RPC(name string, payload interface{}) (interface{}, error) {
 	return rpc(name, payload, nil)
 }
@@ -178,6 +181,7 @@ func rpc(name string, payload interface{}, options *RunOption) (interface{}, err
 
 	return object, nil
 }
+*/
 
 func (ferr *functionError) Error() string {
 	errString, err := json.Marshal(ferr)
@@ -202,22 +206,25 @@ func Error(message string) *functionError {
 	}
 }
 
+/*
 func encode(payload interface{}) (interface{}, error) {
-	payloadMap := new(map[string]interface{})
-	payloadValue := reflect.ValueOf(payload)
-	payloadType := payloadValue.Type()
+	mapObject := make(map[string]interface{})
+	v := reflect.ValueOf(payload)
+	vt := v.Type()
 
-	switch payloadType.Kind() {
+	switch v.Kind() {
 	case reflect.Array:
 		fallthrough
 	case reflect.Slice:
 	case reflect.Struct:
-		return leancloud.EncodeObject(payload), nil
+		mapObject = leancloud.EncodeObject(payload)
+		switch payload.(type) {
+		case *leancloud.User:
+			mapObject["__type"] = ""
+		}
 	default:
 		return payload, nil
 	}
-
-	return payloadMap, nil
 }
 
 func decode(payload interface{}, object interface{}) error {
@@ -240,3 +247,4 @@ func decode(payload interface{}, object interface{}) error {
 	}
 	return nil
 }
+*/
