@@ -19,6 +19,7 @@ type functionResponse struct {
 func Handler(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		uri := strings.Split(r.RequestURI, "/")
+		corsHandler(w, r)
 		if strings.HasPrefix(r.RequestURI, "/1.1/functions/") {
 			if strings.Compare(r.RequestURI, "/1.1/functions/_ops/metadatas") == 0 {
 				metadataHandler(w, r)
@@ -39,13 +40,22 @@ func Handler(handler http.Handler) http.Handler {
 	})
 }
 
+func corsHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Add("Access-Control-Allow-Origin", r.Header.Get("origin"))
+
+	if r.Method == "OPTIONS" {
+		w.Header().Add("Access-Control-Max-Age", "86400")
+		w.Header().Add("Access-Control-Allow-Methods", "HEAD, GET, POST, PUT, DELETE, OPTIONS")
+		w.Header().Add("Access-Control-Allow-Headers", `Content-Type,X-AVOSCloud-Application-Id,X-AVOSCloud-Application-Key,X-AVOSCloud-Application-Production,X-AVOSCloud-Client-Version,X-AVOSCloud-Request-Sign,X-AVOSCloud-Session-Token,X-AVOSCloud-Super-Key,X-LC-Hook-Key,X-LC-Id,X-LC-Key,X-LC-Prod,X-LC-Session,X-LC-Sign,X-LC-UA,X-Requested-With,X-Uluru-Application-Id,X-Uluru-Application-Key,X-Uluru-Application-Production,X-Uluru-Client-Version,X-Uluru-Session-Token`)
+	}
+}
+
 func metadataHandler(w http.ResponseWriter, r *http.Request) {
 	meta, err := generateMetadata()
 	if err != nil {
-		errorResponse(w, err)
+		errorResponse(w, r, err)
 		return
 	}
-
 	w.Header().Add("Content-Type", "application/json; charset=UTF-8")
 	fmt.Fprintln(w, string(meta))
 }
@@ -53,13 +63,13 @@ func metadataHandler(w http.ResponseWriter, r *http.Request) {
 func functionHandler(w http.ResponseWriter, r *http.Request, name string) {
 	request, err := constructRequest(r, name)
 	if err != nil {
-		errorResponse(w, err)
+		errorResponse(w, r, err)
 		return
 	}
 
 	resp, err := functions[name].call(request)
 	if err != nil {
-		errorResponse(w, err)
+		errorResponse(w, r, err)
 		return
 	}
 
@@ -68,7 +78,7 @@ func functionHandler(w http.ResponseWriter, r *http.Request, name string) {
 	}
 	respJSON, err := json.Marshal(funcResp)
 	if err != nil {
-		errorResponse(w, err)
+		errorResponse(w, r, err)
 		return
 	}
 
@@ -121,7 +131,7 @@ func constructRequest(r *http.Request, name string) (*Request, error) {
 	return request, nil
 }
 
-func errorResponse(w http.ResponseWriter, err error) {
+func errorResponse(w http.ResponseWriter, r *http.Request, err error) {
 	w.Header().Add("Contetn-Type", "application/json; charset=UTF-8")
 	switch err.(type) {
 	case *functionError:
