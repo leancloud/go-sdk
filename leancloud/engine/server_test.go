@@ -3,6 +3,7 @@ package engine
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"testing"
@@ -61,7 +62,9 @@ func TestMetadataResponse(t *testing.T) {
 
 	metadata := new(metadataResponse)
 	if err := json.NewDecoder(resp.RawResponse.Body).Decode(metadata); err != nil {
-		t.Fatal(err)
+		if err != io.EOF {
+			t.Fatal(err)
+		}
 	}
 
 	for _, v := range metadata.Result {
