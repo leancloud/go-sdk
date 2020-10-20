@@ -20,7 +20,7 @@ func Handler(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		uri := strings.Split(r.RequestURI, "/")
 		if strings.HasPrefix(r.RequestURI, "/1.1/functions/") {
-			if strings.Compare(r.RequestURI, "/1.1/functions/_ops/metadata") == 0 {
+			if strings.Compare(r.RequestURI, "/1.1/functions/_ops/metadatas") == 0 {
 				metadataHandler(w, r)
 			} else {
 				if functions[uri[3]] != nil {
