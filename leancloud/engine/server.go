@@ -35,6 +35,8 @@ func Handler(handler http.Handler) http.Handler {
 			} else {
 				w.WriteHeader(http.StatusNotFound)
 			}
+		} else if r.RequestURI == "/__engine/1/ping" || r.RequestURI == "/__engine/1.1/ping" {
+			healthCheckHandler(w, r)
 		}
 	})
 }
@@ -48,6 +50,19 @@ func metadataHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Add("Content-Type", "application/json; charset=UTF-8")
 	fmt.Fprintln(w, string(meta))
+}
+
+func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
+	resp, err := json.Marshal(map[string]string{
+		"runtime": "go-1.14",
+		"version": "0.1.0",
+	})
+	if err != nil {
+		errorResponse(w, err)
+		return
+	}
+	w.Header().Add("Content-Type", "application/json; charset=UTF-8")
+	fmt.Fprintln(w, resp)
 }
 
 func functionHandler(w http.ResponseWriter, r *http.Request, name string) {
