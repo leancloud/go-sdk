@@ -72,7 +72,7 @@ func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Add("Content-Type", "application/json; charset=UTF-8")
-	fmt.Fprintln(w, resp)
+	fmt.Fprintln(w, string(resp))
 }
 
 func functionHandler(w http.ResponseWriter, r *http.Request, name string) {
