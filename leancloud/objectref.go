@@ -81,18 +81,18 @@ func objectCreate(class interface{}, data interface{}, object interface{}, authO
 	case *Class:
 		path = fmt.Sprint(path, "classes/", v.Name)
 		c = v.c
-		options = c.GetRequestOptions()
-		options.JSON = EncodeObject(data)
+		options = c.getRequestOptions()
+		options.JSON = encodeObject(data)
 		break
 	case *Users:
 		path = fmt.Sprint(path, "users")
 		c = v.c
-		options = c.GetRequestOptions()
+		options = c.getRequestOptions()
 		options.JSON = data
 		break
 	}
 
-	resp, err := c.Request(ServiceAPI, MethodPost, path, options, authOptions...)
+	resp, err := c.request(ServiceAPI, MethodPost, path, options, authOptions...)
 	if err != nil {
 		return err
 	}
@@ -140,7 +140,7 @@ func objectGet(ref interface{}, object interface{}, authOptions ...AuthOption) e
 		break
 	}
 
-	resp, err := c.Request(ServiceAPI, MethodGet, path, c.GetRequestOptions(), authOptions...)
+	resp, err := c.request(ServiceAPI, MethodGet, path, c.getRequestOptions(), authOptions...)
 	if err != nil {
 		return err
 	}
@@ -191,12 +191,12 @@ func objectSet(ref interface{}, field string, data interface{}, authOptions ...A
 		break
 	}
 
-	options := c.GetRequestOptions()
-	options.JSON = EncodeObject(map[string]interface{}{
+	options := c.getRequestOptions()
+	options.JSON = encodeObject(map[string]interface{}{
 		field: data,
 	})
 
-	resp, err := c.Request(ServiceAPI, MethodPut, path, options, authOptions...)
+	resp, err := c.request(ServiceAPI, MethodPut, path, options, authOptions...)
 	if err != nil {
 		return err
 	}
@@ -224,10 +224,10 @@ func objectUpdate(ref interface{}, data map[string]interface{}, authOptions ...A
 		break
 	}
 
-	options := c.GetRequestOptions()
-	options.JSON = EncodeObject(data)
+	options := c.getRequestOptions()
+	options.JSON = encodeObject(data)
 
-	resp, err := c.Request(ServiceAPI, MethodPut, path, options, authOptions...)
+	resp, err := c.request(ServiceAPI, MethodPut, path, options, authOptions...)
 	if err != nil {
 		return err
 	}
@@ -255,7 +255,7 @@ func objectDestroy(ref interface{}, authOptions ...AuthOption) error {
 		break
 	}
 
-	resp, err := c.Request(ServiceAPI, MethodDelete, path, c.GetRequestOptions(), authOptions...)
+	resp, err := c.request(ServiceAPI, MethodDelete, path, c.getRequestOptions(), authOptions...)
 	if err != nil {
 		return err
 	}

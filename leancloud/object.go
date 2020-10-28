@@ -16,7 +16,7 @@ func (object *Object) GetMap() map[string]interface{} {
 }
 
 func (object *Object) ToStruct(p interface{}) {
-	DecodeObject(object.fields, p)
+	decodeObject(object.fields, p)
 }
 
 func (object *Object) Get(field string) interface{} {

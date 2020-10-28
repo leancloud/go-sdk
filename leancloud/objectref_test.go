@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
+	"net/http"
 	"os"
 	"testing"
 	"time"
@@ -24,6 +25,39 @@ func TestMain(m *testing.M) {
 	c = NewEnvClient()
 	rand.Seed(time.Now().UnixNano())
 
+	go http.ListenAndServe(":3000", Handler(nil))
+
+	Define("hello", func(r *Request) (interface{}, error) {
+		return map[string]string{
+			"hello": "world",
+		}, nil
+	})
+
+	DefineWithOption("hello_with_option_internal", func(r *Request) (interface{}, error) {
+		return map[string]string{
+			"hello": "world",
+		}, nil
+	}, &DefineOption{
+		NotFetchUser: true,
+		Internal:     true,
+	})
+
+	DefineWithOption("hello_with_option_fetch_user", func(r *Request) (interface{}, error) {
+		return map[string]string{
+			"sessionToken": r.SessionToken,
+		}, nil
+	}, &DefineOption{
+		NotFetchUser: false,
+	})
+
+	DefineWithOption("hello_with_option_not_fetch_user", func(r *Request) (interface{}, error) {
+		return map[string]interface{}{
+			"currentUser": r.CurrentUser,
+		}, nil
+	}, &DefineOption{
+		NotFetchUser: true,
+		Internal:     false,
+	})
 	os.Exit(m.Run())
 }
 
@@ -42,7 +76,7 @@ func TestObjectRefCreate(t *testing.T) {
 	}
 
 	path := fmt.Sprint("/1.1/classes/Todo/", ref.ID)
-	resp, err := c.Request(ServiceAPI, MethodGet, path, ref.c.GetRequestOptions())
+	resp, err := c.request(ServiceAPI, MethodGet, path, ref.c.getRequestOptions())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -198,7 +232,7 @@ func TestObjectRefDestroy(t *testing.T) {
 	}
 
 	path := fmt.Sprint("/1.1/classes/Todo/", ref.ID)
-	resp, err := c.Request(ServiceAPI, MethodGet, path, c.GetRequestOptions())
+	resp, err := c.request(ServiceAPI, MethodGet, path, c.getRequestOptions())
 	if err != nil {
 		t.Fatal(err)
 	}

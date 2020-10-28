@@ -1,4 +1,4 @@
-package engine
+package leancloud
 
 import (
 	"encoding/json"
@@ -8,57 +8,16 @@ import (
 	"os"
 	"testing"
 
-	"github.com/leancloud/go-sdk/leancloud"
 	"github.com/levigross/grequests"
 )
 
 var cloudEndpoint = "http://localhost:3000"
-
-func TestMain(m *testing.M) {
-	go http.ListenAndServe(":3000", Handler(nil))
-
-	Define("hello", func(r *Request) (interface{}, error) {
-		return map[string]string{
-			"hello": "world",
-		}, nil
-	})
-
-	DefineWithOption("hello_with_option_internal", func(r *Request) (interface{}, error) {
-		return map[string]string{
-			"hello": "world",
-		}, nil
-	}, &DefineOption{
-		NotFetchUser: true,
-		Internal:     true,
-	})
-
-	DefineWithOption("hello_with_option_fetch_user", func(r *Request) (interface{}, error) {
-		return map[string]string{
-			"sessionToken": r.SessionToken,
-		}, nil
-	}, &DefineOption{
-		NotFetchUser: false,
-	})
-
-	DefineWithOption("hello_with_option_not_fetch_user", func(r *Request) (interface{}, error) {
-		return map[string]interface{}{
-			"currentUser": r.CurrentUser,
-		}, nil
-	}, &DefineOption{
-		NotFetchUser: true,
-		Internal:     false,
-	})
-
-	os.Exit(m.Run())
-}
 
 func TestMetadataResponse(t *testing.T) {
 	resp, err := grequests.Get(cloudEndpoint+"/1.1/functions/_ops/metadata", &grequests.RequestOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	defer resp.Close()
 
 	metadata := new(metadataResponse)
 	if err := json.NewDecoder(resp.RawResponse.Body).Decode(metadata); err != nil {
@@ -98,7 +57,7 @@ func TestHandler(t *testing.T) {
 	})
 
 	t.Run("function call with sessionToken", func(t *testing.T) {
-		user, err := client.User("5f86a88f27075b72775de082").Get(leancloud.UseMasterKey(true))
+		user, err := client.User("5f86a88f27075b72775de082").Get(UseMasterKey(true))
 		if err != nil {
 			t.Fatal(err)
 		}

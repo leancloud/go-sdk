@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func EncodeObject(object interface{}) map[string]interface{} {
+func encodeObject(object interface{}) map[string]interface{} {
 	mapObject := make(map[string]interface{})
 	if reflect.TypeOf(object).Kind() == reflect.Struct {
 		v := reflect.ValueOf(object)
@@ -83,7 +83,7 @@ func decodeFields(fields map[string]interface{}) (map[string]interface{}, error)
 	return objectMap, nil
 }
 
-func DecodeObject(fields map[string]interface{}, object interface{}) error {
+func decodeObject(fields map[string]interface{}, object interface{}) error {
 	v := reflect.Indirect(reflect.ValueOf(object))
 	t := v.Type()
 

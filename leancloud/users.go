@@ -10,13 +10,13 @@ type Users struct {
 
 func (ref *Users) LogIn(username, password string) (*User, error) {
 	path := fmt.Sprint("/1.1/login")
-	options := ref.c.GetRequestOptions()
+	options := ref.c.getRequestOptions()
 	options.JSON = map[string]string{
 		"username": username,
 		"password": password,
 	}
 
-	resp, err := ref.c.Request(ServiceAPI, MethodPost, path, options)
+	resp, err := ref.c.request(ServiceAPI, MethodPost, path, options)
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +55,7 @@ func (c *Client) NewUserQuery() *UserQuery {
 }
 
 func (ref *Users) Become(sessionToken string) (*User, error) {
-	resp, err := ref.c.Request(ServiceAPI, MethodGet, "/1.1/users/me", ref.c.GetRequestOptions(), UseSessionToken(sessionToken))
+	resp, err := ref.c.request(ServiceAPI, MethodGet, "/1.1/users/me", ref.c.getRequestOptions(), UseSessionToken(sessionToken))
 	if err != nil {
 		return nil, err
 	}

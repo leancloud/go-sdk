@@ -1,11 +1,9 @@
-package engine
+package leancloud
 
 import (
 	"fmt"
 	"strings"
 	"testing"
-
-	"github.com/leancloud/go-sdk/leancloud"
 )
 
 func TestRun(t *testing.T) {
@@ -80,7 +78,7 @@ func TestRunWithOptions(t *testing.T) {
 	})
 
 	t.Run("hello_with_option_fetch_user", func(t *testing.T) {
-		user, err := client.User("5f86a88f27075b72775de082").Get(leancloud.UseMasterKey(true))
+		user, err := client.User("5f86a88f27075b72775de082").Get(UseMasterKey(true))
 		if err != nil {
 			t.Fatal(err)
 		}

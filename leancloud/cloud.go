@@ -1,10 +1,9 @@
-package engine
+package leancloud
 
 import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/leancloud/go-sdk/leancloud"
 	"github.com/levigross/grequests"
 )
 
@@ -12,7 +11,7 @@ type function func(*Request) (interface{}, error)
 
 type Request struct {
 	Params       interface{}
-	CurrentUser  *leancloud.User
+	CurrentUser  *User
 	SessionToken string
 	Meta         map[string]string
 }
@@ -24,7 +23,7 @@ type DefineOption struct {
 
 type RunOption struct {
 	Remote       bool
-	User         *leancloud.User
+	User         *User
 	SessionToken string
 }
 
@@ -38,13 +37,13 @@ type functionError struct {
 	Message string `json:"message"`
 }
 
-var client *leancloud.Client
+var client *Client
 
 var functions map[string]*functionType
 
 func init() {
 	functions = make(map[string]*functionType)
-	client = leancloud.NewEnvClient()
+	client = NewEnvClient()
 }
 
 func Define(name string, fn function) {
@@ -126,19 +125,19 @@ func runRemote(name string, payload interface{}, options *RunOption) (interface{
 	var resp *grequests.Response
 	var err error
 	path := fmt.Sprint("/1.1/functions/", name)
-	option := client.GetRequestOptions()
+	option := client.getRequestOptions()
 	if payload != nil {
 		option.JSON = payload
 	}
 	if options == nil {
-		resp, err = client.Request(leancloud.ServiceAPI, leancloud.MethodPost, path, option)
+		resp, err = client.request(ServiceAPI, MethodPost, path, option)
 	} else {
 		if options.SessionToken != "" {
-			resp, err = client.Request(leancloud.ServiceAPI, leancloud.MethodPost, path, option, leancloud.UseSessionToken(options.SessionToken))
+			resp, err = client.request(ServiceAPI, MethodPost, path, option, UseSessionToken(options.SessionToken))
 		} else if options.User != nil {
-			resp, err = client.Request(leancloud.ServiceAPI, leancloud.MethodPost, path, option, leancloud.UseUser(options.User))
+			resp, err = client.request(ServiceAPI, MethodPost, path, option, UseUser(options.User))
 		} else {
-			resp, err = client.Request(leancloud.ServiceAPI, leancloud.MethodPost, path, option)
+			resp, err = client.request(ServiceAPI, MethodPost, path, option)
 		}
 	}
 	if err != nil {
@@ -205,46 +204,3 @@ func Error(message string) *functionError {
 		Message: message,
 	}
 }
-
-/*
-func encode(payload interface{}) (interface{}, error) {
-	mapObject := make(map[string]interface{})
-	v := reflect.ValueOf(payload)
-	vt := v.Type()
-
-	switch v.Kind() {
-	case reflect.Array:
-		fallthrough
-	case reflect.Slice:
-	case reflect.Struct:
-		mapObject = leancloud.EncodeObject(payload)
-		switch payload.(type) {
-		case *leancloud.User:
-			mapObject["__type"] = ""
-		}
-	default:
-		return payload, nil
-	}
-}
-
-func decode(payload interface{}, object interface{}) error {
-	payloadValue := reflect.ValueOf(payload)
-	payloadType := payloadValue.Type()
-
-	switch payloadType.Kind() {
-	case reflect.Array:
-		fallthrough
-	case reflect.Slice:
-	case reflect.Map:
-		payloadMap, ok := payload.(map[string]interface{})
-		if !ok {
-			return fmt.Errorf("unexpected payload format for decoding")
-		}
-		return leancloud.DecodeObject(payloadMap, object)
-	default:
-		object = payload
-		return nil
-	}
-	return nil
-}
-*/

@@ -72,7 +72,7 @@ func (client *Client) getServerURL(service ServiceModule) string {
 	return GetServiceURL(client.region, client.appID, service)
 }
 
-func (client *Client) GetRequestOptions() *grequests.RequestOptions {
+func (client *Client) getRequestOptions() *grequests.RequestOptions {
 	return &grequests.RequestOptions{
 		UserAgent: getUserAgent(),
 		Headers: map[string]string{
@@ -82,9 +82,9 @@ func (client *Client) GetRequestOptions() *grequests.RequestOptions {
 	}
 }
 
-func (client *Client) Request(service ServiceModule, method RequestMethod, path string, options *grequests.RequestOptions, authOptions ...AuthOption) (*grequests.Response, error) {
+func (client *Client) request(service ServiceModule, method RequestMethod, path string, options *grequests.RequestOptions, authOptions ...AuthOption) (*grequests.Response, error) {
 	if options == nil {
-		options = client.GetRequestOptions()
+		options = client.getRequestOptions()
 	}
 
 	for _, authOption := range authOptions {
@@ -107,8 +107,8 @@ func (client *Client) Request(service ServiceModule, method RequestMethod, path 
 	}
 
 	if !resp.Ok {
-		error := &ServerResponseError{}
-		err = resp.JSON(error)
+		errResp := &ServerResponseError{}
+		err = resp.JSON(errResp)
 
 		if err != nil {
 			return resp, &ParseResponseError{
@@ -120,10 +120,10 @@ func (client *Client) Request(service ServiceModule, method RequestMethod, path 
 			}
 		}
 
-		error.StatusCode = resp.StatusCode
-		error.URL = URL
+		errResp.StatusCode = resp.StatusCode
+		errResp.URL = URL
 
-		return resp, error
+		return resp, errResp
 	}
 
 	if client.requestLogger != nil {

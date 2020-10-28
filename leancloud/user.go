@@ -10,7 +10,7 @@ func (user *User) GetMap() map[string]interface{} {
 }
 
 func (user *User) ToStruct(p interface{}) {
-	DecodeObject(user.fields, p)
+	decodeObject(user.fields, p)
 }
 
 func (user *User) Get(field string) interface{} {
