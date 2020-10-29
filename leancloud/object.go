@@ -9,6 +9,7 @@ type Object struct {
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
 	fields    map[string]interface{}
+	isPointer bool
 }
 
 func (object *Object) GetMap() map[string]interface{} {
@@ -16,9 +17,23 @@ func (object *Object) GetMap() map[string]interface{} {
 }
 
 func (object *Object) ToStruct(p interface{}) {
-	decodeObject(object.fields, p)
+	_ = decodeObject(object.fields, p)
 }
 
 func (object *Object) Get(field string) interface{} {
 	return object.fields[field]
+}
+
+func (object *Object) IsPointer() bool {
+	return object.isPointer
+}
+
+func (object *Object) Included() bool {
+	if object.isPointer {
+		if len(object.fields) != 0 {
+			return true
+		}
+	}
+
+	return false
 }

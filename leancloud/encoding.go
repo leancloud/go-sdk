@@ -1,56 +1,98 @@
 package leancloud
 
 import (
+	"encoding/base64"
 	"fmt"
 	"reflect"
 	"strings"
 	"time"
 )
 
-func encodeObject(object interface{}) map[string]interface{} {
-	mapObject := make(map[string]interface{})
-	if reflect.TypeOf(object).Kind() == reflect.Struct {
-		v := reflect.ValueOf(object)
-		t := reflect.TypeOf(object)
-		for i := 0; i < v.NumField(); i++ {
-			tag, option := parseTag(t.Field(i).Tag.Get("json"))
-			if option == "omitempty" && v.Field(i).IsZero() {
-				continue
+func encode(object interface{}) interface{} {
+	switch o := object.(type) {
+	case Object:
+		if o.isPointer {
+			return map[string]interface{}{
+				"__type":    "Pointer",
+				"className": o.fields["className"],
+				"objectId":  o.fields["objectId"],
 			}
-			if tag == "" {
-				tag = t.Field(i).Name
-			}
-			switch v.Field(i).Type() {
-			case reflect.TypeOf(time.Time{}):
-				date := v.Field(i).Interface().(time.Time)
-				mapObject[tag] = encodeDate(date)
-				break
-			default:
-				mapObject[tag] = v.Field(i).Interface()
-			}
+		}else{
+			return encodeObject(o)
 		}
-	} else if reflect.TypeOf(object).Kind() == reflect.Map {
-		iter := reflect.ValueOf(object).MapRange()
-		for iter.Next() {
-			switch iter.Value().Elem().Type() {
-			case reflect.TypeOf(time.Time{}):
-				date := iter.Value().Interface().(time.Time)
-				mapObject[iter.Key().String()] = encodeDate(date)
-				break
-			default:
-				mapObject[iter.Key().String()] = iter.Value().Interface()
+	case User:
+		return encodeObject(o)
+	case GeoPoint:
+		return map[string]interface{}{
+			"__type": "GeoPoint",
+			"latitude": o.Latitude,
+			"longitude": o.Longitude,
+		}
+	case time.Time:
+		return map[string]interface{}{
+			"__type": "Date",
+			"iso":    fmt.Sprint(o.In(time.FixedZone("UTC", 0)).Format("2006-01-02T15:04:05.000Z")),
+		}
+	case []byte:
+		return map[string]interface{}{
+			"__type": "Byte",
+			"base64": base64.StdEncoding.EncodeToString(o),
+		}
+	case File:
+		return map[string]interface{}{
+			"__type": "File",
+		}
+	case Relation:
+		return map[string]interface{}{
+			"__type": "Relation",
+		}
+	case ACL:
+		return map[string]interface{}{
+			"__type": "ACL",
+		}
+	default:
+		v := reflect.ValueOf(object)
+		var array []interface{}
+		switch v.Kind() {
+		case reflect.Slice:
+			fallthrough
+		case reflect.Array:
+			for i := 0; i < v.Len(); i++ {
+				r := encode(v.Index(i).Interface())
+				array = append(array, r)
 			}
+			return array
+		default:
+			return object
 		}
 	}
+}
 
+func encodeObject(object interface{}) map[string]interface{} {
+	v := reflect.ValueOf(object)
+	t := reflect.TypeOf(object)
+	mapObject := make(map[string]interface{})
+	mapObject["__type"] = "Object"
+	for i := 0; i < v.NumField(); i++ {
+		tag, option := parseTag(t.Field(i).Tag.Get("json"))
+		if option == "omitempty" && v.Field(i).IsZero() {
+			continue
+		}
+		if tag == "" {
+			tag = t.Field(i).Name
+		}
+		mapObject[tag] = encode(v.Field(i).Interface())
+	}
 	return mapObject
 }
 
-func encodeDate(date time.Time) map[string]interface{} {
-	return map[string]interface{}{
-		"__type": "Date",
-		"iso":    fmt.Sprint(date.In(time.FixedZone("UTC", 0)).Format("2006-01-02T15:04:05.000Z")),
-	}
+func transform(fields map[string]interface{}, object interface{}) error {
+
+	return nil
+}
+
+func decode(fields map[string]interface{}, object interface{}) error {
+	return nil
 }
 
 func decodeFields(fields map[string]interface{}) (map[string]interface{}, error) {
