@@ -30,52 +30,25 @@ func encode(object interface{}) interface{} {
 		rmap["__type"] = "Object"
 		return rmap
 	case GeoPoint:
-		return map[string]interface{}{
-			"__type":    "GeoPoint",
-			"latitude":  o.Latitude,
-			"longitude": o.Longitude,
-		}
+		return encodeGeoPoint(&o)
 	case time.Time:
-		return map[string]interface{}{
-			"__type": "Date",
-			"iso":    fmt.Sprint(o.In(time.FixedZone("UTC", 0)).Format("2006-01-02T15:04:05.000Z")),
-		}
+		return encodeDate(o)
 	case []byte:
-		return map[string]interface{}{
-			"__type": "Byte",
-			"base64": base64.StdEncoding.EncodeToString(o),
-		}
+		return encodeBytes(o)
 	case File:
-		return map[string]interface{}{
-			"__type": "File",
-		}
+		return encodeFile(&o)
 	case Relation:
-		return map[string]interface{}{
-			"__type": "Relation",
-		}
+		return encodeRelation(&o)
 	case ACL:
-		return map[string]interface{}{
-			"__type": "ACL",
-		}
+		return encodeACL(&o)
 	default:
-		v := reflect.ValueOf(object)
-		var array []interface{}
-		switch v.Kind() {
+		switch reflect.ValueOf(object).Kind() {
 		case reflect.Slice:
 			fallthrough
 		case reflect.Array:
-			for i := 0; i < v.Len(); i++ {
-				r := encode(v.Index(i).Interface())
-				array = append(array, r)
-			}
-			return array
+			return encodeArray(object)
 		case reflect.Map:
-			mapObject := make(map[string]interface{})
-			iter := v.MapRange()
-			for iter.Next() {
-				mapObject[iter.Key().String()] = encode(iter.Value().Interface())
-			}
-			return mapObject
+			return encodeMap(o)
 		default:
 			return object
 		}
@@ -100,11 +73,67 @@ func encodeObject(object interface{}) map[string]interface{} {
 	return mapObject
 }
 
+func encodeMap(fields interface{}) map[string]interface{} {
+	encodedMap := make(map[string]interface{})
+	v := reflect.ValueOf(fields)
+
+	for iter := v.MapRange(); iter.Next(); {
+		encodedMap[iter.Key().String()] = encode(iter.Value().Interface())
+	}
+
+	return encodedMap
+}
+
+func encodeArray(array interface{}) []interface{} {
+	var encodedArray []interface{}
+	v := reflect.ValueOf(array)
+	for i := 0; i < v.Len(); i++ {
+		encodedArray = append(encodedArray, encode(v.Index(i).Interface()))
+	}
+
+	return encodedArray
+}
+
+func encodePointer(pointer *Object) map[string]interface{} {
+	return map[string]interface{}{
+		"__type":    "Pointer",
+		"objectId":  pointer.ID,
+		"className": pointer.fields["className"],
+	}
+}
+
 func encodeDate(date time.Time) map[string]interface{} {
 	return map[string]interface{}{
 		"__type": "Date",
 		"iso":    fmt.Sprint(date.In(time.FixedZone("UTC", 0)).Format("2006-01-02T15:04:05.000Z")),
 	}
+}
+
+func encodeGeoPoint(point *GeoPoint) map[string]interface{} {
+	return map[string]interface{}{
+		"__type":    "GeoPoint",
+		"latitude":  point.Latitude,
+		"longitude": point.Longitude,
+	}
+}
+
+func encodeBytes(bytes []byte) map[string]interface{} {
+	return map[string]interface{}{
+		"__type": "Byte",
+		"base64": base64.StdEncoding.EncodeToString(bytes),
+	}
+}
+
+func encodeFile(file *File) map[string]interface{} {
+	return nil
+}
+
+func encodeACL(acl *ACL) map[string]interface{} {
+	return nil
+}
+
+func encodeRelation(relation *Relation) map[string]interface{} {
+	return nil
 }
 
 func transform(fields map[string]interface{}, object interface{}) error {
@@ -118,16 +147,7 @@ func decode(fields interface{}) (interface{}, error) {
 		case reflect.Array:
 			fallthrough
 		case reflect.Slice:
-			var array []interface{}
-			v := reflect.ValueOf(fields)
-			for i := 0; i < v.Len(); i++ {
-				r, err := decode(v.Index(i).Interface())
-				if err != nil {
-					return nil, err
-				}
-				array = append(array, r)
-			}
-			return array, nil
+			return decodeArray(fields)
 		default:
 			return fields, nil
 		}
@@ -137,78 +157,23 @@ func decode(fields interface{}) (interface{}, error) {
 		if !ok {
 			return nil, fmt.Errorf("unexpected error when parse __type: want string but %v", reflect.TypeOf(mapFields["__type"]))
 		}
-
 		switch fieldType {
 		case "Pointer":
 			fallthrough
 		case "Object":
-			mapObject := make(map[string]interface{})
-			iter := reflect.ValueOf(mapFields).MapRange()
-			for iter.Next() {
-				if iter.Key().String() != "__type" {
-					r, err := decode(iter.Value().Interface())
-					if err != nil {
-						return nil, err
-					}
-					mapObject[iter.Key().String()] = r
-				}
-			}
-			createdAt, ok := mapObject["createdAt"].(string)
-			if !ok {
-				return nil, fmt.Errorf("unexpected error when parse createdAt: want type string but %v", reflect.TypeOf(mapObject["createdAt"]))
-			}
-			realCreatedAt, err := time.Parse(time.RFC3339, createdAt)
-			if err != nil {
-				return nil, fmt.Errorf("unexpected error when parse createdAt: %v", err)
-			}
-
-			updatedAt, ok := mapObject["updatedAt"].(string)
-			if !ok {
-				return nil, fmt.Errorf("unexpected error when parse updatedAt: want type string but %v", reflect.TypeOf(mapObject["createdAt"]))
-			}
-			realUpdatedAt, err := time.Parse(time.RFC3339, updatedAt)
-			if err != nil {
-				return nil, fmt.Errorf("unexpected error when parse updatedAt: %v", err)
-			}
-
-			objectID, ok := mapObject["objectId"].(string)
-			if !ok {
-				return nil, fmt.Errorf("unexpected error when parse objectId: want type string but %v", reflect.TypeOf(mapObject["objectId"]))
-			}
-
-			object := Object{
-				ID:        objectID,
-				CreatedAt: realCreatedAt,
-				UpdatedAt: realUpdatedAt,
-				fields:    mapObject,
-				isPointer: false,
-			}
-
-			if mapFields["__type"] == "Pointer" {
-				object.isPointer = true
-			}
-
-			return object, nil
+			return decodeObject(fields)
 		case "Date":
 			iso, ok := mapFields["iso"].(string)
 			if !ok {
 				return nil, fmt.Errorf("unexpected error when parse Date: iso expected string but %v", reflect.TypeOf(mapFields["iso"]))
 			}
-			date, err := time.Parse(time.RFC3339, iso)
-			if err != nil {
-				return nil, fmt.Errorf("unexpected error when parse Date %v", err)
-			}
-			return date, nil
+			return decodeDate(iso)
 		case "Byte":
 			base64String, ok := mapFields["base64"].(string)
 			if !ok {
 				return nil, fmt.Errorf("unexpected error when parse Byte: base64 string expected string but %v", reflect.TypeOf(mapFields["base64"]))
 			}
-			bytes, err := base64.StdEncoding.DecodeString(base64String)
-			if err != nil {
-				return nil, fmt.Errorf("unexpected error when parse Byte %v", err)
-			}
-			return bytes, nil
+			return decodeBytes(base64String)
 		case "File":
 			return nil, nil
 		case "Relation":
@@ -219,52 +184,110 @@ func decode(fields interface{}) (interface{}, error) {
 			return fields, nil
 		}
 	} else {
-		mapObject := make(map[string]interface{})
-		iter := reflect.ValueOf(mapFields).MapRange()
-		for iter.Next() {
-			if iter.Key().String() != "__type" {
-				r, err := decode(iter.Value().Interface())
-				if err != nil {
-					return nil, err
-				}
-				mapObject[iter.Key().String()] = r
-			}
-		}
-
-		return mapObject, nil
+		return decodeMap(fields)
 	}
 }
 
-func decodeFields(fields map[string]interface{}) (map[string]interface{}, error) {
-	objectMap := make(map[string]interface{})
+func decodeObject(fields interface{}) (*Object, error) {
+	decodedFields, err := decodeMap(fields)
+	if err != nil {
+		return nil, err
+	}
+
+	objectID, ok := decodedFields["objectId"].(string)
+	if !ok {
+		return nil, fmt.Errorf("unexpected error when parse objectId: want type string but %v", reflect.TypeOf(decodedFields["objectId"]))
+	}
+
+	createdAt, ok := decodedFields["createdAt"].(string)
+	if !ok {
+		return nil, fmt.Errorf("unexpected error when parse createdAt: want type string but %v", reflect.TypeOf(decodedFields["createdAt"]))
+	}
+	decodedCreatedAt, err := time.Parse(time.RFC3339, createdAt)
+	if err != nil {
+		return nil, fmt.Errorf("unexpected error when parse createdAt: %v", err)
+	}
+
+	updatedAt, ok := decodedFields["updatedAt"].(string)
+	if !ok {
+		return nil, fmt.Errorf("unexpected error when parse updatedAt: want type string but %v", reflect.TypeOf(decodedFields["createdAt"]))
+	}
+	decodedUpdatedAt, err := time.Parse(time.RFC3339, updatedAt)
+	if err != nil {
+		return nil, fmt.Errorf("unexpected error when parse updatedAt: %v", err)
+	}
+
+	return &Object{
+		ID:        objectID,
+		CreatedAt: decodedCreatedAt,
+		UpdatedAt: decodedUpdatedAt,
+		fields:    decodedFields,
+		isPointer: false,
+	}, nil
+}
+
+func decodePointer(pointer interface{}) (*Object, error) {
+	decodedFields, err := decodeMap(pointer)
+	if err != nil {
+		return nil, err
+	}
+
+	objectID, ok := decodedFields["objectId"].(string)
+	if !ok {
+		return nil, fmt.Errorf("unexpected error when parse objectId: want type string but %v", reflect.TypeOf(decodedFields["objectId"]))
+	}
+	return &Object{
+		ID:        objectID,
+		isPointer: true,
+		fields:    decodedFields,
+	}, nil
+}
+
+func decodeArray(array interface{}) ([]interface{}, error) {
+	var decodedArray []interface{}
+	v := reflect.ValueOf(array)
+	for i := 0; i < v.Len(); i++ {
+		r, err := decode(v.Index(i).Interface())
+		if err != nil {
+			return nil, err
+		}
+		decodedArray = append(decodedArray, r)
+	}
+	return decodedArray, nil
+}
+
+func decodeMap(fields interface{}) (map[string]interface{}, error) {
+	var decodedMap map[string]interface{}
 	iter := reflect.ValueOf(fields).MapRange()
 	for iter.Next() {
-		switch iter.Value().Elem().Kind() {
-		case reflect.Map:
-			intf, ok := iter.Value().Interface().(map[string]interface{})
-			if !ok {
-				return nil, fmt.Errorf("unable to assert type map from fields")
+		if iter.Key().String() != "__type" {
+			r, err := decode(iter.Value().Interface())
+			if err != nil {
+				return nil, err
 			}
-			if reflect.ValueOf(intf["__type"]).IsValid() {
-				switch intf["__type"].(string) {
-				case "Date":
-					date, err := decodeDate(intf)
-					if err != nil {
-						return nil, fmt.Errorf("unable to decode Date %w", err)
-					}
-					objectMap[iter.Key().String()] = date
-					break
-				}
-			}
-			break
-		default:
-			objectMap[iter.Key().String()] = iter.Value().Interface()
+			decodedMap[iter.Key().String()] = r
 		}
 	}
-
-	return objectMap, nil
+	return decodedMap, nil
 }
 
+func decodeBytes(bytesStr string) ([]byte, error) {
+	bytes, err := base64.StdEncoding.DecodeString(bytesStr)
+	if err != nil {
+		return nil, fmt.Errorf("unexpected error when parse Byte %v", err)
+	}
+	return bytes, nil
+}
+
+func decodeDate(dateStr string) (time.Time, error) {
+	date, err := time.Parse(time.RFC3339, dateStr)
+	if err != nil {
+		return time.Time{}, err
+	}
+	return date, nil
+}
+
+/*
 func decodeObject(fields map[string]interface{}, object interface{}) error {
 	v := reflect.Indirect(reflect.ValueOf(object))
 	t := v.Type()
@@ -321,14 +344,7 @@ func decodeObject(fields map[string]interface{}, object interface{}) error {
 
 	return nil
 }
-
-func decodeDate(data map[string]interface{}) (time.Time, error) {
-	date, err := time.Parse(time.RFC3339, data["iso"].(string))
-	if err != nil {
-		return time.Time{}, err
-	}
-	return date, nil
-}
+*/
 
 func parseTag(tag string) (name string, option string) {
 	parts := strings.Split(tag, ",")
