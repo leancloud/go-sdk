@@ -3,6 +3,7 @@ package leancloud
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"time"
 
 	"github.com/levigross/grequests"
@@ -150,26 +151,34 @@ func objectGet(ref interface{}, object interface{}, authOptions ...AuthOption) e
 		return err
 	}
 
-	fields, err := decodeFields(respJSON)
+	fields, err := decode(respJSON)
 	if err != nil {
 		return err
 	}
 
 	switch ref.(type) {
 	case *ObjectRef:
+		objectFields, ok := fields.(Object)
+		if !ok {
+			return fmt.Errorf("unexpected response type: want Object but %v", reflect.TypeOf(fields))
+		}
 		object := object.(*Object)
 		object.ID = id
 		object.CreatedAt = createdAt
 		object.UpdatedAt = updatedAt
-		object.fields = fields
+		object.fields = objectFields.fields
 		break
 	case *UserRef:
+		objectFields, ok := fields.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("unexpected response type: want map[string]interface{} but %v", reflect.TypeOf(fields))
+		}
 		user := object.(*User)
 		user.ID = id
 		user.CreatedAt = createdAt
 		user.UpdatedAt = updatedAt
 		user.sessionToken = sessionToken
-		user.fields = fields
+		user.fields = objectFields
 		break
 	}
 
@@ -192,7 +201,7 @@ func objectSet(ref interface{}, field string, data interface{}, authOptions ...A
 	}
 
 	options := c.getRequestOptions()
-	options.JSON = encodeObject(map[string]interface{}{
+	options.JSON = encode(map[string]interface{}{
 		field: data,
 	})
 
@@ -225,7 +234,7 @@ func objectUpdate(ref interface{}, data map[string]interface{}, authOptions ...A
 	}
 
 	options := c.getRequestOptions()
-	options.JSON = encodeObject(data)
+	options.JSON = encode(data)
 
 	resp, err := c.request(ServiceAPI, MethodPut, path, options, authOptions...)
 	if err != nil {

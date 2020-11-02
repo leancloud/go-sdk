@@ -113,7 +113,7 @@ func beforeTestQuery(query *Query) (interface{}, error) {
 		FinishedAt: time.Now(),
 	}
 
-	if _, err := c.Class("Todo").Create(&todo); err != nil {
+	if _, err := c.Class("Todo").Create(todo); err != nil {
 		return nil, err
 	}
 
