@@ -164,6 +164,8 @@ func decode(fields interface{}) (interface{}, error) {
 				return nil, fmt.Errorf("unexpected error when parse Byte: base64 string expected string but %v", reflect.TypeOf(mapFields["base64"]))
 			}
 			return decodeBytes(base64String)
+		case "GeoPoint":
+			return decodeGeoPoint(mapFields)
 		case "File":
 			return nil, nil
 		case "Relation":
@@ -297,64 +299,20 @@ func decodeDate(dateStr string) (time.Time, error) {
 	return date, nil
 }
 
-/*
-func decodeObject(fields map[string]interface{}, object interface{}) error {
-	v := reflect.Indirect(reflect.ValueOf(object))
-	t := v.Type()
-
-	for i := 0; i < v.NumField(); i++ {
-		tag, ok := t.Field(i).Tag.Lookup("json")
-		if !ok || tag == "" {
-			tag = t.Field(i).Name
-		}
-
-		if fields[tag] != nil {
-			fv := reflect.ValueOf(fields[tag])
-			switch fv.Kind() {
-			case reflect.Map:
-				data, ok := fields[tag].(map[string]interface{})
-				if !ok {
-					return fmt.Errorf("unable to assert type map from fields")
-				}
-				mapType, ok := data["__type"].(string)
-				if !ok {
-					return fmt.Errorf("unable to assert type string from fields")
-				}
-				switch mapType {
-				case "Date":
-					date, err := decodeDate(data)
-					if err != nil {
-						object = nil
-						return fmt.Errorf("unable to decode Date %w", err)
-					}
-					v.Field(i).Set(reflect.ValueOf(date))
-				}
-			case reflect.String:
-				if tag == "createdAt" || tag == "updatedAt" {
-					timeAt, err := time.Parse(time.RFC3339, fv.String())
-					if err != nil {
-						panic(err)
-					}
-					v.Field(i).Set(reflect.ValueOf(timeAt))
-				} else {
-					v.Field(i).Set(fv)
-				}
-			default:
-				v.Field(i).Set(fv.Convert(t.Field(i).Type))
-			}
-		}
+func decodeGeoPoint(v map[string]interface{}) (*GeoPoint, error) {
+	latitude, ok := v["latitude"].(float64)
+	if !ok {
+		return nil, fmt.Errorf("latitude want type float64 but %v", reflect.TypeOf(v["latitude"]))
 	}
-
-	switch v := object.(type) {
-	case *Object:
-		v.fields = fields
-	case *User:
-		v.fields = fields
+	longitude, ok := v["longitude"].(float64)
+	if !ok {
+		return nil, fmt.Errorf("longitude want type float64 but %v", reflect.TypeOf(v["longitude"]))
 	}
-
-	return nil
+	return &GeoPoint{
+		Latitude:  latitude,
+		Longitude: longitude,
+	}, nil
 }
-*/
 
 func parseTag(tag string) (name string, option string) {
 	parts := strings.Split(tag, ",")

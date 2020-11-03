@@ -58,18 +58,10 @@ func (ref *Users) Become(sessionToken string) (*User, error) {
 		return nil, err
 	}
 
-	objectID, _, createdAt, updatedAt, respJSON, err := extracMetadata(resp.Bytes())
-	if err != nil {
+	respJSON := make(map[string]interface{})
+	if err := json.Unmarshal(resp.Bytes(), &respJSON); err != nil {
 		return nil, err
 	}
 
-	return &User{
-		sessionToken: sessionToken,
-		Object: Object{
-			ID:        objectID,
-			CreatedAt: createdAt,
-			UpdatedAt: updatedAt,
-			fields:    respJSON,
-		},
-	}, nil
+	return decodeUser(respJSON)
 }

@@ -102,13 +102,6 @@ func objectCreate(class interface{}, data interface{}, authOptions ...AuthOption
 		return nil, err
 	}
 
-	/*
-		objectID, sessionToken, createdAt, updatedAt, respJSON, err := extracMetadata(resp.Bytes())
-		if err != nil {
-			return nil, err
-		}
-	*/
-
 	respJSON := make(map[string]interface{})
 	if err := json.Unmarshal(resp.Bytes(), &respJSON); err != nil {
 		return nil, err
@@ -150,14 +143,6 @@ func objectGet(ref interface{}, authOptions ...AuthOption) (interface{}, error) 
 	if err != nil {
 		return nil, err
 	}
-
-	/*
-		_, sessionToken, createdAt, updatedAt, respJSON, err := extracMetadata(resp.Bytes())
-		if err != nil {
-			return err
-		}
-
-	*/
 
 	respJSON := make(map[string]interface{})
 	if err := json.Unmarshal(resp.Bytes(), &respJSON); err != nil {
