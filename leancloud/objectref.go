@@ -24,11 +24,15 @@ func (client *Client) Object(name, id string) *ObjectRef {
 }
 
 func (ref *ObjectRef) Get(authOptions ...AuthOption) (*Object, error) {
-	object := new(Object)
-	if err := objectGet(ref, object, authOptions...); err != nil {
+	decodedObject, err := objectGet(ref, authOptions...)
+	if err != nil {
 		return nil, err
 	}
 
+	object, ok := decodedObject.(*Object)
+	if !ok {
+		return nil, fmt.Errorf("unexpected error when parse Object from response: want type *Object but %v", reflect.TypeOf(decodedObject))
+	}
 	return object, nil
 }
 
@@ -73,7 +77,7 @@ func (ref *ObjectRef) Destroy(authOptions ...AuthOption) error {
 	return nil
 }
 
-func objectCreate(class interface{}, data interface{}, object interface{}, authOptions ...AuthOption) error {
+func objectCreate(class interface{}, data interface{}, authOptions ...AuthOption) (interface{}, error) {
 	path := "/1.1/"
 	var c *Client
 	var options *grequests.RequestOptions
@@ -95,94 +99,79 @@ func objectCreate(class interface{}, data interface{}, object interface{}, authO
 
 	resp, err := c.request(ServiceAPI, MethodPost, path, options, authOptions...)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	objectID, sessionToken, createdAt, updatedAt, respJSON, err := extracMetadata(resp.Bytes())
-	if err != nil {
-		return err
-	}
+	/*
+		objectID, sessionToken, createdAt, updatedAt, respJSON, err := extracMetadata(resp.Bytes())
+		if err != nil {
+			return nil, err
+		}
+	*/
 
+	respJSON := make(map[string]interface{})
+	if err := json.Unmarshal(resp.Bytes(), &respJSON); err != nil {
+		return nil, err
+	}
 	switch v := class.(type) {
 	case *Class:
-		object := object.(*ObjectRef)
-		object.ID = objectID
-		object.class = v.Name
-		object.c = v.c
-		break
+		objectID, ok := respJSON["objectId"].(string)
+		if !ok {
+			return nil, fmt.Errorf("unexpected error when parse objectId from response: want type string but %v", reflect.TypeOf(respJSON["objectId"]))
+		}
+		return &ObjectRef{
+			ID:    objectID,
+			class: v.Name,
+			c:     c,
+		}, nil
 	case *Users:
-		user := object.(*User)
-		user.ID = objectID
-		user.CreatedAt = createdAt
-		user.UpdatedAt = updatedAt
-		user.sessionToken = sessionToken
-		user.fields = respJSON
-		break
+		return decodeUser(respJSON)
 	}
 
-	return nil
+	return nil, nil
 }
 
-func objectGet(ref interface{}, object interface{}, authOptions ...AuthOption) error {
+func objectGet(ref interface{}, authOptions ...AuthOption) (interface{}, error) {
 	path := "/1.1/"
-	id := ""
 	var c *Client
 
 	switch v := ref.(type) {
 	case *ObjectRef:
 		path = fmt.Sprint(path, "classes/", v.class, "/", v.ID)
-		id = v.ID
 		c = v.c
 		break
 	case *UserRef:
 		path = fmt.Sprint(path, "users/", v.ID)
-		id = v.ID
 		c = v.c
 		break
 	}
 
 	resp, err := c.request(ServiceAPI, MethodGet, path, c.getRequestOptions(), authOptions...)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	_, sessionToken, createdAt, updatedAt, respJSON, err := extracMetadata(resp.Bytes())
-	if err != nil {
-		return err
-	}
+	/*
+		_, sessionToken, createdAt, updatedAt, respJSON, err := extracMetadata(resp.Bytes())
+		if err != nil {
+			return err
+		}
 
-	fields, err := decode(respJSON)
-	if err != nil {
-		return err
+	*/
+
+	respJSON := make(map[string]interface{})
+	if err := json.Unmarshal(resp.Bytes(), &respJSON); err != nil {
+		return nil, err
 	}
 
 	switch ref.(type) {
 	case *ObjectRef:
-		objectFields, ok := fields.(Object)
-		if !ok {
-			return fmt.Errorf("unexpected response type: want Object but %v", reflect.TypeOf(fields))
-		}
-		object := object.(*Object)
-		object.ID = id
-		object.CreatedAt = createdAt
-		object.UpdatedAt = updatedAt
-		object.fields = objectFields.fields
-		break
+		return decodeObject(respJSON)
 	case *UserRef:
-		objectFields, ok := fields.(map[string]interface{})
-		if !ok {
-			return fmt.Errorf("unexpected response type: want map[string]interface{} but %v", reflect.TypeOf(fields))
-		}
-		user := object.(*User)
-		user.ID = id
-		user.CreatedAt = createdAt
-		user.UpdatedAt = updatedAt
-		user.sessionToken = sessionToken
-		user.fields = objectFields
-		break
+		return decodeUser(respJSON)
 	}
 
-	return nil
+	return nil, nil
 }
 
 func objectSet(ref interface{}, field string, data interface{}, authOptions ...AuthOption) error {

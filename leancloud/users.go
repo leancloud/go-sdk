@@ -1,7 +1,9 @@
 package leancloud
 
 import (
+	"encoding/json"
 	"fmt"
+	"reflect"
 )
 
 type Users struct {
@@ -21,32 +23,28 @@ func (ref *Users) LogIn(username, password string) (*User, error) {
 		return nil, err
 	}
 
-	objectID, sessionToken, createdAt, updatedAt, respJSON, err := extracMetadata(resp.Bytes())
-	if err != nil {
+	respJSON := make(map[string]interface{})
+	if err := json.Unmarshal(resp.Bytes(), &respJSON); err != nil {
 		return nil, err
 	}
 
-	return &User{
-		sessionToken: sessionToken,
-		Object: Object{
-			ID:        objectID,
-			CreatedAt: createdAt,
-			UpdatedAt: updatedAt,
-			fields:    respJSON,
-		},
-	}, nil
+	return decodeUser(respJSON)
 }
 
 func (ref *Users) SignUp(username, password string) (*User, error) {
-	user := new(User)
 	reqJSON := map[string]string{
 		"username": username,
 		"password": password,
 	}
-	if err := objectCreate(ref, reqJSON, user); err != nil {
+	decodedUser, err := objectCreate(ref, reqJSON)
+	if err != nil {
 		return nil, err
 	}
 
+	user, ok := decodedUser.(*User)
+	if !ok {
+		return nil, fmt.Errorf("unexpected error when parse User from response: want type *User but %v", reflect.TypeOf(decodedUser))
+	}
 	return user, nil
 }
 

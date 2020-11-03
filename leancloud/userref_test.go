@@ -14,7 +14,7 @@ func TestUserRefGet(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	userByID, err := c.User(user.ID).Get()
+	userByID, err := c.User(user.ID).Get(UseMasterKey(true))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -39,7 +39,7 @@ func TestUserRefSet(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	userByID, err := c.User(user.ID).Get()
+	userByID, err := c.User(user.ID).Get(UseMasterKey(true))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -67,7 +67,7 @@ func TestUserRefUpdate(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	userByID, err := c.User(user.ID).Get()
+	userByID, err := c.User(user.ID).Get(UseMasterKey(true))
 	if userByID.fields["content"].(string) != "extra string" {
 		t.Fatal(fmt.Errorf("content unmatch"))
 	}

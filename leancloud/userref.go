@@ -2,6 +2,8 @@ package leancloud
 
 import (
 	"errors"
+	"fmt"
+	"reflect"
 	"time"
 )
 
@@ -37,11 +39,15 @@ func (client *Client) User(id string) *UserRef {
 }
 
 func (ref *UserRef) Get(authOptions ...AuthOption) (*User, error) {
-	user := new(User)
-	if err := objectGet(ref, user, authOptions...); err != nil {
+	decodedUser, err := objectGet(ref, authOptions...)
+	if err != nil {
 		return nil, err
 	}
 
+	user, ok := decodedUser.(*User)
+	if !ok {
+		return nil, fmt.Errorf("unexpected error when parse User from response: want type *User but %v", reflect.TypeOf(decodedUser))
+	}
 	return user, nil
 }
 

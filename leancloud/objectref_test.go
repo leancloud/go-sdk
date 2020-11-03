@@ -94,7 +94,7 @@ func TestObjectRefCreate(t *testing.T) {
 		t.Fatal(errors.New("value of done unmatch"))
 	}
 	finishedAt, _ := respJSON["finishedAt"].(map[string]interface{})
-	date, _ := decodeDate(finishedAt)
+	date, _ := decodeDate(finishedAt["iso"].(string))
 	if date.Unix() != todo.FinishedAt.Unix() {
 		t.Fatal(errors.New("value of finishedAt field unmatch"))
 	}

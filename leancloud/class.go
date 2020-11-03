@@ -1,5 +1,10 @@
 package leancloud
 
+import (
+	"fmt"
+	"reflect"
+)
+
 type Class struct {
 	c    *Client
 	Name string
@@ -21,9 +26,14 @@ func (ref *Class) Object(id string) *ObjectRef {
 }
 
 func (ref *Class) Create(data interface{}, authOptions ...AuthOption) (*ObjectRef, error) {
-	objectRef := new(ObjectRef)
-	if err := objectCreate(ref, data, objectRef, authOptions...); err != nil {
+	decodedRef, err := objectCreate(ref, data, authOptions...)
+	if err != nil {
 		return nil, err
+	}
+
+	objectRef, ok := decodedRef.(*ObjectRef)
+	if !ok {
+		return nil, fmt.Errorf("unexpected error when parse ObjectRef from response: want type *ObjectRef but %v", reflect.TypeOf(decodedRef))
 	}
 
 	return objectRef, nil

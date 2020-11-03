@@ -12,23 +12,13 @@ func encode(object interface{}) interface{} {
 	switch o := object.(type) {
 	case Object:
 		if o.isPointer {
-			return map[string]interface{}{
-				"__type":    "Pointer",
-				"className": o.fields["className"],
-				"objectId":  o.fields["objectId"],
-				"createdAt": encode(o.CreatedAt),
-				"updatedAt": encode(o.UpdatedAt),
-			}
+			return encodePointer(&o)
 		}
-		r := encode(o.fields)
-		rmap, _ := r.(map[string]interface{})
-		rmap["__type"] = "Object"
-		return rmap
+		encodedObject := encodeMap(o.fields)
+		encodedObject["__type"] = "Object"
+		return encodedObject
 	case User:
-		r := encode(o.fields)
-		rmap, _ := r.(map[string]interface{})
-		rmap["__type"] = "Object"
-		return rmap
+		return encodeMap(o.fields)
 	case GeoPoint:
 		return encodeGeoPoint(&o)
 	case time.Time:
@@ -58,8 +48,8 @@ func encode(object interface{}) interface{} {
 func encodeObject(object interface{}) map[string]interface{} {
 	v := reflect.ValueOf(object)
 	t := reflect.TypeOf(object)
-	mapObject := make(map[string]interface{})
-	mapObject["__type"] = "Object"
+	encodedObject := make(map[string]interface{})
+	encodedObject["__type"] = "Object"
 	for i := 0; i < v.NumField(); i++ {
 		tag, option := parseTag(t.Field(i).Tag.Get("json"))
 		if option == "omitempty" && v.Field(i).IsZero() {
@@ -68,9 +58,9 @@ func encodeObject(object interface{}) map[string]interface{} {
 		if tag == "" {
 			tag = t.Field(i).Name
 		}
-		mapObject[tag] = encode(v.Field(i).Interface())
+		encodedObject[tag] = encode(v.Field(i).Interface())
 	}
-	return mapObject
+	return encodedObject
 }
 
 func encodeMap(fields interface{}) map[string]interface{} {
@@ -210,7 +200,11 @@ func decodeObject(fields interface{}) (*Object, error) {
 
 	updatedAt, ok := decodedFields["updatedAt"].(string)
 	if !ok {
-		return nil, fmt.Errorf("unexpected error when parse updatedAt: want type string but %v", reflect.TypeOf(decodedFields["createdAt"]))
+		if decodedFields["updatedAt"] == nil {
+			updatedAt = ""
+		} else {
+			return nil, fmt.Errorf("unexpected error when parse updatedAt: want type string but %v", reflect.TypeOf(decodedFields["updatedAt"]))
+		}
 	}
 	decodedUpdatedAt, err := time.Parse(time.RFC3339, updatedAt)
 	if err != nil {
@@ -223,6 +217,22 @@ func decodeObject(fields interface{}) (*Object, error) {
 		UpdatedAt: decodedUpdatedAt,
 		fields:    decodedFields,
 		isPointer: false,
+	}, nil
+}
+
+func decodeUser(fields interface{}) (*User, error) {
+	object, err := decodeObject(fields)
+	if err != nil {
+		return nil, err
+	}
+
+	sessionToken, ok := object.fields["sessionToken"].(string)
+	if !ok {
+		return nil, fmt.Errorf("unexpected error when parse sessionToken: want type string but %v", reflect.TypeOf(object.fields["sessionToken"]))
+	}
+	return &User{
+		Object:       *object,
+		sessionToken: sessionToken,
 	}, nil
 }
 
@@ -257,7 +267,7 @@ func decodeArray(array interface{}) ([]interface{}, error) {
 }
 
 func decodeMap(fields interface{}) (map[string]interface{}, error) {
-	var decodedMap map[string]interface{}
+	decodedMap := make(map[string]interface{})
 	iter := reflect.ValueOf(fields).MapRange()
 	for iter.Next() {
 		if iter.Key().String() != "__type" {
