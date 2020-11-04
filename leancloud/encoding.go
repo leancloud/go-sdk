@@ -115,7 +115,10 @@ func encodeBytes(bytes []byte) map[string]interface{} {
 }
 
 func encodeFile(file *File) map[string]interface{} {
-	return nil
+	return map[string]interface{}{
+		"__type": "File",
+		"id":     file.ID,
+	}
 }
 
 func encodeACL(acl *ACL) map[string]interface{} {

@@ -14,6 +14,7 @@ type Client struct {
 	masterKey     string
 	requestLogger *log.Logger
 	Users         Users
+	Files         Files
 }
 
 func NewClient(region, appID, appKey, masterKey string) *Client {
