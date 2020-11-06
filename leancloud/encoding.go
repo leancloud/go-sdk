@@ -26,7 +26,7 @@ func encode(object interface{}) interface{} {
 	case []byte:
 		return encodeBytes(o)
 	case File:
-		return encodeFile(&o)
+		return encodeFile(&o, true)
 	case Relation:
 		return encodeRelation(&o)
 	case ACL:
@@ -114,10 +114,19 @@ func encodeBytes(bytes []byte) map[string]interface{} {
 	}
 }
 
-func encodeFile(file *File) map[string]interface{} {
+func encodeFile(file *File, embedded bool) map[string]interface{} {
+	if embedded {
+		return map[string]interface{}{
+			"__type": "File",
+			"id":     file.ID,
+		}
+	}
+
 	return map[string]interface{}{
-		"__type": "File",
-		"id":     file.ID,
+		"__type":    "File",
+		"name":      file.Name,
+		"mime_type": file.MIME,
+		"metaData":  file.Meatadata,
 	}
 }
 

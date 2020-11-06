@@ -27,21 +27,19 @@ type File struct {
 	Meatadata map[string]interface{} `json:"metadata"`
 }
 
+// GetMap export raw hashmap of File object
 func (file *File) GetMap() map[string]interface{} {
 	return nil
 }
 
+// Get export the value by given key in File object
 func (file *File) Get(key string) interface{} {
 	return file.fields[key]
 }
 
 func (file *File) fetchToken(client *Client, authOptions ...AuthOption) (string, string, error) {
-	reqJSON := map[string]interface{}{
-		"__type":    "File",
-		"name":      file.Name,
-		"mime_type": file.MIME,
-		"metaData":  file.Meatadata,
-	}
+	reqJSON := encodeFile(file, false)
+
 	path := "/1.1/fileTokens"
 	options := client.getRequestOptions()
 	options.JSON = reqJSON
@@ -184,7 +182,7 @@ func (file *File) uploadS3(token, uploadURL string, reader io.ReadSeeker) error 
 		Headers: map[string]string{
 			"Content-Type":   file.MIME,
 			"Cache-Control":  "public, max-age=31536000",
-			"Content-Length": file.Size,
+			"Content-Length": fmt.Sprint("%d", file.Size),
 		},
 		RequestBody: reader,
 	}
