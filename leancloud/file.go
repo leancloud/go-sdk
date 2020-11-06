@@ -11,8 +11,6 @@ import (
 	"net/url"
 	"reflect"
 	"time"
-
-	"github.com/levigross/grequests"
 )
 
 type File struct {
@@ -35,6 +33,24 @@ func (file *File) GetMap() map[string]interface{} {
 // Get export the value by given key in File object
 func (file *File) Get(key string) interface{} {
 	return file.fields[key]
+}
+
+func (file *File) fetchOwner(authOptions ...AuthOption) (*User, error) {
+	options := client.getRequestOptions()
+	for _, authOption := range authOptions {
+		authOption.apply(client, options)
+	}
+
+	if options.Headers["X-LC-Session"] == "" {
+		return nil, nil
+	}
+
+	user, err := client.Users.Become(options.Headers["X-LC-Session"])
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
 }
 
 func (file *File) fetchToken(client *Client, authOptions ...AuthOption) (string, string, error) {
@@ -95,8 +111,14 @@ func (file *File) fetchToken(client *Client, authOptions ...AuthOption) (string,
 
 	uploadURL, ok := respJSON["upload_url"].(string)
 	if !ok {
-		return "", "", fmt.Errorf("unexpected error when parse upload_url from response: want type but %v", reflect.TypeOf(respJSON["upload_url"]))
+		return "", "", fmt.Errorf("unexpected error when parse upload_url from response: want type string but %v", reflect.TypeOf(respJSON["upload_url"]))
 	}
+
+	provider, ok := respJSON["provider"].(string)
+	if !ok {
+		return "", "", fmt.Errorf("unexpected error when parse provider from response: want type string but %v", reflect.TypeOf(respJSON["provider"]))
+	}
+	file.Provider = provider
 
 	return token, uploadURL, nil
 }
@@ -128,39 +150,39 @@ func (file *File) uploadQiniu(token, uploadURL string, reader io.ReadSeeker) err
 			done <- err
 			return
 		}
-
 		if err := part.WriteField("token", token); err != nil {
 			in.Close()
 			done <- err
 			return
 		}
-
 		writer, err := part.CreateFormFile("file", file.Name)
 		if err != nil {
 			in.Close()
 			done <- err
 			return
 		}
-
 		_, err = io.Copy(writer, reader)
 		if err != nil {
 			in.Close()
 			done <- err
 			return
 		}
-
+		if err := part.Close(); err != nil {
+			in.Close()
+			done <- err
+			return
+		}
 		in.Close()
 		done <- nil
 	}()
 
-	options := grequests.RequestOptions{
-		Headers: map[string]string{
-			"Content-Type": part.FormDataContentType(),
-		},
-		RequestBody: out,
+	req, err := http.NewRequest("POST", "https://up.qbox.me/", out)
+	req.Header.Set("Content-Type", part.FormDataContentType())
+	if err != nil {
+		return err
 	}
 
-	resp, err := grequests.Post(uploadURL, &options)
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("unexpected error when upload file to Qiniu: %v", err)
 	}
@@ -170,30 +192,39 @@ func (file *File) uploadQiniu(token, uploadURL string, reader io.ReadSeeker) err
 		return fmt.Errorf("unexpected error when upload file to Qiniu: %v", err)
 	}
 
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("unexpected error when upload file to Qiniu: %s", string(resp.Bytes()))
+	content, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("unexpected error when upload file to Qiniu: %v", err)
+	}
+	if resp.StatusCode != 200 {
+		return fmt.Errorf("unexpected error when upload file to Qiniu: %v", string(content))
 	}
 
 	return nil
 }
 
 func (file *File) uploadS3(token, uploadURL string, reader io.ReadSeeker) error {
-	options := grequests.RequestOptions{
-		Headers: map[string]string{
-			"Content-Type":   file.MIME,
-			"Cache-Control":  "public, max-age=31536000",
-			"Content-Length": fmt.Sprint("%d", file.Size),
-		},
-		RequestBody: reader,
+	req, err := http.NewRequest("PUT", uploadURL, reader)
+	if err != nil {
+		return err
 	}
 
-	resp, err := grequests.Put(uploadURL, &options)
+	req.Header.Set("Content-Type", file.MIME)
+	req.Header.Set("Cache-Control", "public, max-age=31536000")
+	req.ContentLength = file.Size
+
+	response, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("unexpected error when upload file to AWS S3: %v", err)
 	}
+	defer response.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("unexpected error when upload file to AWS S3: %v", string(resp.Bytes()))
+	body, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		return fmt.Errorf("unexpected error when upload file to AWS S3: %v", err)
+	}
+	if response.StatusCode != 200 {
+		return fmt.Errorf("unexpected error when upload file to AWS S3: %v", string(body))
 	}
 
 	return nil
@@ -231,22 +262,22 @@ func (file *File) uploadCOS(token, uploadURL string, reader io.ReadSeeker) error
 		done <- nil
 	}()
 
-	reqBody, err := ioutil.ReadAll(out)
+	body, err := ioutil.ReadAll(out)
 	if err != nil {
-		return err
+		return fmt.Errorf("unexpected error when upload file to COS: %v", err)
 	}
 
-	options := grequests.RequestOptions{
-		Headers: map[string]string{
-			"Content-Type":   part.FormDataContentType(),
-			"Content-Length": fmt.Sprint(int64(len(reqBody))),
-		},
-		RequestBody: bytes.NewBuffer(reqBody),
+	req, err := http.NewRequest("POST", uploadURL+"?sign="+url.QueryEscape(token), bytes.NewBuffer(body))
+	if err != nil {
+		return fmt.Errorf("unexpected error when upload file to COS: %v", err)
 	}
 
-	resp, err := grequests.Post(fmt.Sprint(uploadURL, "?sign", url.QueryEscape(token)), &options)
+	req.Header.Set("Content-Type", part.FormDataContentType())
+	req.ContentLength = int64(len(body))
+
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("unexpected error when upload file to COS: %v", string(resp.Bytes()))
+		return fmt.Errorf("unexpected error when upload file to COS: %v", err)
 	}
 
 	err = <-done
@@ -254,8 +285,12 @@ func (file *File) uploadCOS(token, uploadURL string, reader io.ReadSeeker) error
 		return fmt.Errorf("unexpected error when upload file to COS: %v", err)
 	}
 
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("unexpected error when upload file to COS: %v", string(resp.Bytes()))
+	content, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("unexpected error when upload file to COS: %v", err)
+	}
+	if resp.StatusCode != 200 {
+		return fmt.Errorf("unexpected error when upload file to COS: %v", string(content))
 	}
 
 	return nil

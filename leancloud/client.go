@@ -32,7 +32,7 @@ func NewClient(region, appID, appKey, masterKey string) *Client {
 	}
 
 	client.Users.c = client
-
+	client.Files.c = client
 	return client
 }
 func NewEnvClient() *Client {
