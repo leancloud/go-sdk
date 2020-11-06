@@ -179,7 +179,7 @@ func decode(fields interface{}) (interface{}, error) {
 		case "GeoPoint":
 			return decodeGeoPoint(mapFields)
 		case "File":
-			return nil, nil
+			return decodeFile(mapFields)
 		case "Relation":
 			return nil, nil
 		case "ACL":
@@ -324,6 +324,68 @@ func decodeGeoPoint(v map[string]interface{}) (*GeoPoint, error) {
 		Latitude:  latitude,
 		Longitude: longitude,
 	}, nil
+}
+
+func decodeFile(fields map[string]interface{}) (*File, error) {
+	file := new(File)
+
+	decodedFields, err := decodeMap(fields)
+	if err != nil {
+		return nil, err
+	}
+	file.fields = decodedFields
+
+	objectID, ok := decodedFields["objectId"].(string)
+	if !ok {
+		return nil, fmt.Errorf("unexpected error when parse objectId: want type string but %v", reflect.TypeOf(decodedFields["objectId"]))
+	}
+	file.ID = objectID
+
+	createdAt, ok := decodedFields["createdAt"].(string)
+	if !ok {
+		return nil, fmt.Errorf("unexpected error when parse createdAt: want type string but %v", reflect.TypeOf(decodedFields["createdAt"]))
+	}
+	decodedCreatedAt, err := time.Parse(time.RFC3339, createdAt)
+	if err != nil {
+		return nil, fmt.Errorf("unexpected error when parse createdAt: %v", err)
+	}
+	file.CreatedAt = decodedCreatedAt
+
+	updatedAt, ok := decodedFields["updatedAt"].(string)
+	if !ok {
+		return nil, fmt.Errorf("unexpected error when parse updatedAt: want type string but %v", reflect.TypeOf(decodedFields["updatedAt"]))
+	}
+	decodedUpdatedAt, err := time.Parse(time.RFC3339, updatedAt)
+	if err != nil {
+		return nil, fmt.Errorf("unexpected error when parse updatedAt: %v", err)
+	}
+	file.UpdatedAt = decodedUpdatedAt
+
+	key, ok := decodedFields["key"].(string)
+	if !ok {
+		return nil, fmt.Errorf("unexpected error when parse key from response: want type string but %v", reflect.TypeOf(decodedFields["key"]))
+	}
+	file.Key = key
+
+	url, ok := decodedFields["url"].(string)
+	if !ok {
+		return nil, fmt.Errorf("unexpected error when parse url from response: want type string but %v", reflect.TypeOf(decodedFields["url"]))
+	}
+	file.URL = url
+
+	bucket, ok := decodedFields["bucket"].(string)
+	if !ok {
+		return nil, fmt.Errorf("unexpected error when parse bucket from response: want type string but %v", reflect.TypeOf(decodedFields["bucket"]))
+	}
+	file.Bucket = bucket
+
+	provider, ok := decodedFields["provider"].(string)
+	if !ok {
+		return nil, fmt.Errorf("unexpected error when parse provider from response: want type string but %v", reflect.TypeOf(decodedFields["provider"]))
+	}
+	file.Provider = provider
+
+	return file, nil
 }
 
 func parseTag(tag string) (name string, option string) {

@@ -137,6 +137,9 @@ func objectGet(ref interface{}, authOptions ...AuthOption) (interface{}, error) 
 		path = fmt.Sprint(path, "users/", v.ID)
 		c = v.c
 		break
+	case *FileRef:
+		path = fmt.Sprint(path, "files/", v.ID)
+		c = v.c
 	}
 
 	resp, err := c.request(ServiceAPI, MethodGet, path, c.getRequestOptions(), authOptions...)
@@ -154,6 +157,8 @@ func objectGet(ref interface{}, authOptions ...AuthOption) (interface{}, error) 
 		return decodeObject(respJSON)
 	case *UserRef:
 		return decodeUser(respJSON)
+	case *FileRef:
+		return decodeFile(respJSON)
 	}
 
 	return nil, nil
@@ -231,11 +236,12 @@ func objectDestroy(ref interface{}, authOptions ...AuthOption) error {
 	case *ObjectRef:
 		path = fmt.Sprint(path, "classes/", v.class, "/", v.ID)
 		c = v.c
-		break
 	case *UserRef:
 		path = fmt.Sprint(path, "users/", v.ID)
 		c = v.c
-		break
+	case *FileRef:
+		path = fmt.Sprint(path, "files/", v.ID)
+		c = v.c
 	}
 
 	resp, err := c.request(ServiceAPI, MethodDelete, path, c.getRequestOptions(), authOptions...)
