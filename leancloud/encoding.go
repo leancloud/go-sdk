@@ -58,7 +58,12 @@ func encodeObject(object interface{}) map[string]interface{} {
 		if tag == "" {
 			tag = t.Field(i).Name
 		}
-		encodedObject[tag] = encode(v.Field(i).Interface())
+		if tag == "createdAt" || tag == "updatedAt" {
+			date, _ := v.Field(i).Interface().(time.Time)
+			encodedObject[tag] = fmt.Sprint(date.In(time.FixedZone("UTC", 0)).Format("2006-01-02T15:04:05.000Z"))
+		} else {
+			encodedObject[tag] = encode(v.Field(i).Interface())
+		}
 	}
 	return encodedObject
 }
@@ -68,7 +73,12 @@ func encodeMap(fields interface{}) map[string]interface{} {
 	v := reflect.ValueOf(fields)
 
 	for iter := v.MapRange(); iter.Next(); {
-		encodedMap[iter.Key().String()] = encode(iter.Value().Interface())
+		if iter.Key().String() == "createdAt" || iter.Key().String() == "updatedAt" {
+			date, _ := iter.Value().Interface().(time.Time)
+			encodedMap[iter.Key().String()] = fmt.Sprint(date.In(time.FixedZone("UTC", 0)).Format("2006-01-02T15:04:05.000Z"))
+		} else {
+			encodedMap[iter.Key().String()] = encode(iter.Value().Interface())
+		}
 	}
 
 	return encodedMap
