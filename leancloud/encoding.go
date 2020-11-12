@@ -10,27 +10,27 @@ import (
 
 func encode(object interface{}) interface{} {
 	switch o := object.(type) {
-	case Object:
+	case *Object:
 		if o.isPointer {
-			return encodePointer(&o)
+			return encodePointer(o)
 		}
 		encodedObject := encodeMap(o.fields)
 		encodedObject["__type"] = "Object"
 		return encodedObject
-	case User:
+	case *User:
 		return encodeMap(o.fields)
-	case GeoPoint:
-		return encodeGeoPoint(&o)
+	case *GeoPoint:
+		return encodeGeoPoint(o)
 	case time.Time:
 		return encodeDate(o)
 	case []byte:
 		return encodeBytes(o)
-	case File:
-		return encodeFile(&o, true)
-	case Relation:
-		return encodeRelation(&o)
-	case ACL:
-		return encodeACL(&o)
+	case *File:
+		return encodeFile(o, true)
+	case *Relation:
+		return encodeRelation(o)
+	case *ACL:
+		return encodeACL(o)
 	default:
 		switch reflect.ValueOf(object).Kind() {
 		case reflect.Slice:
@@ -71,7 +71,6 @@ func encodeObject(object interface{}) map[string]interface{} {
 func encodeMap(fields interface{}) map[string]interface{} {
 	encodedMap := make(map[string]interface{})
 	v := reflect.ValueOf(fields)
-
 	for iter := v.MapRange(); iter.Next(); {
 		if iter.Key().String() == "createdAt" || iter.Key().String() == "updatedAt" {
 			date, _ := iter.Value().Interface().(time.Time)
@@ -120,7 +119,7 @@ func encodeGeoPoint(point *GeoPoint) map[string]interface{} {
 func encodeBytes(bytes []byte) map[string]interface{} {
 	return map[string]interface{}{
 		"__type": "Byte",
-		"base64": base64.StdEncoding.EncodeToString(bytes),
+		"base64": base64.StdEncoding.EncodeToString([]byte(strings.TrimSpace(string(bytes)))),
 	}
 }
 
@@ -171,7 +170,7 @@ func decode(fields interface{}) (interface{}, error) {
 		}
 		switch fieldType {
 		case "Pointer":
-			fallthrough
+			return decodePointer(fields)
 		case "Object":
 			return decodeObject(fields)
 		case "Date":
