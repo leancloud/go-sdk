@@ -148,44 +148,6 @@ func encodeRelation(relation *Relation) map[string]interface{} {
 	return nil
 }
 
-//func transform(fields interface{}, object interface{}) error {
-//	v := reflect.ValueOf(object)
-//	iv := reflect.Indirect(v)
-//	t := iv.Type()
-//	mapFields, ok := fields.(map[string]interface{})
-//	if !ok {
-//		return fmt.Errorf("unexpected error when parse fields: want map[string]interface{} but %v", reflect.TypeOf(fields))
-//	}
-//	for i := 0; i < iv.NumField(); i++ {
-//		tag, ok := t.Field(i).Tag.Lookup("json")
-//		if !ok || tag == "" {
-//			tag = t.Field(i).Name
-//		}
-//		if mapFields[tag] != nil {
-//			fv := reflect.ValueOf(mapFields[tag])
-//			switch fv.Kind() {
-//			case reflect.Array:
-//				fallthrough
-//			case reflect.Slice:
-//				fmt.Fprintln(os.Stderr, t.Field(i))
-//				slice := reflect.MakeSlice(t.Field(i).Type, fv.Len(), fv.Len())
-//				for i := 0; i < fv.Len(); i++ {
-//					slice.Index(i).Set(fv.Index(i).Elem())
-//				}
-//				iv.Field(i).Set(slice)
-//			case reflect.Struct:
-//				vs := v.Field(i)
-//				vt := v.Field(i).Type()
-//
-//			default:
-//				iv.Field(i).Set(fv.Convert(t.Field(i).Type))
-//			}
-//		}
-//	}
-//
-//	return nil
-//}
-
 func bind(src reflect.Value, dst reflect.Value) error {
 	tdst := dst.Type()
 	switch dst.Kind() {
@@ -229,6 +191,7 @@ func bind(src reflect.Value, dst reflect.Value) error {
 
 	return nil
 }
+
 func decode(fields interface{}) (interface{}, error) {
 	mapFields, ok := fields.(map[string]interface{})
 	if !ok {
