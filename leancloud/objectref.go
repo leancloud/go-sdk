@@ -87,7 +87,11 @@ func objectCreate(class interface{}, data interface{}, authOptions ...AuthOption
 		path = fmt.Sprint(path, "classes/", v.Name)
 		c = v.c
 		options = c.getRequestOptions()
-		options.JSON = encode(data)
+		if reflect.TypeOf(data).Kind() == reflect.Map {
+			options.JSON = encode(data)
+		} else {
+			options.JSON = encodeObject(data)
+		}
 		break
 	case *Users:
 		path = fmt.Sprint(path, "users")

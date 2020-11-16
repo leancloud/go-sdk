@@ -15,11 +15,15 @@ import (
 )
 
 type Todo struct {
-	Title      string    `json:"title"`
-	Priority   int       `json:"priority"`
-	Done       bool      `json:"done"`
-	Progress   float64   `json:"progress"`
-	FinishedAt time.Time `json:"finishedAt"`
+	ID           string        `json:"objectId"`
+	Title        string        `json:"title"`
+	Priority     int           `json:"priority"`
+	Done         bool          `json:"done"`
+	Progress     float64       `json:"progress"`
+	FinishedAt   time.Time     `json:"finishedAt"`
+	Participants []string      `json:"participants"`
+	Dates        []time.Time   `json:"dates"`
+	Objects      []embedObject `json:"objects"`
 }
 
 var c *Client

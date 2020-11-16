@@ -1,6 +1,7 @@
 package leancloud
 
 import (
+	"reflect"
 	"time"
 )
 
@@ -17,7 +18,9 @@ func (object *Object) GetMap() map[string]interface{} {
 }
 
 func (object *Object) ToStruct(p interface{}) error {
-	return transform(object.fields, p)
+	fv := reflect.ValueOf(object.fields)
+	pv := reflect.Indirect(reflect.ValueOf(p))
+	return bind(fv, pv)
 }
 
 func (object *Object) Get(field string) interface{} {

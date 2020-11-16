@@ -8,11 +8,12 @@ import (
 
 func TestObjectGetMap(t *testing.T) {
 	todo := Todo{
-		Title:      "Team Meeting",
-		Priority:   1,
-		Done:       false,
-		Progress:   12.5,
-		FinishedAt: time.Now(),
+		Title:        "Team Meeting",
+		Priority:     1,
+		Done:         false,
+		Progress:     12.5,
+		FinishedAt:   time.Now(),
+		Participants: []string{"Adams", "Baker", "Clark", "Davis", "Evans", "Frank"},
 	}
 
 	ref, err := c.Class("Todo").Create(todo)
@@ -56,13 +57,33 @@ func TestObjectGetMap(t *testing.T) {
 	}
 }
 
+type embedObject struct {
+	Name     string  `json:"name"`
+	Age      int     `json:"age"`
+	Progress float32 `json:"progess"`
+}
+
 func TestObjectToStruct(t *testing.T) {
 	todo := Todo{
-		Title:      "Team Meeting",
-		Priority:   1,
-		Done:       false,
-		Progress:   12.5,
-		FinishedAt: time.Now(),
+		Title:        "Team Meeting",
+		Priority:     1,
+		Done:         false,
+		Progress:     12.5,
+		FinishedAt:   time.Now(),
+		Participants: []string{"Adams", "Baker", "Clark", "Davis", "Evans", "Frank"},
+		Dates:        []time.Time{time.Now(), time.Now(), time.Now()},
+		Objects: []embedObject{
+			{
+				Name:     "1",
+				Age:      11,
+				Progress: 11.5,
+			},
+			{
+				Name:     "2",
+				Age:      12,
+				Progress: 12.5,
+			},
+		},
 	}
 
 	ref, err := c.Class("Todo").Create(todo)
@@ -76,25 +97,8 @@ func TestObjectToStruct(t *testing.T) {
 	}
 
 	dup := new(Todo)
-	object.ToStruct(dup)
-
-	if dup.Title != todo.Title {
-		t.Fatal(fmt.Errorf("title unmatch"))
+	if err := object.ToStruct(dup); err != nil {
+		t.Fatal(err)
 	}
 
-	if dup.Priority != todo.Priority {
-		t.Fatal(fmt.Errorf("priority unmatch"))
-	}
-
-	if dup.Done != todo.Done {
-		t.Fatal(fmt.Errorf("done unmatch"))
-	}
-
-	if dup.Progress != todo.Progress {
-		t.Fatal(fmt.Errorf("unable to parse finishedAt from mapObject"))
-	}
-
-	if dup.FinishedAt.Unix() != todo.FinishedAt.Unix() {
-		t.Fatal(fmt.Errorf("finishedAt unmatch"))
-	}
 }

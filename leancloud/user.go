@@ -1,5 +1,7 @@
 package leancloud
 
+import "reflect"
+
 type User struct {
 	Object
 	sessionToken string
@@ -10,8 +12,9 @@ func (user *User) GetMap() map[string]interface{} {
 }
 
 func (user *User) ToStruct(p interface{}) error {
-	return transform(user.fields, p)
-
+	fv := reflect.ValueOf(user.fields)
+	pv := reflect.Indirect(reflect.ValueOf(p))
+	return bind(fv, pv)
 }
 
 func (user *User) Get(field string) interface{} {

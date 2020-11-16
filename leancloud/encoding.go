@@ -3,6 +3,7 @@ package leancloud
 import (
 	"encoding/base64"
 	"fmt"
+	"os"
 	"reflect"
 	"strings"
 	"time"
@@ -147,10 +148,87 @@ func encodeRelation(relation *Relation) map[string]interface{} {
 	return nil
 }
 
-func transform(fields map[string]interface{}, object interface{}) error {
+//func transform(fields interface{}, object interface{}) error {
+//	v := reflect.ValueOf(object)
+//	iv := reflect.Indirect(v)
+//	t := iv.Type()
+//	mapFields, ok := fields.(map[string]interface{})
+//	if !ok {
+//		return fmt.Errorf("unexpected error when parse fields: want map[string]interface{} but %v", reflect.TypeOf(fields))
+//	}
+//	for i := 0; i < iv.NumField(); i++ {
+//		tag, ok := t.Field(i).Tag.Lookup("json")
+//		if !ok || tag == "" {
+//			tag = t.Field(i).Name
+//		}
+//		if mapFields[tag] != nil {
+//			fv := reflect.ValueOf(mapFields[tag])
+//			switch fv.Kind() {
+//			case reflect.Array:
+//				fallthrough
+//			case reflect.Slice:
+//				fmt.Fprintln(os.Stderr, t.Field(i))
+//				slice := reflect.MakeSlice(t.Field(i).Type, fv.Len(), fv.Len())
+//				for i := 0; i < fv.Len(); i++ {
+//					slice.Index(i).Set(fv.Index(i).Elem())
+//				}
+//				iv.Field(i).Set(slice)
+//			case reflect.Struct:
+//				vs := v.Field(i)
+//				vt := v.Field(i).Type()
+//
+//			default:
+//				iv.Field(i).Set(fv.Convert(t.Field(i).Type))
+//			}
+//		}
+//	}
+//
+//	return nil
+//}
+
+func bind(src reflect.Value, dst reflect.Value) error {
+	tdst := dst.Type()
+	switch dst.Kind() {
+	case reflect.Struct:
+		if src.Kind() == reflect.Map {
+			for i := 0; i < tdst.NumField(); i++ {
+				tag, ok := tdst.Field(i).Tag.Lookup("json")
+				if !ok || tag == "" {
+					tag = tdst.Field(i).Name
+				}
+				if !src.MapIndex(reflect.ValueOf(tag)).IsNil() {
+					if err := bind(src.MapIndex(reflect.ValueOf(tag)), dst.Field(i)); err != nil {
+						return err
+					}
+				}
+			}
+		} else {
+			dst.Set(reflect.ValueOf(src.Interface()))
+		}
+	case reflect.Array, reflect.Slice:
+		slice := reflect.MakeSlice(dst.Type(), src.Elem().Len(), src.Elem().Len())
+		for i := 0; i < src.Elem().Len(); i++ {
+			if err := bind(src.Elem().Index(i).Elem(), slice.Index(i)); err != nil {
+				return err
+			}
+		}
+		dst.Set(slice)
+	case reflect.String:
+		dst.Set(reflect.ValueOf(src.Interface()))
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		dst.Set(src.Elem().Convert(dst.Type()))
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		dst.Set(src.Elem().Convert(dst.Type()))
+	case reflect.Float32, reflect.Float64:
+		dst.SetFloat(src.Elem().Float())
+	case reflect.Bool:
+		dst.SetBool(src.Elem().Bool())
+	default:
+		dst.Set(src.Convert(dst.Type()))
+	}
+
 	return nil
 }
-
 func decode(fields interface{}) (interface{}, error) {
 	mapFields, ok := fields.(map[string]interface{})
 	if !ok {
@@ -209,6 +287,7 @@ func decodeObject(fields interface{}) (*Object, error) {
 
 	objectID, ok := decodedFields["objectId"].(string)
 	if !ok {
+		fmt.Fprintln(os.Stderr, decodedFields)
 		return nil, fmt.Errorf("unexpected error when parse objectId: want type string but %v", reflect.TypeOf(decodedFields["objectId"]))
 	}
 
