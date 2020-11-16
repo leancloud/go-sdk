@@ -34,9 +34,7 @@ func encode(object interface{}) interface{} {
 		return encodeACL(o)
 	default:
 		switch reflect.ValueOf(object).Kind() {
-		case reflect.Slice:
-			fallthrough
-		case reflect.Array:
+		case reflect.Slice, reflect.Array:
 			return encodeArray(object)
 		case reflect.Map:
 			return encodeMap(o)
@@ -196,9 +194,7 @@ func decode(fields interface{}) (interface{}, error) {
 	mapFields, ok := fields.(map[string]interface{})
 	if !ok {
 		switch reflect.ValueOf(fields).Kind() {
-		case reflect.Array:
-			fallthrough
-		case reflect.Slice:
+		case reflect.Array, reflect.Slice:
 			return decodeArray(fields)
 		default:
 			return fields, nil
