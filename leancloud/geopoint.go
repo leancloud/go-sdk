@@ -10,20 +10,20 @@ type GeoPoint struct {
 
 // RadiansTo return the distance from this GeoPoint to another in radians
 func (point *GeoPoint) RadiansTo(target *GeoPoint) float64 {
-	d2r := math.Pi / 180.0
-	lat1rad := point.Latitude * d2r
-	long1rad := point.Longitude * d2r
+	radius := math.Pi / 180.0
+	startLatRadius := point.Latitude * radius
+	startLongRadius := point.Longitude * radius
 
-	lat2rad := target.Latitude * d2r
-	long2rad := target.Longitude * d2r
+	endLatRadius := target.Latitude * radius
+	endLongRadius := target.Longitude * radius
 
-	deltaLat := lat1rad - lat2rad
-	deltaLong := long1rad - long2rad
+	deltaLat := startLatRadius - endLatRadius
+	deltaLong := startLongRadius - endLongRadius
 
 	latSinDelta := math.Sin(deltaLat / 2.0)
 	longSinDelta := math.Sin(deltaLong / 2.0)
 
-	a := (latSinDelta * longSinDelta) + (math.Cos(lat1rad) * math.Cos(lat2rad) * longSinDelta * longSinDelta)
+	a := (latSinDelta * longSinDelta) + (math.Cos(startLatRadius) * math.Cos(endLatRadius) * longSinDelta * longSinDelta)
 
 	a = math.Min(1.0, a)
 
