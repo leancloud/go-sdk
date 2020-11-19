@@ -155,7 +155,7 @@ func wrapCondition(verb string, value interface{}, options string) interface{} {
 		switch v := value.(type) {
 		case time.Time:
 			return map[string]interface{}{
-				verb: encodeDate(v),
+				verb: encodeDate(&v),
 			}
 		default:
 			return map[string]interface{}{
@@ -170,7 +170,7 @@ func wrapCondition(verb string, value interface{}, options string) interface{} {
 	default:
 		switch v := value.(type) {
 		case time.Time:
-			return encodeDate(v)
+			return encodeDate(&v)
 		default:
 			return value
 		}

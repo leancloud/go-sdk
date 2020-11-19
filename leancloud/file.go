@@ -23,6 +23,7 @@ type File struct {
 	URL       string                 `json:"url"`
 	Size      int64                  `json:"size"`
 	Meatadata map[string]interface{} `json:"metadata"`
+	ref       *FileRef
 }
 
 // GetMap export raw hashmap of File object

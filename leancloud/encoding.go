@@ -3,7 +3,6 @@ package leancloud
 import (
 	"encoding/base64"
 	"fmt"
-	"os"
 	"reflect"
 	"strings"
 	"time"
@@ -11,18 +10,27 @@ import (
 
 func encode(object interface{}) interface{} {
 	switch o := object.(type) {
+	case Object:
+		return encodePointer(&o)
+	case User:
+		return encodeMap(&o)
+	case GeoPoint:
+		return encodeGeoPoint(&o)
+	case time.Time:
+		return encodeDate(&o)
+	case File:
+		return encodeFile(&o, true)
+	case Relation:
+		return encodeRelation(&o)
+	case ACL:
+		return encodeACL(&o)
 	case *Object:
-		if o.isPointer {
-			return encodePointer(o)
-		}
-		encodedObject := encodeMap(o.fields)
-		encodedObject["__type"] = "Object"
-		return encodedObject
+		return encodePointer(o)
 	case *User:
 		return encodeMap(o.fields)
 	case *GeoPoint:
 		return encodeGeoPoint(o)
-	case time.Time:
+	case *time.Time:
 		return encodeDate(o)
 	case []byte:
 		return encodeBytes(o)
@@ -38,6 +46,8 @@ func encode(object interface{}) interface{} {
 			return encodeArray(object)
 		case reflect.Map:
 			return encodeMap(o)
+		case reflect.Struct:
+			return encodeObject(o)
 		default:
 			return object
 		}
@@ -61,6 +71,9 @@ func encodeObject(object interface{}) map[string]interface{} {
 			date, _ := v.Field(i).Interface().(time.Time)
 			encodedObject[tag] = fmt.Sprint(date.In(time.FixedZone("UTC", 0)).Format("2006-01-02T15:04:05.000Z"))
 		} else {
+			if v.Field(i).Kind() == reflect.Ptr && v.Field(i).IsNil() {
+				continue
+			}
 			encodedObject[tag] = encode(v.Field(i).Interface())
 		}
 	}
@@ -96,11 +109,11 @@ func encodePointer(pointer *Object) map[string]interface{} {
 	return map[string]interface{}{
 		"__type":    "Pointer",
 		"objectId":  pointer.ID,
-		"className": pointer.fields["className"],
+		"className": pointer.ref.class,
 	}
 }
 
-func encodeDate(date time.Time) map[string]interface{} {
+func encodeDate(date *time.Time) map[string]interface{} {
 	return map[string]interface{}{
 		"__type": "Date",
 		"iso":    fmt.Sprint(date.In(time.FixedZone("UTC", 0)).Format("2006-01-02T15:04:05.000Z")),
@@ -117,7 +130,7 @@ func encodeGeoPoint(point *GeoPoint) map[string]interface{} {
 
 func encodeBytes(bytes []byte) map[string]interface{} {
 	return map[string]interface{}{
-		"__type": "Byte",
+		"__type": "Bytes",
 		"base64": base64.StdEncoding.EncodeToString([]byte(strings.TrimSpace(string(bytes)))),
 	}
 }
@@ -156,19 +169,40 @@ func bind(src reflect.Value, dst reflect.Value) error {
 				if !ok || tag == "" {
 					tag = tdst.Field(i).Name
 				}
-				if !src.MapIndex(reflect.ValueOf(tag)).IsNil() {
+				mapIndex := src.MapIndex(reflect.ValueOf(tag))
+				if mapIndex.Kind() == reflect.Ptr && mapIndex.IsNil() {
+					continue
+				}
+
+				if mapIndex.IsValid() {
 					if err := bind(src.MapIndex(reflect.ValueOf(tag)), dst.Field(i)); err != nil {
 						return err
 					}
 				}
 			}
 		} else {
-			dst.Set(reflect.ValueOf(src.Interface()))
+			if src.Kind() != reflect.Interface {
+				dst.Set(src)
+			} else {
+				dst.Set(reflect.Indirect(src.Elem()))
+			}
 		}
 	case reflect.Array, reflect.Slice:
-		slice := reflect.MakeSlice(dst.Type(), src.Elem().Len(), src.Elem().Len())
-		for i := 0; i < src.Elem().Len(); i++ {
-			if err := bind(src.Elem().Index(i).Elem(), slice.Index(i)); err != nil {
+		var isrc reflect.Value
+		if src.Kind() != reflect.Slice {
+			isrc = src.Elem()
+		} else {
+			isrc = src
+		}
+		slice := reflect.MakeSlice(dst.Type(), isrc.Len(), isrc.Len())
+		for i := 0; i < isrc.Len(); i++ {
+			var isrcIndex reflect.Value
+			if isrc.Index(i).Kind() != reflect.Interface {
+				isrcIndex = isrc.Index(i)
+			} else {
+				isrcIndex = isrc.Index(i).Elem()
+			}
+			if err := bind(isrcIndex, slice.Index(i)); err != nil {
 				return err
 			}
 		}
@@ -176,15 +210,39 @@ func bind(src reflect.Value, dst reflect.Value) error {
 	case reflect.String:
 		dst.Set(reflect.ValueOf(src.Interface()))
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		dst.Set(src.Elem().Convert(dst.Type()))
+		if src.Kind() != reflect.Interface {
+			dst.Set(src.Convert(dst.Type()))
+		} else {
+			dst.Set(src.Elem().Convert(dst.Type()))
+		}
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		dst.Set(src.Elem().Convert(dst.Type()))
+		if src.Kind() != reflect.Interface {
+			dst.Set(src.Convert(dst.Type()))
+		} else {
+			dst.Set(src.Elem().Convert(dst.Type()))
+		}
 	case reflect.Float32, reflect.Float64:
-		dst.SetFloat(src.Elem().Float())
+		if src.Kind() != reflect.Interface {
+			dst.Set(src.Convert(dst.Type()))
+		} else {
+			dst.Set(src.Elem().Convert(dst.Type()))
+		}
 	case reflect.Bool:
 		dst.SetBool(src.Elem().Bool())
 	default:
-		dst.Set(src.Convert(dst.Type()))
+		if src.Kind() != reflect.Interface {
+			if dst.Kind() == reflect.Ptr {
+				dst.Elem().Set(src.Convert(dst.Type()))
+			} else {
+				dst.Set(src.Convert(dst.Type()))
+			}
+		} else {
+			if dst.Kind() == reflect.Ptr {
+				dst.Set(src.Elem())
+			} else {
+				dst.Set(reflect.Indirect(src))
+			}
+		}
 	}
 
 	return nil
@@ -216,7 +274,7 @@ func decode(fields interface{}) (interface{}, error) {
 				return nil, fmt.Errorf("unexpected error when parse Date: iso expected string but %v", reflect.TypeOf(mapFields["iso"]))
 			}
 			return decodeDate(iso)
-		case "Byte":
+		case "Bytes":
 			base64String, ok := mapFields["base64"].(string)
 			if !ok {
 				return nil, fmt.Errorf("unexpected error when parse Byte: base64 string expected string but %v", reflect.TypeOf(mapFields["base64"]))
@@ -246,7 +304,6 @@ func decodeObject(fields interface{}) (*Object, error) {
 
 	objectID, ok := decodedFields["objectId"].(string)
 	if !ok {
-		fmt.Fprintln(os.Stderr, decodedFields)
 		return nil, fmt.Errorf("unexpected error when parse objectId: want type string but %v", reflect.TypeOf(decodedFields["objectId"]))
 	}
 
@@ -258,6 +315,7 @@ func decodeObject(fields interface{}) (*Object, error) {
 	if err != nil {
 		return nil, fmt.Errorf("unexpected error when parse createdAt: %v", err)
 	}
+	decodedFields["createdAt"] = decodedCreatedAt
 
 	updatedAt, ok := decodedFields["updatedAt"].(string)
 	if !ok {
@@ -271,6 +329,7 @@ func decodeObject(fields interface{}) (*Object, error) {
 	if err != nil {
 		return nil, fmt.Errorf("unexpected error when parse updatedAt: %v", err)
 	}
+	decodedFields["updatedAt"] = decodedUpdatedAt
 
 	return &Object{
 		ID:        objectID,
@@ -350,12 +409,12 @@ func decodeBytes(bytesStr string) ([]byte, error) {
 	return bytes, nil
 }
 
-func decodeDate(dateStr string) (time.Time, error) {
+func decodeDate(dateStr string) (*time.Time, error) {
 	date, err := time.Parse(time.RFC3339, dateStr)
 	if err != nil {
-		return time.Time{}, err
+		return &time.Time{}, err
 	}
-	return date, nil
+	return &date, nil
 }
 
 func decodeGeoPoint(v map[string]interface{}) (*GeoPoint, error) {

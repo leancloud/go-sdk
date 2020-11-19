@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
-	"time"
 
 	"github.com/levigross/grequests"
 )
@@ -156,13 +155,28 @@ func objectGet(ref interface{}, authOptions ...AuthOption) (interface{}, error) 
 		return nil, err
 	}
 
-	switch ref.(type) {
+	switch v := ref.(type) {
 	case *ObjectRef:
-		return decodeObject(respJSON)
+		decodedObject, err := decodeObject(respJSON)
+		if err != nil {
+			return nil, err
+		}
+		decodedObject.ref = v
+		return decodedObject, nil
 	case *UserRef:
-		return decodeUser(respJSON)
+		decodedUser, err := decodeUser(respJSON)
+		if err != nil {
+			return nil, err
+		}
+		decodedUser.ref = v
+		return decodedUser, nil
 	case *FileRef:
-		return decodeFile(respJSON)
+		decodedFile, err := decodeFile(respJSON)
+		if err != nil {
+			return nil, err
+		}
+		decodedFile.ref = v
+		return decodedFile, nil
 	}
 
 	return nil, nil
@@ -259,58 +273,4 @@ func objectDestroy(ref interface{}, authOptions ...AuthOption) error {
 	}
 
 	return nil
-}
-
-func extracMetadata(respBody []byte) (id, token string, createdAt, updatedAt time.Time, fields map[string]interface{}, err error) {
-	respJSON := make(map[string]interface{})
-	if err := json.Unmarshal(respBody, &respJSON); err != nil {
-		return "", "", time.Time{}, time.Time{}, nil, fmt.Errorf("unable to parse response body %w", err)
-	}
-
-	ok := false
-	if respJSON["objectId"] != nil {
-		id, ok = respJSON["objectId"].(string)
-		if !ok {
-			return "", "", time.Time{}, time.Time{}, nil, fmt.Errorf("unable to parse objectId from response")
-		}
-	}
-
-	if respJSON["sessionToken"] != nil {
-		token, ok = respJSON["sessionToken"].(string)
-		if !ok {
-			return "", "", time.Time{}, time.Time{}, nil, fmt.Errorf("unable to parse sessionToken from response")
-		}
-	}
-
-	if respJSON["createdAt"] != nil {
-		dateStr, ok := respJSON["createdAt"].(string)
-		if !ok {
-			return "", "", time.Time{}, time.Time{}, nil, fmt.Errorf("unable to parse createdAt from response")
-		}
-
-		if dateStr != "" {
-			date, err := time.Parse(time.RFC3339, dateStr)
-			if err != nil {
-				return "", "", time.Time{}, time.Time{}, nil, fmt.Errorf("unable to parse createdAt from response")
-			}
-			createdAt = date
-		}
-	}
-
-	if respJSON["updatedAt"] != nil {
-		dateStr, ok := respJSON["updatedAt"].(string)
-		if !ok {
-			return "", "", time.Time{}, time.Time{}, nil, fmt.Errorf("unable to parse updatedAt from response")
-		}
-
-		if dateStr != "" {
-			date, err := time.Parse(time.RFC3339, dateStr)
-			if err != nil {
-				return "", "", time.Time{}, time.Time{}, nil, fmt.Errorf("unable to parse updatedAt from response")
-			}
-			updatedAt = date
-		}
-	}
-
-	return id, token, createdAt, updatedAt, respJSON, nil
 }

@@ -5,6 +5,7 @@ import "reflect"
 type User struct {
 	Object
 	sessionToken string
+	ref          *UserRef
 }
 
 func (user *User) GetMap() map[string]interface{} {

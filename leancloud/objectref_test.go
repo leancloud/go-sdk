@@ -14,16 +14,69 @@ import (
 	"time"
 )
 
-type Todo struct {
-	ID           string        `json:"objectId"`
-	Title        string        `json:"title"`
-	Priority     int           `json:"priority"`
-	Done         bool          `json:"done"`
-	Progress     float64       `json:"progress"`
-	FinishedAt   time.Time     `json:"finishedAt"`
-	Participants []string      `json:"participants"`
-	Dates        []time.Time   `json:"dates"`
-	Objects      []embedObject `json:"objects"`
+type Meeting struct {
+	Title        string     `json:"title"`
+	Priority     int        `json:"priority"`
+	Done         bool       `json:"done"`
+	Progress     float64    `json:"progress"`
+	StartedAt    *time.Time `json:"startedAt"`
+	FinishedAt   time.Time  `json:"finishedAt"`
+	Host         *Object    `json:"host"`
+	Participants []string   `json:"participants"`
+	Location     GeoPoint   `json:"location"`
+	Content      []byte     `json:"content"`
+}
+
+type Host struct {
+	Name       string `json:"name"`
+	Department string `json:"department"`
+	Leader     string `json:"leader"`
+	Level      int    `json:"level"`
+}
+
+func (p *Meeting) String() string {
+	str, err := json.MarshalIndent(p, "", "  ")
+	if err != nil {
+		panic(err)
+	}
+
+	return string(str)
+}
+
+func (p *Meeting) Equal(m *Meeting) bool {
+	if p.Title != m.Title {
+		return false
+	}
+
+	if p.Priority != m.Priority {
+		return false
+	}
+
+	if p.Done != m.Done {
+		return false
+	}
+
+	if p.Progress != m.Progress {
+		return false
+	}
+
+	if p.StartedAt != nil && p.StartedAt.Unix() != m.StartedAt.Unix() {
+		return false
+	}
+
+	if p.FinishedAt.Unix() != m.FinishedAt.Unix() {
+		return false
+	}
+
+	if !reflect.DeepEqual(p.Participants, m.Participants) {
+		return false
+	}
+
+	if !reflect.DeepEqual(p.Location, m.Location) {
+		return false
+	}
+
+	return true
 }
 
 var c *Client
@@ -69,7 +122,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestObjectRefCreate(t *testing.T) {
-	todo := Todo{
+	todo := Meeting{
 		Title:      "Team Meeting",
 		Priority:   1,
 		Done:       false,
@@ -108,7 +161,7 @@ func TestObjectRefCreate(t *testing.T) {
 }
 
 func TestObjectRefGet(t *testing.T) {
-	todo := Todo{
+	todo := Meeting{
 		Title:      "Team Meeting",
 		Priority:   1,
 		Done:       false,
@@ -137,14 +190,14 @@ func TestObjectRefGet(t *testing.T) {
 	if object.fields["progress"].(float64) != todo.Progress {
 		t.Fatal(errors.New("value of progress field unmatch"))
 	}
-	finishedAt := object.fields["finishedAt"].(time.Time)
+	finishedAt := object.fields["finishedAt"].(*time.Time)
 	if finishedAt.Unix() != todo.FinishedAt.Unix() {
 		t.Fatal(errors.New("value of finishedAt field unmatch"))
 	}
 }
 
 func TestObjectRefSet(t *testing.T) {
-	todo := Todo{
+	todo := Meeting{
 		Title:      "Team Meeting",
 		Priority:   1,
 		Done:       false,
@@ -171,7 +224,7 @@ func TestObjectRefSet(t *testing.T) {
 }
 
 func TestObjectRefUpdate(t *testing.T) {
-	todo := Todo{
+	todo := Meeting{
 		Title:      "Team Meeting",
 		Priority:   1,
 		Done:       false,
@@ -211,7 +264,7 @@ func TestObjectRefUpdate(t *testing.T) {
 	if object.fields["progress"].(float64) != updateMap["progress"] {
 		t.Fatal(errors.New("value of progress field unmatch"))
 	}
-	finishedAt := object.fields["finishedAt"].(time.Time)
+	finishedAt := object.fields["finishedAt"].(*time.Time)
 	if finishedAt.Unix() != updateMap["finishedAt"].(time.Time).Unix() {
 		t.Fatal(errors.New("value of finishedAt field unmatch"))
 	}
@@ -222,7 +275,7 @@ func TestObjectRefUpdateWithQuery(t *testing.T) {
 }
 
 func TestObjectRefDestroy(t *testing.T) {
-	todo := Todo{
+	todo := Meeting{
 		Title:      "Team Meeting",
 		Priority:   1,
 		Done:       false,
@@ -379,8 +432,8 @@ func TestObjectRefNested(t *testing.T) {
 
 		object, err := ref.Get()
 
-		if reflect.TypeOf(object.fields["current"]) != reflect.TypeOf(time.Time{}) {
-			t.Fatal(fmt.Errorf("type of field of current shoud bd []byte but %v", reflect.TypeOf(object.fields["current"])))
+		if reflect.TypeOf(object.fields["current"]) != reflect.TypeOf(&time.Time{}) {
+			t.Fatal(fmt.Errorf("type of field of current shoud be []byte but %v", reflect.TypeOf(object.fields["current"])))
 		}
 	})
 

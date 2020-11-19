@@ -11,6 +11,7 @@ type Object struct {
 	UpdatedAt time.Time `json:"updatedAt"`
 	fields    map[string]interface{}
 	isPointer bool
+	ref       *ObjectRef
 }
 
 func (object *Object) GetMap() map[string]interface{} {

@@ -84,7 +84,7 @@ func TestUserRefUpdate(t *testing.T) {
 		t.Fatal(fmt.Errorf("floatNumber unmatch"))
 	}
 
-	extraDate := userByID.fields["extraDate"].(time.Time)
+	extraDate := userByID.fields["extraDate"].(*time.Time)
 
 	if extraDate.Unix() != now.Unix() {
 		t.Fatal(fmt.Errorf("extraDate unmatch"))

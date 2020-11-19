@@ -12,7 +12,7 @@ func TestQueryFind(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	todo := data.(*Todo)
+	todo := data.(*Meeting)
 
 	t.Run("EqualTo", func(t *testing.T) {
 		results, err := c.Class("Todo").NewQuery().EqualTo("title", "Team Meeting").Find()
@@ -105,7 +105,7 @@ func TestQueryCount(t *testing.T) {
 }
 
 func beforeTestQuery(query *Query) (interface{}, error) {
-	todo := Todo{
+	todo := Meeting{
 		Title:      "Team Meeting",
 		Priority:   1,
 		Done:       false,

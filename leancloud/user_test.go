@@ -2,6 +2,7 @@ package leancloud
 
 import (
 	"fmt"
+	"reflect"
 	"testing"
 	"time"
 )
@@ -29,9 +30,10 @@ func TestUserGetMap(t *testing.T) {
 		t.Fatal(fmt.Errorf("sessionToken unmatch"))
 	}
 
-	createdAt, err := time.Parse(time.RFC3339, userMap["createdAt"].(string))
-	if err != nil {
-		t.Fatal(fmt.Errorf("unable to parse createdAt from fields %w", err))
+	createdAt, ok := userMap["createdAt"].(time.Time)
+	if !ok {
+		t.Log(reflect.TypeOf(userMap["createdAt"]))
+		t.Fatal(fmt.Errorf("unable to parse createdAt from fields"))
 	}
 
 	if createdAt.Unix() != user.CreatedAt.Unix() {
