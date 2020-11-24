@@ -48,6 +48,8 @@ func encode(object interface{}) interface{} {
 			return encodeMap(o)
 		case reflect.Struct:
 			return encodeObject(o)
+		case reflect.Interface, reflect.Ptr:
+			return encode(reflect.Indirect(reflect.ValueOf(o)).Interface())
 		default:
 			return object
 		}
@@ -105,12 +107,29 @@ func encodeArray(array interface{}) []interface{} {
 	return encodedArray
 }
 
-func encodePointer(pointer *Object) map[string]interface{} {
-	return map[string]interface{}{
-		"__type":    "Pointer",
-		"objectId":  pointer.ID,
-		"className": pointer.ref.class,
+func encodePointer(pointer interface{}) map[string]interface{} {
+	switch v := pointer.(type) {
+	case *Object:
+		if v.ref == nil {
+			return nil
+		}
+		return map[string]interface{}{
+			"__type":    "Pointer",
+			"objectId":  v.ID,
+			"className": v.ref.class,
+		}
+	case *User:
+		if v.ref == nil {
+			return nil
+		}
+		return map[string]interface{}{
+			"__type":    "Pointer",
+			"objectId":  v.ID,
+			"className": v.ref.class,
+		}
 	}
+
+	return nil
 }
 
 func encodeDate(date *time.Time) map[string]interface{} {
@@ -129,6 +148,10 @@ func encodeGeoPoint(point *GeoPoint) map[string]interface{} {
 }
 
 func encodeBytes(bytes []byte) map[string]interface{} {
+	if len(bytes) == 0 {
+		return nil
+	}
+
 	return map[string]interface{}{
 		"__type": "Bytes",
 		"base64": base64.StdEncoding.EncodeToString([]byte(strings.TrimSpace(string(bytes)))),
@@ -173,18 +196,27 @@ func bind(src reflect.Value, dst reflect.Value) error {
 				if mapIndex.Kind() == reflect.Ptr && mapIndex.IsNil() {
 					continue
 				}
-
 				if mapIndex.IsValid() {
-					if err := bind(src.MapIndex(reflect.ValueOf(tag)), dst.Field(i)); err != nil {
-						return err
+					if dst.Field(i).Kind() == reflect.Ptr && dst.Field(i).IsNil() {
+						pv := reflect.New(dst.Field(i).Type().Elem())
+						if err := bind(src.MapIndex(reflect.ValueOf(tag)), pv); err != nil {
+							return err
+						}
+						dst.Field(i).Set(pv)
+					} else {
+						if err := bind(src.MapIndex(reflect.ValueOf(tag)), dst.Field(i)); err != nil {
+							return err
+						}
 					}
 				}
 			}
 		} else {
-			if src.Kind() != reflect.Interface {
+			if src.Kind() != reflect.Interface && src.Kind() != reflect.Ptr {
 				dst.Set(src)
 			} else {
-				dst.Set(reflect.Indirect(src.Elem()))
+				if err := bind(src.Elem(), dst); err != nil {
+					return err
+				}
 			}
 		}
 	case reflect.Array, reflect.Slice:
@@ -194,19 +226,29 @@ func bind(src reflect.Value, dst reflect.Value) error {
 		} else {
 			isrc = src
 		}
-		slice := reflect.MakeSlice(dst.Type(), isrc.Len(), isrc.Len())
-		for i := 0; i < isrc.Len(); i++ {
-			var isrcIndex reflect.Value
-			if isrc.Index(i).Kind() != reflect.Interface {
-				isrcIndex = isrc.Index(i)
-			} else {
-				isrcIndex = isrc.Index(i).Elem()
+		if isrc.IsValid() {
+			slice := reflect.MakeSlice(dst.Type(), isrc.Len(), isrc.Len())
+			for i := 0; i < isrc.Len(); i++ {
+				var isrcIndex reflect.Value
+				if isrc.Index(i).Kind() != reflect.Interface {
+					isrcIndex = isrc.Index(i)
+				} else {
+					isrcIndex = reflect.Indirect(isrc.Index(i))
+				}
+				if slice.Index(i).Kind() == reflect.Ptr && slice.Index(i).IsNil() {
+					pv := reflect.New(slice.Index(i).Type())
+					if err := bind(isrcIndex, pv); err != nil {
+						return err
+					}
+					slice.Index(i).Set(reflect.Indirect(pv))
+				} else {
+					if err := bind(isrcIndex, slice.Index(i)); err != nil {
+						return err
+					}
+				}
 			}
-			if err := bind(isrcIndex, slice.Index(i)); err != nil {
-				return err
-			}
+			dst.Set(slice)
 		}
-		dst.Set(slice)
 	case reflect.String:
 		dst.Set(reflect.ValueOf(src.Interface()))
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
@@ -229,18 +271,50 @@ func bind(src reflect.Value, dst reflect.Value) error {
 		}
 	case reflect.Bool:
 		dst.SetBool(src.Elem().Bool())
-	default:
-		if src.Kind() != reflect.Interface {
-			if dst.Kind() == reflect.Ptr {
-				dst.Elem().Set(src.Convert(dst.Type()))
+	case reflect.Ptr:
+		if !dst.IsNil() {
+			if dst.Elem().Kind() != reflect.Interface && dst.Elem().Kind() != reflect.Ptr {
+				if src.Kind() != reflect.Interface && src.Kind() != reflect.Ptr {
+					if src.Kind() == reflect.Array || src.Kind() == reflect.Slice {
+						if err := bind(src, dst.Elem()); err != nil {
+							return err
+						}
+					} else {
+						dst.Elem().Set(src.Convert(dst.Type().Elem()))
+					}
+				} else {
+					if err := bind(src.Elem(), dst); err != nil {
+						return err
+					}
+				}
 			} else {
-				dst.Set(src.Convert(dst.Type()))
+				if err := bind(src, dst.Elem()); err != nil {
+					return err
+				}
 			}
 		} else {
-			if dst.Kind() == reflect.Ptr {
-				dst.Set(src.Elem())
+			pv := reflect.New(dst.Type().Elem())
+			if dst.Elem().Kind() != reflect.Interface && dst.Elem().Kind() != reflect.Ptr {
+				if src.Kind() != reflect.Interface && src.Kind() != reflect.Ptr {
+					pv.Elem().Set(src.Convert(dst.Type().Elem()))
+				} else {
+					if err := bind(src.Elem(), pv); err != nil {
+						return err
+					}
+				}
 			} else {
-				dst.Set(reflect.Indirect(src))
+				if err := bind(src, dst.Elem()); err != nil {
+					return err
+				}
+			}
+			dst.Set(pv)
+		}
+	default:
+		if src.Kind() != reflect.Interface && src.Kind() != reflect.Ptr {
+			dst.Set(src)
+		} else {
+			if err := bind(src.Elem(), dst); err != nil {
+				return err
 			}
 		}
 	}
@@ -254,6 +328,8 @@ func decode(fields interface{}) (interface{}, error) {
 		switch reflect.ValueOf(fields).Kind() {
 		case reflect.Array, reflect.Slice:
 			return decodeArray(fields)
+		case reflect.Interface, reflect.Ptr:
+			return decode(reflect.Indirect(reflect.ValueOf(fields)).Interface())
 		default:
 			return fields, nil
 		}
@@ -383,6 +459,7 @@ func decodeArray(array interface{}) ([]interface{}, error) {
 		}
 		decodedArray = append(decodedArray, r)
 	}
+
 	return decodedArray, nil
 }
 
@@ -390,14 +467,15 @@ func decodeMap(fields interface{}) (map[string]interface{}, error) {
 	decodedMap := make(map[string]interface{})
 	iter := reflect.ValueOf(fields).MapRange()
 	for iter.Next() {
-		if iter.Key().String() != "__type" {
-			r, err := decode(iter.Value().Interface())
-			if err != nil {
-				return nil, err
-			}
-			decodedMap[iter.Key().String()] = r
+		//if iter.Key().String() != "__type" {
+		r, err := decode(iter.Value().Interface())
+		if err != nil {
+			return nil, err
 		}
+		decodedMap[iter.Key().String()] = r
+		//}
 	}
+
 	return decodedMap, nil
 }
 

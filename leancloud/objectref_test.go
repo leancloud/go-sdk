@@ -15,16 +15,25 @@ import (
 )
 
 type Meeting struct {
-	Title        string     `json:"title"`
-	Priority     int        `json:"priority"`
-	Done         bool       `json:"done"`
-	Progress     float64    `json:"progress"`
-	StartedAt    *time.Time `json:"startedAt"`
-	FinishedAt   time.Time  `json:"finishedAt"`
-	Host         *Object    `json:"host"`
-	Participants []string   `json:"participants"`
-	Location     GeoPoint   `json:"location"`
-	Content      []byte     `json:"content"`
+	Title         string     `json:"title"`
+	TitlePtr      *string    `json:"titlePtr"`
+	NullTitlePtr  *string    `json:"nullTitlePtr"`
+	TitleArray    []string   `json:"titleArray"`
+	TitlePtrArray []*string  `json:"titlePtrArray"`
+	Priority      int        `json:"priority"`
+	Done          bool       `json:"done"`
+	Progress      float64    `json:"progress"`
+	StartedAt     *time.Time `json:"startedAt"`
+	FinishedAt    time.Time  `json:"finishedAt"`
+	Host          *Object    `json:"host"`
+	Hosts         []Object   `json:"hosts"`
+	HostsPtrArray []*Object  `json:"hostsPtrArray"`
+	HostsArrayPtr *[]Object  `json:"hostsArrayPtr"`
+	Alternative   Object     `json:"alternative"`
+	Participants  []string   `json:"participants"`
+	Location      GeoPoint   `json:"location"`
+	Content       []byte     `json:"content"`
+	ContentPtr    *[]byte    `json:"contentPtr"`
 }
 
 type Host struct {
@@ -43,40 +52,40 @@ func (p *Meeting) String() string {
 	return string(str)
 }
 
-func (p *Meeting) Equal(m *Meeting) bool {
+func (p *Meeting) Equal(m *Meeting) int {
 	if p.Title != m.Title {
-		return false
+		return 1
 	}
 
 	if p.Priority != m.Priority {
-		return false
+		return 2
 	}
 
 	if p.Done != m.Done {
-		return false
+		return 3
 	}
 
 	if p.Progress != m.Progress {
-		return false
+		return 4
 	}
 
 	if p.StartedAt != nil && p.StartedAt.Unix() != m.StartedAt.Unix() {
-		return false
+		return 5
 	}
 
 	if p.FinishedAt.Unix() != m.FinishedAt.Unix() {
-		return false
+		return 6
 	}
 
 	if !reflect.DeepEqual(p.Participants, m.Participants) {
-		return false
+		return 7
 	}
 
 	if !reflect.DeepEqual(p.Location, m.Location) {
-		return false
+		return 8
 	}
 
-	return true
+	return 0
 }
 
 var c *Client

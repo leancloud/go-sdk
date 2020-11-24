@@ -23,22 +23,38 @@ func TestObjectToStruct(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	t.Log(hostObject)
 	ptrDate := time.Now()
+	content := []byte("Meeting Content Here")
 	m := Meeting{
-		Title:        "",
+		Title:    "Hello LeanCloud",
+		TitlePtr: nil,
+		TitlePtrArray: []*string{
+			&(host.Name),
+		},
+		NullTitlePtr: nil,
 		Priority:     0,
 		Done:         false,
 		Progress:     12.5,
 		StartedAt:    &ptrDate,
 		FinishedAt:   ptrDate,
-		Host:         hostObject,
+		Host:         nil,
+		Alternative:  *hostObject,
+		Hosts: []Object{
+			*hostObject,
+		},
+		HostsPtrArray: []*Object{
+			hostObject,
+		},
+		HostsArrayPtr: &[]Object{
+			*hostObject,
+		},
 		Participants: []string{"Adams", "Baker", "Clark", "Davis", "Evans", "Frank"},
 		Location: GeoPoint{
 			Latitude:  1.0,
 			Longitude: 2.0,
 		},
-		//Content: []byte("Meeting Content Here"),
+		Content:    content,
+		ContentPtr: &content,
 	}
 
 	ref, err := c.Class("Meetings").Create(m)
@@ -56,8 +72,8 @@ func TestObjectToStruct(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if !meeting.Equal(&m) {
-		t.FailNow()
+	if ret := meeting.Equal(&m); ret != 0 {
+		t.Fatal(ret)
 	}
 
 	t.Log(fmt.Sprint("\n", meeting))
