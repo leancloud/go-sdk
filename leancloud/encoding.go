@@ -467,13 +467,13 @@ func decodeMap(fields interface{}) (map[string]interface{}, error) {
 	decodedMap := make(map[string]interface{})
 	iter := reflect.ValueOf(fields).MapRange()
 	for iter.Next() {
-		//if iter.Key().String() != "__type" {
-		r, err := decode(iter.Value().Interface())
-		if err != nil {
-			return nil, err
+		if iter.Key().String() != "__type" {
+			r, err := decode(iter.Value().Interface())
+			if err != nil {
+				return nil, err
+			}
+			decodedMap[iter.Key().String()] = r
 		}
-		decodedMap[iter.Key().String()] = r
-		//}
 	}
 
 	return decodedMap, nil
