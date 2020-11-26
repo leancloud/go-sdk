@@ -174,8 +174,8 @@ func encodeFile(file *File, embedded bool) map[string]interface{} {
 	}
 }
 
-func encodeACL(acl *ACL) map[string]interface{} {
-	return nil
+func encodeACL(acl *ACL) map[string]map[string]bool {
+	return acl.content
 }
 
 func encodeRelation(relation *Relation) map[string]interface{} {
@@ -362,8 +362,6 @@ func decode(fields interface{}) (interface{}, error) {
 			return decodeFile(mapFields)
 		case "Relation":
 			return nil, nil
-		case "ACL":
-			return nil, nil
 		default:
 			return fields, nil
 		}
@@ -468,11 +466,16 @@ func decodeMap(fields interface{}) (map[string]interface{}, error) {
 	iter := reflect.ValueOf(fields).MapRange()
 	for iter.Next() {
 		if iter.Key().String() != "__type" {
-			r, err := decode(iter.Value().Interface())
-			if err != nil {
-				return nil, err
+			switch iter.Key().String() {
+			case "ACL":
+
+			default:
+				r, err := decode(iter.Value().Interface())
+				if err != nil {
+					return nil, err
+				}
+				decodedMap[iter.Key().String()] = r
 			}
-			decodedMap[iter.Key().String()] = r
 		}
 	}
 
@@ -570,6 +573,10 @@ func decodeFile(fields map[string]interface{}) (*File, error) {
 	file.Provider = provider
 
 	return file, nil
+}
+
+func decodeACL(fields map[string]interface{}) (*ACL, error) {
+	return nil, nil
 }
 
 func parseTag(tag string) (name string, option string) {
