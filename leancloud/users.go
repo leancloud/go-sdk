@@ -3,6 +3,7 @@ package leancloud
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"reflect"
 )
 
@@ -156,8 +157,8 @@ func (ref *Users) RequestMobilePhoneVerify(number string, authOptions ...AuthOpt
 		return err
 	}
 
-	if string(resp.Bytes()) != "{}" {
-		return fmt.Errorf(string(resp.Bytes()))
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("%s", string(resp.Bytes()))
 	}
 
 	return nil
@@ -175,8 +176,8 @@ func (ref *Users) RequestPasswordReset(email string, authOptions ...AuthOption) 
 		return err
 	}
 
-	if string(resp.Bytes()) != "{}" {
-		return fmt.Errorf(string(resp.Bytes()))
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("%s", string(resp.Bytes()))
 	}
 
 	return nil
@@ -194,8 +195,8 @@ func (ref *Users) RequestPasswordResetBySMSCode(number string, authOptions ...Au
 		return err
 	}
 
-	if string(resp.Bytes()) != "{}" {
-		return fmt.Errorf(string(resp.Bytes()))
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("%s", string(resp.Bytes()))
 	}
 
 	return nil
@@ -213,8 +214,8 @@ func (ref *Users) RequestLoginSMSCode(number string, authOptions ...AuthOption) 
 		return err
 	}
 
-	if string(resp.Bytes()) != "{}" {
-		return fmt.Errorf(string(resp.Bytes()))
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("%s", string(resp.Bytes()))
 	}
 
 	return nil
