@@ -174,8 +174,14 @@ func encodeFile(file *File, embedded bool) map[string]interface{} {
 	}
 }
 
-func encodeACL(acl *ACL) map[string]map[string]bool {
-	return acl.content
+func encodeACL(acl *ACL) map[string]interface{} {
+	return map[string]interface{}{
+		"ACL": acl.content,
+	}
+}
+
+func encodeAuthData(data *AuthData) interface{} {
+	return data.data
 }
 
 func encodeRelation(relation *Relation) map[string]interface{} {
@@ -405,6 +411,22 @@ func decodeObject(fields interface{}) (*Object, error) {
 	}
 	decodedFields["updatedAt"] = decodedUpdatedAt
 
+	if reflect.ValueOf(decodedFields["ACL"]).Kind() == reflect.Map {
+		if !reflect.ValueOf(decodedFields["ACL"]).IsNil() {
+			aclMap, ok := decodedFields["ACL"].(map[string]map[string]bool)
+			if !ok {
+				return nil, fmt.Errorf("unexpected error when parse ACL: ant type map[string]map[string]bool but %v", reflect.TypeOf(decodedFields["ACL"]))
+			}
+
+			acl, err := decodeACL(aclMap)
+			if err != nil {
+				return nil, err
+			}
+
+			decodedFields["ACL"] = acl
+		}
+	}
+
 	return &Object{
 		ID:        objectID,
 		CreatedAt: decodedCreatedAt,
@@ -575,7 +597,7 @@ func decodeFile(fields map[string]interface{}) (*File, error) {
 	return file, nil
 }
 
-func decodeACL(fields map[string]interface{}) (*ACL, error) {
+func decodeACL(fields map[string]map[string]bool) (*ACL, error) {
 	return nil, nil
 }
 

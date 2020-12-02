@@ -15,6 +15,7 @@ type Client struct {
 	requestLogger *log.Logger
 	Users         Users
 	Files         Files
+	Roles         Roles
 }
 
 func NewClient(region, appID, appKey, masterKey string) *Client {
@@ -33,6 +34,7 @@ func NewClient(region, appID, appKey, masterKey string) *Client {
 
 	client.Users.c = client
 	client.Files.c = client
+	client.Roles.c = client
 	return client
 }
 func NewEnvClient() *Client {

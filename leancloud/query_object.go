@@ -10,12 +10,13 @@ import (
 )
 
 type Query struct {
-	c     *Client
-	class *Class
-	where map[string]interface{}
-	order []string
-	limit int
-	skip  int
+	c          *Client
+	class      *Class
+	where      map[string]interface{}
+	order      []string
+	limit      int
+	skip       int
+	includeACL bool
 }
 
 func (q *Query) Find(authOptions ...AuthOption) ([]Object, error) {
@@ -132,6 +133,11 @@ func (q *Query) ContainsAll(key string, objects interface{}) *Query {
 
 func (q *Query) StartsWith(key, prefix string) *Query {
 	q.Regexp(key, fmt.Sprint("^", prefix), "")
+	return q
+}
+
+func (q *Query) IncludeACL() *Query {
+	q.includeACL = true
 	return q
 }
 

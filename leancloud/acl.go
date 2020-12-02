@@ -4,7 +4,7 @@ import "fmt"
 
 // ACL include permission group of object
 type ACL struct {
-	content map[string]map[string]bool `json:"ACL"`
+	content map[string]map[string]bool
 }
 
 func NewACL() *ACL {
