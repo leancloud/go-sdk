@@ -113,7 +113,7 @@ func runLocal(name string, payload interface{}, options *RunOption) (interface{}
 		request.SessionToken = options.SessionToken
 	} else if options.User != nil {
 		request.CurrentUser = options.User
-		request.SessionToken = options.User.GetSessionToken()
+		request.SessionToken = options.User.SessionToken()
 	}
 	if functions[name] == nil {
 		return nil, fmt.Errorf("no such cloud function %s", name)

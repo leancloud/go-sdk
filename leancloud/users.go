@@ -11,6 +11,10 @@ type Users struct {
 	c *Client
 }
 
+func (ref *Users) NewUserQuery() *UserQuery {
+	return &UserQuery{}
+}
+
 func (ref *Users) LogIn(username, password string) (*User, error) {
 	path := fmt.Sprint("/1.1/login")
 	options := ref.c.getRequestOptions()
@@ -110,10 +114,6 @@ func (ref *Users) ResetPasswordBySMSCode(number, smsCode, password string, authO
 	}
 
 	return nil
-}
-
-func (c *Client) NewUserQuery() *UserQuery {
-	return &UserQuery{}
 }
 
 func (ref *Users) Become(sessionToken string) (*User, error) {

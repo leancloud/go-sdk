@@ -14,45 +14,46 @@ type ObjectRef struct {
 	ID    string
 }
 
-func (client *Client) Object(name, id string) *ObjectRef {
-	return &ObjectRef{
-		c:     client,
-		class: name,
-		ID:    id,
+func (client *Client) Object(object interface{}) *ObjectRef {
+	if meta := extractObjectMeta(object); meta != nil {
+		return meta.ref.(*ObjectRef)
 	}
+
+	return nil
 }
 
-func (ref *ObjectRef) Get(authOptions ...AuthOption) (*Object, error) {
-	decodedObject, err := objectGet(ref, authOptions...)
-	if err != nil {
-		return nil, err
+// Get fetchs object from backend
+func (ref *ObjectRef) Get(object interface{}, authOptions ...AuthOption) error {
+	if ref == nil || ref.ID == "" || ref.class == "" {
+		return nil
 	}
 
-	object, ok := decodedObject.(*Object)
-	if !ok {
-		return nil, fmt.Errorf("unexpected error when parse Object from response: want type *Object but %v", reflect.TypeOf(decodedObject))
-	}
-	return object, nil
-}
-
-func (ref *ObjectRef) Set(field string, value interface{}, authOptions ...AuthOption) error {
-	if ref.ID == "" {
-		return fmt.Errorf("no reference to object")
-	}
-
-	if err := objectSet(ref, field, value, authOptions...); err != nil {
+	if err := objectGet(ref, object, authOptions...); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (ref *ObjectRef) Update(data map[string]interface{}, authOptions ...AuthOption) error {
-	if ref.ID == "" {
-		return fmt.Errorf("no reference to object")
+// Set manipulate
+func (ref *ObjectRef) Set(key string, value interface{}, authOptions ...AuthOption) error {
+	if ref == nil || ref.ID == "" || ref.class == "" {
+		return nil
 	}
 
-	if err := objectUpdate(ref, data, authOptions...); err != nil {
+	if err := objectSet(ref, key, value, authOptions...); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (ref *ObjectRef) Update(diff interface{}, authOptions ...AuthOption) error {
+	if ref == nil || ref.ID == "" || ref.class == "" {
+		return nil
+	}
+
+	if err := objectUpdate(ref, diff, authOptions...); err != nil {
 		return err
 	}
 
@@ -65,18 +66,18 @@ func (ref *ObjectRef) UpdateWithQuery(data map[string]interface{}, query *Query,
 }
 
 func (ref *ObjectRef) Destroy(authOptions ...AuthOption) error {
-	if ref.ID == "" {
-		return fmt.Errorf("no reference to object")
+	if ref == nil || ref.ID == "" || ref.class == "" {
+		return nil
 	}
 
-	if err := objectDestroy(ref); err != nil {
+	if err := objectDestroy(ref, authOptions...); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func objectCreate(class interface{}, data interface{}, authOptions ...AuthOption) (interface{}, error) {
+func objectCreate(class interface{}, object interface{}, authOptions ...AuthOption) (interface{}, error) {
 	path := "/1.1/"
 	var c *Client
 	var options *grequests.RequestOptions
@@ -86,17 +87,27 @@ func objectCreate(class interface{}, data interface{}, authOptions ...AuthOption
 		path = fmt.Sprint(path, "classes/", v.Name)
 		c = v.c
 		options = c.getRequestOptions()
-		if reflect.TypeOf(data).Kind() == reflect.Map {
-			options.JSON = encode(data)
-		} else {
-			options.JSON = encodeObject(data)
+		switch reflect.ValueOf(object).Kind() {
+		case reflect.Map:
+			options.JSON = encodeMap(object, false)
+		case reflect.Struct:
+			options.JSON = encodeMap(object, false)
+		default:
+			return nil, fmt.Errorf("")
 		}
 		break
 	case *Users:
 		path = fmt.Sprint(path, "users")
 		c = v.c
 		options = c.getRequestOptions()
-		options.JSON = data
+		switch reflect.ValueOf(object).Kind() {
+		case reflect.Map:
+			options.JSON = encodeMap(object, false)
+		case reflect.Struct:
+			options.JSON = encodeUser(object, false, false)
+		default:
+			return nil, fmt.Errorf("")
+		}
 		break
 	}
 
@@ -125,9 +136,10 @@ func objectCreate(class interface{}, data interface{}, authOptions ...AuthOption
 	}
 
 	return nil, nil
+
 }
 
-func objectGet(ref interface{}, authOptions ...AuthOption) (interface{}, error) {
+func objectGet(ref interface{}, object interface{}, authOptions ...AuthOption) error {
 	path := "/1.1/"
 	var c *Client
 
@@ -147,42 +159,42 @@ func objectGet(ref interface{}, authOptions ...AuthOption) (interface{}, error) 
 
 	resp, err := c.request(ServiceAPI, MethodGet, path, c.getRequestOptions(), authOptions...)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	respJSON := make(map[string]interface{})
 	if err := json.Unmarshal(resp.Bytes(), &respJSON); err != nil {
-		return nil, err
+		return err
 	}
 
 	switch v := ref.(type) {
 	case *ObjectRef:
 		decodedObject, err := decodeObject(respJSON)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		decodedObject.ref = v
-		return decodedObject, nil
+		return bind(reflect.ValueOf(decodedObject), reflect.ValueOf(object))
 	case *UserRef:
 		decodedUser, err := decodeUser(respJSON)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		decodedUser.ref = v
-		return decodedUser, nil
+		return bind(reflect.ValueOf(decodedUser), reflect.ValueOf(object))
 	case *FileRef:
 		decodedFile, err := decodeFile(respJSON)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		decodedFile.ref = v
-		return decodedFile, nil
+		object = decodedFile
 	}
 
-	return nil, nil
+	return nil
 }
 
-func objectSet(ref interface{}, field string, data interface{}, authOptions ...AuthOption) error {
+func objectSet(ref interface{}, key string, value interface{}, authOptions ...AuthOption) error {
 	path := "/1.1/"
 	var c *Client
 
@@ -198,48 +210,52 @@ func objectSet(ref interface{}, field string, data interface{}, authOptions ...A
 	}
 
 	options := c.getRequestOptions()
-	options.JSON = encode(map[string]interface{}{
-		field: data,
-	})
+	options.JSON = encode(map[string]interface{}{key: value}, true)
 
-	resp, err := c.request(ServiceAPI, MethodPut, path, options, authOptions...)
+	_, err := c.request(ServiceAPI, MethodPut, path, options, authOptions...)
 	if err != nil {
-		return err
-	}
-
-	respJSON := make(map[string]interface{})
-	if err := json.Unmarshal(resp.Bytes(), &respJSON); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func objectUpdate(ref interface{}, data map[string]interface{}, authOptions ...AuthOption) error {
+func objectUpdate(ref interface{}, diff interface{}, authOptions ...AuthOption) error {
 	path := "/1.1/"
 	var c *Client
+	var options *grequests.RequestOptions
 
 	switch v := ref.(type) {
 	case *ObjectRef:
 		path = fmt.Sprint(path, "classes/", v.class, "/", v.ID)
 		c = v.c
+		options = c.getRequestOptions()
+		switch reflect.ValueOf(diff).Kind() {
+		case reflect.Map:
+			options.JSON = encodeMap(diff, true)
+		case reflect.Struct:
+			options.JSON = encodeObject(diff, false, true)
+		default:
+			return fmt.Errorf("")
+		}
 		break
 	case *UserRef:
 		path = fmt.Sprint(path, "users/", v.ID)
 		c = v.c
+		options = c.getRequestOptions()
+		switch reflect.ValueOf(diff).Kind() {
+		case reflect.Map:
+			options.JSON = encodeMap(diff, true)
+		case reflect.Struct:
+			options.JSON = encodeUser(diff, false, true)
+		default:
+			return fmt.Errorf("")
+		}
 		break
 	}
 
-	options := c.getRequestOptions()
-	options.JSON = encode(data)
-
-	resp, err := c.request(ServiceAPI, MethodPut, path, options, authOptions...)
+	_, err := c.request(ServiceAPI, MethodPut, path, options, authOptions...)
 	if err != nil {
-		return err
-	}
-
-	respJSON := make(map[string]interface{})
-	if err := json.Unmarshal(resp.Bytes(), &respJSON); err != nil {
 		return err
 	}
 

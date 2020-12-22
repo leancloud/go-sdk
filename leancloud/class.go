@@ -1,23 +1,11 @@
 package leancloud
 
-import (
-	"fmt"
-	"reflect"
-)
-
 type Class struct {
 	c    *Client
 	Name string
 }
 
-func (client *Client) Class(name string) *Class {
-	return &Class{
-		c:    client,
-		Name: name,
-	}
-}
-
-func (ref *Class) Object(id string) *ObjectRef {
+func (ref *Class) ID(id string) *ObjectRef {
 	return &ObjectRef{
 		c:     ref.c,
 		class: ref.Name,
@@ -25,17 +13,13 @@ func (ref *Class) Object(id string) *ObjectRef {
 	}
 }
 
-func (ref *Class) Create(data interface{}, authOptions ...AuthOption) (*ObjectRef, error) {
-	decodedRef, err := objectCreate(ref, data, authOptions...)
+func (ref *Class) Create(object interface{}, authOptions ...AuthOption) (*ObjectRef, error) {
+	newRef, err := objectCreate(ref, object, authOptions...)
 	if err != nil {
 		return nil, err
 	}
 
-	objectRef, ok := decodedRef.(*ObjectRef)
-	if !ok {
-		return nil, fmt.Errorf("unexpected error when parse ObjectRef from response: want type *ObjectRef but %v", reflect.TypeOf(decodedRef))
-	}
-
+	objectRef, _ := newRef.(*ObjectRef)
 	return objectRef, nil
 }
 

@@ -43,3 +43,19 @@ func NewEnvClient() *Client {
 		os.Getenv("LEANCLOUD_APP_KEY"),
 		os.Getenv("LEANCLOUD_APP_MASTER_KEY"))
 }
+
+func (client *Client) Class(name string) *Class {
+	return &Class{
+		c:    client,
+		Name: name,
+	}
+}
+
+// File construct an new reference to a _File object by given objectId
+func (client *Client) File(id string) *FileRef {
+	return &FileRef{
+		c:     client,
+		class: "files",
+		ID:    id,
+	}
+}
