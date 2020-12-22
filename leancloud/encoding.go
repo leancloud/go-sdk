@@ -8,12 +8,84 @@ import (
 	"time"
 )
 
-func encode(object interface{}) interface{} {
+func isBare(object interface{}) bool {
+	v := reflect.Indirect(reflect.ValueOf(object))
+
+	if v.Kind() == reflect.Struct {
+		if v.Type() == reflect.TypeOf(Object{}) {
+			return true
+		} else if v.Type() == reflect.TypeOf(User{}) {
+			return true
+		} else if v.Type() == reflect.TypeOf(Role{}) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func extractObjectMeta(object interface{}) *Object {
+	if object == nil {
+		return nil
+	}
+
+	v := reflect.Indirect(reflect.ValueOf(object))
+	if v.Kind() == reflect.Struct {
+		if v.Type() == reflect.TypeOf(Object{}) {
+			meta, ok := v.Interface().(Object)
+			if !ok {
+				return nil
+			}
+			return &meta
+		}
+		metaField, ok := v.Type().FieldByName("Object")
+		if !ok {
+			return nil
+		}
+		if metaField.Type == reflect.TypeOf(Object{}) {
+			meta, ok := v.FieldByName("Object").Interface().(Object)
+			if !ok {
+				return nil
+			}
+			return &meta
+		}
+	}
+	return nil
+}
+
+func extractUserMeta(user interface{}) *User {
+	if user == nil {
+		return nil
+	}
+
+	v := reflect.Indirect(reflect.ValueOf(user))
+
+	if v.Kind() == reflect.Struct {
+		if v.Type() == reflect.TypeOf(User{}) {
+			meta, ok := v.Interface().(User)
+			if !ok {
+				return nil
+			}
+			return &meta
+		}
+
+		metaField, ok := v.Type().FieldByName("User")
+		if !ok {
+			return nil
+		}
+		if metaField.Type == reflect.TypeOf(User{}) {
+			meta, ok := v.FieldByName("User").Interface().(User)
+			if !ok {
+				return nil
+			}
+			return &meta
+		}
+	}
+
+	return nil
+}
+func encode(object interface{}, ignoreZero bool) interface{} {
 	switch o := object.(type) {
-	case Object:
-		return encodePointer(&o)
-	case User:
-		return encodeMap(&o)
 	case GeoPoint:
 		return encodeGeoPoint(&o)
 	case time.Time:
@@ -24,10 +96,6 @@ func encode(object interface{}) interface{} {
 		return encodeRelation(&o)
 	case ACL:
 		return encodeACL(&o)
-	case *Object:
-		return encodePointer(o)
-	case *User:
-		return encodeMap(o.fields)
 	case *GeoPoint:
 		return encodeGeoPoint(o)
 	case *time.Time:
@@ -43,24 +111,52 @@ func encode(object interface{}) interface{} {
 	default:
 		switch reflect.ValueOf(object).Kind() {
 		case reflect.Slice, reflect.Array:
-			return encodeArray(object)
+			return encodeArray(object, ignoreZero)
 		case reflect.Map:
-			return encodeMap(o)
+			return encodeMap(o, ignoreZero)
 		case reflect.Struct:
-			return encodeObject(o)
+			if meta := extractUserMeta(o); meta != nil {
+				return encodeUser(o, true, ignoreZero)
+			} else if meta := extractObjectMeta(o); meta != nil {
+				return encodeObject(o, true, ignoreZero)
+			} else {
+				return encodeStruct(o, ignoreZero)
+			}
 		case reflect.Interface, reflect.Ptr:
-			return encode(reflect.Indirect(reflect.ValueOf(o)).Interface())
+			return encode(reflect.Indirect(reflect.ValueOf(o)).Interface(), ignoreZero)
 		default:
 			return object
 		}
 	}
 }
 
-func encodeObject(object interface{}) map[string]interface{} {
+func encodeObject(object interface{}, embedded bool, ignoreZero bool) map[string]interface{} {
 	v := reflect.ValueOf(object)
 	t := reflect.TypeOf(object)
+
+	meta := extractObjectMeta(object)
+	if meta == nil {
+		return nil
+	}
+
+	if embedded {
+		ref, ok := meta.ref.(*ObjectRef)
+		if !ok {
+			return nil
+		}
+		return map[string]interface{}{
+			"__type":   "Pointer",
+			"objectId": ref.ID,
+			"class":    ref.class,
+		}
+	}
+
 	encodedObject := make(map[string]interface{})
-	encodedObject["__type"] = "Object"
+
+	if isBare(object) {
+		return encodeMap(meta.fields, ignoreZero)
+	}
+
 	for i := 0; i < v.NumField(); i++ {
 		tag, option := parseTag(t.Field(i).Tag.Get("json"))
 		if option == "omitempty" && v.Field(i).IsZero() {
@@ -69,67 +165,126 @@ func encodeObject(object interface{}) map[string]interface{} {
 		if tag == "" {
 			tag = t.Field(i).Name
 		}
-		if tag == "createdAt" || tag == "updatedAt" {
-			date, _ := v.Field(i).Interface().(time.Time)
-			encodedObject[tag] = fmt.Sprint(date.In(time.FixedZone("UTC", 0)).Format("2006-01-02T15:04:05.000Z"))
-		} else {
-			if v.Field(i).Kind() == reflect.Ptr && v.Field(i).IsNil() {
+		if v.Field(i).Kind() == reflect.Ptr || v.Field(i).Kind() == reflect.Interface {
+			if v.Field(i).IsNil() {
 				continue
 			}
-			encodedObject[tag] = encode(v.Field(i).Interface())
+		} else {
+			if ignoreZero {
+				if v.Field(i).IsZero() {
+					continue
+				}
+			}
 		}
+
+		if isBare(v.Field(i).Interface()) && tag == "Object" {
+			continue
+		}
+
+		encoded := encode(v.Field(i).Interface(), ignoreZero)
+		if !reflect.ValueOf(encoded).IsZero() {
+			encodedObject[tag] = encoded
+		}
+
 	}
 	return encodedObject
 }
 
-func encodeMap(fields interface{}) map[string]interface{} {
+func encodeUser(user interface{}, embedded bool, ignoreZero bool) map[string]interface{} {
+	v := reflect.Indirect(reflect.ValueOf(user))
+	t := v.Type()
+
+	meta := extractUserMeta(user)
+	if meta == nil {
+		return nil
+	}
+
+	if embedded {
+		if meta.ID == "" {
+			return nil
+		}
+
+		return map[string]interface{}{
+			"__type":   "Pointer",
+			"objectId": meta.ID,
+			"class":    "_User",
+		}
+	}
+	encodedUser := make(map[string]interface{})
+
+	if isBare(user) {
+		return encodeMap(meta.fields, ignoreZero)
+	}
+
+	for i := 0; i < v.NumField(); i++ {
+		tag, option := parseTag(t.Field(i).Tag.Get("json"))
+		if option == "omitempty" && v.Field(i).IsZero() {
+			continue
+		}
+		if tag == "" {
+			tag = t.Field(i).Name
+		}
+		if v.Field(i).Kind() == reflect.Ptr || v.Field(i).Kind() == reflect.Interface {
+			if v.Field(i).IsNil() {
+				continue
+			}
+		} else {
+			if ignoreZero {
+				if v.Field(i).IsZero() {
+					continue
+				}
+			}
+		}
+		if isBare(v.Field(i).Interface()) && tag == "User" {
+			continue
+		}
+		encoded := encode(v.Field(i).Interface(), ignoreZero)
+		if !reflect.ValueOf(encoded).IsZero() {
+			encodedUser[tag] = encoded
+		}
+	}
+	return encodedUser
+}
+
+func encodeMap(fields interface{}, ignoreZero bool) map[string]interface{} {
 	encodedMap := make(map[string]interface{})
 	v := reflect.ValueOf(fields)
 	for iter := v.MapRange(); iter.Next(); {
-		if iter.Key().String() == "createdAt" || iter.Key().String() == "updatedAt" {
-			date, _ := iter.Value().Interface().(time.Time)
-			encodedMap[iter.Key().String()] = fmt.Sprint(date.In(time.FixedZone("UTC", 0)).Format("2006-01-02T15:04:05.000Z"))
-		} else {
-			encodedMap[iter.Key().String()] = encode(iter.Value().Interface())
+		encodedMap[iter.Key().String()] = encode(iter.Value().Interface(), ignoreZero)
+		if encodedMap[iter.Key().String()] == nil {
+			delete(encodedMap, iter.Key().String())
 		}
 	}
-
 	return encodedMap
 }
 
-func encodeArray(array interface{}) []interface{} {
-	var encodedArray []interface{}
-	v := reflect.ValueOf(array)
-	for i := 0; i < v.Len(); i++ {
-		encodedArray = append(encodedArray, encode(v.Index(i).Interface()))
-	}
+func encodeStruct(object interface{}, ignoreZero bool) map[string]interface{} {
+	v := reflect.Indirect(reflect.ValueOf(object))
+	t := v.Type()
 
-	return encodedArray
-}
+	if v.IsValid() && v.Kind() == reflect.Struct {
+		encodedMap := make(map[string]interface{})
+		for i := 0; i < v.NumField(); i++ {
+			encodedMap[t.Field(i).Name] = encode(v.Field(i).Interface(), ignoreZero)
+			if encodedMap[t.Field(i).Name] == nil {
+				delete(encodedMap, t.Field(i).Name)
+			}
+		}
 
-func encodePointer(pointer interface{}) map[string]interface{} {
-	switch v := pointer.(type) {
-	case *Object:
-		if v.ref == nil {
-			return nil
-		}
-		return map[string]interface{}{
-			"__type":    "Pointer",
-			"objectId":  v.ID,
-			"className": v.ref.class,
-		}
-	case *User:
-		if v.ref == nil {
-			return nil
-		}
-		return map[string]interface{}{
-			"__type":    "Pointer",
-			"objectId":  v.ID,
-			"className": v.ref.class,
-		}
+		return encodedMap
 	}
 
 	return nil
+}
+
+func encodeArray(array interface{}, ignoreZero bool) []interface{} {
+	var encodedArray []interface{}
+	v := reflect.ValueOf(array)
+	for i := 0; i < v.Len(); i++ {
+		encodedArray = append(encodedArray, encode(v.Index(i).Interface(), ignoreZero))
+	}
+
+	return encodedArray
 }
 
 func encodeDate(date *time.Time) map[string]interface{} {
@@ -160,6 +315,10 @@ func encodeBytes(bytes []byte) map[string]interface{} {
 
 func encodeFile(file *File, embedded bool) map[string]interface{} {
 	if embedded {
+		if file.ID == "" {
+			return nil
+		}
+
 		return map[string]interface{}{
 			"__type": "File",
 			"id":     file.ID,
@@ -218,7 +377,21 @@ func bind(src reflect.Value, dst reflect.Value) error {
 			}
 		} else {
 			if src.Kind() != reflect.Interface && src.Kind() != reflect.Ptr {
-				dst.Set(src)
+				if src.IsValid() {
+					if src.Type() == reflect.TypeOf(Object{}) && dst.Type() != reflect.TypeOf(Object{}) {
+						srcObject, _ := src.Interface().(Object)
+						if err := bind(reflect.ValueOf(srcObject.fields), dst); err != nil {
+							return err
+						}
+					} else if src.Type() == reflect.TypeOf(User{}) && dst.Type() != reflect.TypeOf(User{}) {
+						srcUser, _ := src.Interface().(User)
+						if err := bind(reflect.ValueOf(srcUser.fields), dst); err != nil {
+							return err
+						}
+					} else {
+						dst.Set(src)
+					}
+				}
 			} else {
 				if err := bind(src.Elem(), dst); err != nil {
 					return err
@@ -462,10 +635,46 @@ func decodePointer(pointer interface{}) (*Object, error) {
 	if !ok {
 		return nil, fmt.Errorf("unexpected error when parse objectId: want type string but %v", reflect.TypeOf(decodedFields["objectId"]))
 	}
+
+	if len(decodedFields) > 2 {
+		createdAt, ok := decodedFields["createdAt"].(string)
+		if !ok {
+			return nil, fmt.Errorf("unexpected error when parse createdAt: want type string but %v", reflect.TypeOf(decodedFields["createdAt"]))
+		}
+		decodedCreatedAt, err := time.Parse(time.RFC3339, createdAt)
+		if err != nil {
+			return nil, fmt.Errorf("unexpected error when parse createdAt: %v", err)
+		}
+		decodedFields["createdAt"] = decodedCreatedAt
+
+		updatedAt, ok := decodedFields["updatedAt"].(string)
+		if !ok {
+			if decodedFields["updatedAt"] == nil {
+				updatedAt = ""
+			} else {
+				return nil, fmt.Errorf("unexpected error when parse updatedAt: want type string but %v", reflect.TypeOf(decodedFields["updatedAt"]))
+			}
+		}
+		decodedUpdatedAt, err := time.Parse(time.RFC3339, updatedAt)
+		if err != nil {
+			return nil, fmt.Errorf("unexpected error when parse updatedAt: %v", err)
+		}
+		decodedFields["updatedAt"] = decodedUpdatedAt
+		return &Object{
+			ID:         objectID,
+			CreatedAt:  decodedCreatedAt,
+			UpdatedAt:  decodedUpdatedAt,
+			isPointer:  true,
+			isIncluded: true,
+			fields:     decodedFields,
+		}, nil
+	}
+
 	return &Object{
-		ID:        objectID,
-		isPointer: true,
-		fields:    decodedFields,
+		ID:         objectID,
+		isPointer:  true,
+		isIncluded: false,
+		fields:     decodedFields,
 	}, nil
 }
 
@@ -546,6 +755,9 @@ func decodeFile(fields map[string]interface{}) (*File, error) {
 
 	objectID, ok := decodedFields["objectId"].(string)
 	if !ok {
+		if decodedFields["objectId"] == nil {
+			return nil, nil
+		}
 		return nil, fmt.Errorf("unexpected error when parse objectId: want type string but %v", reflect.TypeOf(decodedFields["objectId"]))
 	}
 	file.ID = objectID
