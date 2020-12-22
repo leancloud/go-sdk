@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"time"
 
 	"github.com/levigross/grequests"
 )
@@ -87,26 +88,26 @@ func objectCreate(class interface{}, object interface{}, authOptions ...AuthOpti
 		path = fmt.Sprint(path, "classes/", v.Name)
 		c = v.c
 		options = c.getRequestOptions()
-		switch reflect.ValueOf(object).Kind() {
+		switch reflect.Indirect(reflect.ValueOf(object)).Kind() {
 		case reflect.Map:
 			options.JSON = encodeMap(object, false)
 		case reflect.Struct:
-			options.JSON = encodeMap(object, false)
+			options.JSON = encodeObject(object, false, false)
 		default:
-			return nil, fmt.Errorf("")
+			return nil, fmt.Errorf("object should be struct or map Class")
 		}
 		break
 	case *Users:
 		path = fmt.Sprint(path, "users")
 		c = v.c
 		options = c.getRequestOptions()
-		switch reflect.ValueOf(object).Kind() {
+		switch reflect.Indirect(reflect.ValueOf(object)).Kind() {
 		case reflect.Map:
 			options.JSON = encodeMap(object, false)
 		case reflect.Struct:
 			options.JSON = encodeUser(object, false, false)
 		default:
-			return nil, fmt.Errorf("")
+			return nil, fmt.Errorf("object should be struct or map")
 		}
 		break
 	}
@@ -126,6 +127,34 @@ func objectCreate(class interface{}, object interface{}, authOptions ...AuthOpti
 		if !ok {
 			return nil, fmt.Errorf("unexpected error when parse objectId from response: want type string but %v", reflect.TypeOf(respJSON["objectId"]))
 		}
+		if rv := reflect.Indirect(reflect.ValueOf(object)); rv.CanSet() {
+			createdAt, ok := respJSON["createdAt"].(string)
+			if !ok {
+				return nil, fmt.Errorf("unexpected error when parse createdAt from response: want type string but %v", reflect.TypeOf(respJSON["createdAt"]))
+			}
+			decodedCreatedAt, err := time.Parse(time.RFC3339, createdAt)
+			if err != nil {
+				return nil, err
+			}
+			if rv.Type() == reflect.TypeOf(Object{}) {
+				objectPtr, _ := object.(*Object)
+				objectPtr.ID = objectID
+				objectPtr.CreatedAt = decodedCreatedAt
+				objectPtr.ref = v
+			} else if meta := extractObjectMeta(rv.Interface()); meta != nil {
+				objectPtr := &Object{
+					ID:        objectID,
+					CreatedAt: decodedCreatedAt,
+					ref: &ObjectRef{
+						ID:    objectID,
+						class: v.Name,
+						c:     c,
+					},
+				}
+				rv.FieldByName("Object").Set(reflect.ValueOf(*objectPtr))
+			}
+		}
+
 		return &ObjectRef{
 			ID:    objectID,
 			class: v.Name,
@@ -174,14 +203,28 @@ func objectGet(ref interface{}, object interface{}, authOptions ...AuthOption) e
 			return err
 		}
 		decodedObject.ref = v
-		return bind(reflect.ValueOf(decodedObject), reflect.ValueOf(object))
+		if reflect.TypeOf(reflect.Indirect(reflect.ValueOf(object))) == reflect.TypeOf(Object{}) {
+			object = decodedObject
+		} else if meta := extractObjectMeta(reflect.Indirect(reflect.ValueOf(object)).Interface()); meta != nil {
+			if err := bind(reflect.ValueOf(decodedObject.fields), reflect.Indirect(reflect.ValueOf(object))); err != nil {
+				return err
+			}
+			reflect.ValueOf(object).Elem().FieldByName("Object").Set(reflect.ValueOf(*decodedObject))
+		}
 	case *UserRef:
 		decodedUser, err := decodeUser(respJSON)
 		if err != nil {
 			return err
 		}
 		decodedUser.ref = v
-		return bind(reflect.ValueOf(decodedUser), reflect.ValueOf(object))
+		if reflect.TypeOf(reflect.Indirect(reflect.ValueOf(object))) == reflect.TypeOf(User{}) {
+			object = decodedUser
+		} else if meta := extractUserMeta(reflect.Indirect(reflect.ValueOf(object)).Interface()); meta != nil {
+			if err := bind(reflect.ValueOf(decodedUser.fields), reflect.Indirect(reflect.ValueOf(object))); err != nil {
+				return err
+			}
+		}
+		reflect.ValueOf(object).Elem().FieldByName("User").Set(reflect.Indirect(reflect.ValueOf(decodedUser)))
 	case *FileRef:
 		decodedFile, err := decodeFile(respJSON)
 		if err != nil {
@@ -236,7 +279,7 @@ func objectUpdate(ref interface{}, diff interface{}, authOptions ...AuthOption) 
 		case reflect.Struct:
 			options.JSON = encodeObject(diff, false, true)
 		default:
-			return fmt.Errorf("")
+			return fmt.Errorf("object should be strcut or map")
 		}
 		break
 	case *UserRef:
@@ -249,7 +292,7 @@ func objectUpdate(ref interface{}, diff interface{}, authOptions ...AuthOption) 
 		case reflect.Struct:
 			options.JSON = encodeUser(diff, false, true)
 		default:
-			return fmt.Errorf("")
+			return fmt.Errorf("object should be struct or map")
 		}
 		break
 	}

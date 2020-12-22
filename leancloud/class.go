@@ -20,6 +20,7 @@ func (ref *Class) Create(object interface{}, authOptions ...AuthOption) (*Object
 	}
 
 	objectRef, _ := newRef.(*ObjectRef)
+
 	return objectRef, nil
 }
 

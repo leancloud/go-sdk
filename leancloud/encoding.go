@@ -131,8 +131,8 @@ func encode(object interface{}, ignoreZero bool) interface{} {
 }
 
 func encodeObject(object interface{}, embedded bool, ignoreZero bool) map[string]interface{} {
-	v := reflect.ValueOf(object)
-	t := reflect.TypeOf(object)
+	v := reflect.Indirect(reflect.ValueOf(object))
+	t := v.Type()
 
 	meta := extractObjectMeta(object)
 	if meta == nil {
@@ -145,9 +145,9 @@ func encodeObject(object interface{}, embedded bool, ignoreZero bool) map[string
 			return nil
 		}
 		return map[string]interface{}{
-			"__type":   "Pointer",
-			"objectId": ref.ID,
-			"class":    ref.class,
+			"__type":    "Pointer",
+			"objectId":  ref.ID,
+			"className": ref.class,
 		}
 	}
 
@@ -205,9 +205,9 @@ func encodeUser(user interface{}, embedded bool, ignoreZero bool) map[string]int
 		}
 
 		return map[string]interface{}{
-			"__type":   "Pointer",
-			"objectId": meta.ID,
-			"class":    "_User",
+			"__type":    "Pointer",
+			"objectId":  meta.ID,
+			"className": "_User",
 		}
 	}
 	encodedUser := make(map[string]interface{})
@@ -383,11 +383,13 @@ func bind(src reflect.Value, dst reflect.Value) error {
 						if err := bind(reflect.ValueOf(srcObject.fields), dst); err != nil {
 							return err
 						}
+						dst.FieldByName("Object").Set(reflect.ValueOf(srcObject))
 					} else if src.Type() == reflect.TypeOf(User{}) && dst.Type() != reflect.TypeOf(User{}) {
 						srcUser, _ := src.Interface().(User)
 						if err := bind(reflect.ValueOf(srcUser.fields), dst); err != nil {
 							return err
 						}
+						dst.FieldByName("User").Set(reflect.ValueOf(srcUser))
 					} else {
 						dst.Set(src)
 					}
@@ -459,7 +461,19 @@ func bind(src reflect.Value, dst reflect.Value) error {
 							return err
 						}
 					} else {
-						dst.Elem().Set(src.Convert(dst.Type().Elem()))
+						if src.Type() == reflect.TypeOf(Object{}) && dst.Elem().Type() != reflect.TypeOf(Object{}) {
+							srcObject, _ := src.Interface().(Object)
+							if err := bind(reflect.ValueOf(srcObject.fields), dst); err != nil {
+								return err
+							}
+						} else if src.Type() == reflect.TypeOf(User{}) && dst.Elem().Type() != reflect.TypeOf(User{}) {
+							srcUser, _ := src.Interface().(User)
+							if err := bind(reflect.ValueOf(srcUser.fields), dst); err != nil {
+								return err
+							}
+						} else {
+							dst.Elem().Set(src.Convert(dst.Type().Elem()))
+						}
 					}
 				} else {
 					if err := bind(src.Elem(), dst); err != nil {
@@ -697,16 +711,11 @@ func decodeMap(fields interface{}) (map[string]interface{}, error) {
 	iter := reflect.ValueOf(fields).MapRange()
 	for iter.Next() {
 		if iter.Key().String() != "__type" {
-			switch iter.Key().String() {
-			case "ACL":
-
-			default:
-				r, err := decode(iter.Value().Interface())
-				if err != nil {
-					return nil, err
-				}
-				decodedMap[iter.Key().String()] = r
+			r, err := decode(iter.Value().Interface())
+			if err != nil {
+				return nil, err
 			}
+			decodedMap[iter.Key().String()] = r
 		}
 	}
 
