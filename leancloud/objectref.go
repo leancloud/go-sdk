@@ -203,8 +203,8 @@ func objectGet(ref interface{}, object interface{}, authOptions ...AuthOption) e
 			return err
 		}
 		decodedObject.ref = v
-		if reflect.TypeOf(reflect.Indirect(reflect.ValueOf(object))) == reflect.TypeOf(Object{}) {
-			object = decodedObject
+		if reflect.Indirect(reflect.ValueOf(object)).Type() == reflect.TypeOf(Object{}) {
+			reflect.Indirect(reflect.ValueOf(object)).Set(reflect.ValueOf(*decodedObject))
 		} else if meta := extractObjectMeta(reflect.Indirect(reflect.ValueOf(object)).Interface()); meta != nil {
 			if err := bind(reflect.ValueOf(decodedObject.fields), reflect.Indirect(reflect.ValueOf(object))); err != nil {
 				return err
@@ -273,7 +273,7 @@ func objectUpdate(ref interface{}, diff interface{}, authOptions ...AuthOption) 
 		path = fmt.Sprint(path, "classes/", v.class, "/", v.ID)
 		c = v.c
 		options = c.getRequestOptions()
-		switch reflect.ValueOf(diff).Kind() {
+		switch reflect.Indirect(reflect.ValueOf(diff)).Kind() {
 		case reflect.Map:
 			options.JSON = encodeMap(diff, true)
 		case reflect.Struct:

@@ -23,17 +23,6 @@ type File struct {
 	URL       string                 `json:"url"`
 	Size      int64                  `json:"size"`
 	Meatadata map[string]interface{} `json:"metadata"`
-	ref       *FileRef
-}
-
-// GetMap export raw hashmap of File object
-func (file *File) GetMap() map[string]interface{} {
-	return nil
-}
-
-// Get export the value by given key in File object
-func (file *File) Get(key string) interface{} {
-	return file.fields[key]
 }
 
 func (file *File) fetchOwner(authOptions ...AuthOption) (*User, error) {

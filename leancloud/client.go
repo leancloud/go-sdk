@@ -18,6 +18,7 @@ type Client struct {
 	Roles         Roles
 }
 
+// NewClient constructs a client from parameters
 func NewClient(region, appID, appKey, masterKey string) *Client {
 	client := &Client{
 		region:    NewRegionFromString(region),
@@ -37,6 +38,8 @@ func NewClient(region, appID, appKey, masterKey string) *Client {
 	client.Roles.c = client
 	return client
 }
+
+// NewEnvClient constructs a client from environment variables
 func NewEnvClient() *Client {
 	return NewClient(os.Getenv("LEANCLOUD_REGION"),
 		os.Getenv("LEANCLOUD_APP_ID"),
@@ -44,6 +47,7 @@ func NewEnvClient() *Client {
 		os.Getenv("LEANCLOUD_APP_MASTER_KEY"))
 }
 
+// Class constrcuts a reference of Class
 func (client *Client) Class(name string) *Class {
 	return &Class{
 		c:    client,

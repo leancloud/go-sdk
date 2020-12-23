@@ -46,10 +46,7 @@ func OpDelete() Operator {
 }
 
 func OpAddRelation(objects interface{}) Operator {
-	return op{
-		Name:    "AddRelation",
-		Objects: objects,
-	}
+	return op{}
 }
 
 func OpRemoveRelation(objects interface{}) Operator {

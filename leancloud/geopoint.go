@@ -2,6 +2,7 @@ package leancloud
 
 import "math"
 
+// GeoPoint contains location's latitude and longitude
 type GeoPoint struct {
 	Latitude  float64 `json:"latitude"`
 	Longitude float64 `json:"longitude"`
