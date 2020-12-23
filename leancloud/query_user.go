@@ -11,36 +11,26 @@ type UserQuery struct {
 	skip  int
 }
 
-func (q *UserQuery) Find(authOptions ...AuthOption) ([]User, error) {
-	respUsers, err := objectQuery(q, false, false, authOptions...)
+func (q *UserQuery) Find(users interface{}, authOptions ...AuthOption) error {
+	_, err := objectQuery(q, users, false, false, authOptions...)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	users, ok := respUsers.([]User)
-	if !ok {
-		return nil, fmt.Errorf("unable to parse users from response")
-	}
-
-	return users, nil
+	return nil
 }
 
-func (q *UserQuery) First(authOptions ...AuthOption) (*User, error) {
-	respUsers, err := objectQuery(q, false, true, authOptions...)
+func (q *UserQuery) First(user interface{}, authOptions ...AuthOption) error {
+	_, err := objectQuery(q, user, false, true, authOptions...)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	users, ok := respUsers.([]User)
-	if !ok {
-		return nil, fmt.Errorf("unable to parse user from response: ")
-	}
-
-	return &users[0], nil
+	return nil
 }
 
 func (q *UserQuery) Count(authOptions ...AuthOption) (int, error) {
-	resp, err := objectQuery(q, true, false, authOptions...)
+	resp, err := objectQuery(q, nil, true, false, authOptions...)
 	if err != nil {
 		return 0, err
 	}

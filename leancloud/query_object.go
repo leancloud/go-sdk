@@ -3,12 +3,14 @@ package leancloud
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
 	"strings"
 	"time"
 
 	"github.com/levigross/grequests"
 )
 
+// Query contain parameters of queries
 type Query struct {
 	c          *Client
 	class      *Class
@@ -19,36 +21,29 @@ type Query struct {
 	includeACL bool
 }
 
-func (q *Query) Find(authOptions ...AuthOption) ([]Object, error) {
-	respObjects, err := objectQuery(q, false, false, authOptions...)
+// Find fetch results of the Query
+func (q *Query) Find(objects interface{}, authOptions ...AuthOption) error {
+	_, err := objectQuery(q, objects, false, false, authOptions...)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	objects, ok := respObjects.([]Object)
-	if !ok {
-		return nil, fmt.Errorf("unable to parse objects from response")
-	}
-
-	return objects, nil
+	return nil
 }
 
-func (q *Query) First(authOptions ...AuthOption) (*Object, error) {
-	respObjects, err := objectQuery(q, false, true, authOptions...)
+// First fetch the first result of the Query
+func (q *Query) First(object interface{}, authOptions ...AuthOption) error {
+	_, err := objectQuery(q, object, false, true, authOptions...)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	objects, ok := respObjects.([]Object)
-	if !ok {
-		return nil, fmt.Errorf("unable to parse object from response")
-	}
-
-	return &objects[0], nil
+	return nil
 }
 
+// Count returns the count of results of the Query
 func (q *Query) Count(authOptions ...AuthOption) (int, error) {
-	resp, err := objectQuery(q, true, false, authOptions...)
+	resp, err := objectQuery(q, nil, true, false, authOptions...)
 	if err != nil {
 		return 0, err
 	}
@@ -183,7 +178,7 @@ func wrapCondition(verb string, value interface{}, options string) interface{} {
 	}
 }
 
-func objectQuery(query interface{}, count bool, first bool, authOptions ...AuthOption) (interface{}, error) {
+func objectQuery(query interface{}, objects interface{}, count bool, first bool, authOptions ...AuthOption) (interface{}, error) {
 	path := fmt.Sprint("/1.1/")
 	var client *Client
 	var options *grequests.RequestOptions
@@ -224,27 +219,35 @@ func objectQuery(query interface{}, count bool, first bool, authOptions ...AuthO
 	results := respJSON["results"].([]interface{})
 	switch query.(type) {
 	case *Query:
-		var objects []Object
-		for i := 0; i < len(results); i++ {
-			result := results[i].(map[string]interface{})
-			object, err := decodeObject(result)
-			if err != nil {
+		decodedObjects, err := decodeArray(results)
+		if err != nil {
+			return nil, err
+		}
+
+		if !first {
+			if err := bind(reflect.ValueOf(decodedObjects), reflect.ValueOf(objects).Elem()); err != nil {
 				return nil, err
 			}
-			objects = append(objects, *object)
+		} else {
+			if err := bind(reflect.ValueOf(decodedObjects).Index(0), reflect.ValueOf(objects).Elem()); err != nil {
+				return nil, err
+			}
 		}
-		return objects, nil
 	case *UserQuery:
-		var users []User
-		for i := 0; i < len(results); i++ {
-			result := results[i].(map[string]interface{})
-			user, err := decodeUser(result)
-			if err != nil {
+		decodedUsers, err := decodeArray(results)
+		if err != nil {
+			return nil, err
+		}
+
+		if !first {
+			if err := bind(reflect.ValueOf(decodedUsers), reflect.ValueOf(objects).Elem()); err != nil {
 				return nil, err
 			}
-			users = append(users, *user)
+		} else {
+			if err := bind(reflect.ValueOf(decodedUsers).Index(0), reflect.ValueOf(objects).Elem()); err != nil {
+				return nil, err
+			}
 		}
-		return users, nil
 	}
 
 	return nil, nil
