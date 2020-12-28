@@ -11,6 +11,12 @@ import (
 	"github.com/levigross/grequests"
 )
 
+var c *Client
+
+func init() {
+	c = NewEnvClient()
+}
+
 func generateTempFile(pattern string) (string, error) {
 	content := []byte("temporary file's content")
 	tmpfile, err := ioutil.TempFile("", "go-sdk-file-upload-*.txt")
