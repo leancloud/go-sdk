@@ -1,0 +1,245 @@
+package leancloud
+
+import (
+	"testing"
+	"time"
+)
+
+type Staff struct {
+	Object
+	Name string `json:"name"`
+	Age  int    `json:"age"`
+}
+
+type Meeting struct {
+	Object
+	Title        string    `json:"title"`
+	Number       int       `json:"number"`
+	Progress     float64   `json:"progress"`
+	Date         time.Time `json:"date"`
+	Attachment   []byte    `json:"attachment"`
+	Host         Staff     `json:"host"`
+	Participants []Staff   `json:"participants"`
+	Location     *GeoPoint `json:"location"`
+}
+
+func TestObjectCreate(t *testing.T) {
+	t.Run("Struct", func(t *testing.T) {
+		meeting := Meeting{
+			Title:      "Team Meeting",
+			Number:     1,
+			Progress:   12.5,
+			Date:       time.Now(),
+			Attachment: []byte("There is nothing attachable."),
+			Location:   &GeoPoint{1, 2},
+		}
+
+		if ref, err := client.Class("Meeting").Create(&meeting); err != nil {
+			t.Fatal(err)
+		} else {
+			if ref.class == "" || ref.ID == "" {
+				t.FailNow()
+			}
+			t.Log(ref)
+		}
+	})
+
+	t.Run("Map", func(t *testing.T) {
+		meeting := map[string]interface{}{
+			"title":      "Team Meeting",
+			"number":     1,
+			"progress":   12.5,
+			"date":       time.Now(),
+			"attachment": []byte("There is nothing attachable."),
+			"location":   &GeoPoint{1, 2},
+		}
+
+		if ref, err := client.Class("Meeting").Create(meeting); err != nil {
+			t.Fatal(err)
+		} else {
+			if ref.class == "" || ref.ID == "" {
+				t.FailNow()
+			}
+			t.Log(ref)
+		}
+	})
+}
+
+func TestObjectGet(t *testing.T) {
+	t.Run("Custom", func(t *testing.T) {
+		jake := Staff{
+			Name: "Jake",
+			Age:  20,
+		}
+
+		_, err := client.Class("Staff").Create(&jake)
+		if err != nil {
+			t.Fatal()
+		}
+		t.Log(jake)
+
+		meeting := Meeting{
+			Title:        "Team Meeting",
+			Number:       1,
+			Progress:     12.5,
+			Host:         jake,
+			Participants: []Staff{jake, jake, jake},
+			Date:         time.Now(),
+			Attachment:   []byte("There is nothing attachable."),
+			Location:     &GeoPoint{1, 2},
+		}
+
+		_, err = client.Class("Meeting").Create(&meeting)
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Log(meeting)
+
+		newMeeting := new(Meeting)
+		if err := client.Class("Meeting").ID(meeting.ID).Get(newMeeting); err != nil {
+			t.Fatal(err)
+		}
+
+		t.Log(newMeeting)
+	})
+
+	t.Run("Bare", func(t *testing.T) {
+		meeting := map[string]interface{}{
+			"title":      "Team Meeting",
+			"number":     1,
+			"progress":   12.5,
+			"date":       time.Now(),
+			"attachment": []byte("There is nothing attachable."),
+			"location":   &GeoPoint{1, 2},
+		}
+
+		ref, err := client.Class("Meeting").Create(meeting)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		object := new(Object)
+		if err := client.Class("Meeting").ID(ref.ID).Get(object); err != nil {
+			t.Fatal(err)
+		}
+
+		t.Log(object)
+	})
+}
+
+func TestObjectSet(t *testing.T) {
+	meeting := Meeting{
+		Title:      "Team Meeting",
+		Number:     1,
+		Progress:   12.5,
+		Date:       time.Now(),
+		Attachment: []byte("There is nothing attachable."),
+		Location:   &GeoPoint{1, 2},
+	}
+
+	if _, err := client.Class("Meeting").Create(&meeting); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := client.Object(meeting).Set("title", "Another Team Meeting"); err != nil {
+		t.Fatal(err)
+	}
+
+	newMeeting := new(Meeting)
+	if err := client.Object(meeting).Get(newMeeting); err != nil {
+		t.Fatal(err)
+	}
+
+	t.Log(newMeeting)
+}
+
+func TestObjectUpdate(t *testing.T) {
+	t.Run("Struct", func(t *testing.T) {
+		meeting := Meeting{
+			Title:      "Team Meeting",
+			Number:     1,
+			Progress:   12.5,
+			Date:       time.Now(),
+			Attachment: []byte("There is nothing attachable."),
+			Location:   &GeoPoint{1, 2},
+		}
+
+		if _, err := client.Class("Meeting").Create(&meeting); err != nil {
+			t.Fatal(err)
+		}
+
+		diff := &Meeting{
+			Title:    "Another Team Meeting",
+			Number:   2,
+			Progress: 13.5,
+			Date:     time.Now(),
+		}
+
+		if err := client.Object(meeting).Update(diff); err != nil {
+			t.Fatal(err)
+		}
+
+		newMeeting := new(Meeting)
+		if err := client.Object(meeting).Get(newMeeting); err != nil {
+			t.Fatal(err)
+		}
+
+		t.Log(newMeeting)
+	})
+
+	t.Run("Map", func(t *testing.T) {
+		meeting := map[string]interface{}{
+			"title":      "Team Meeting",
+			"number":     1,
+			"progress":   12.5,
+			"date":       time.Now(),
+			"attachment": []byte("There is nothing attachable."),
+			"location":   &GeoPoint{1, 2},
+		}
+
+		ref, err := client.Class("Meeting").Create(meeting)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if err := client.Class("Meeting").ID(ref.ID).Update(map[string]interface{}{
+			"title":    "Another Team Meeting",
+			"number":   2,
+			"progress": 13.5,
+			"date":     time.Now(),
+		}); err != nil {
+			t.Fatal(err)
+		}
+
+		newMeeting := new(Meeting)
+		if err := client.Class("Meeting").ID(ref.ID).Get(newMeeting); err != nil {
+			t.Fatal(err)
+		}
+
+		t.Log(newMeeting)
+	})
+}
+
+func TestObjectDestroy(t *testing.T) {
+	meeting := Meeting{
+		Title:      "Team Meeting",
+		Number:     1,
+		Progress:   12.5,
+		Date:       time.Now(),
+		Attachment: []byte("There is nothing attachable."),
+		Location:   &GeoPoint{1, 2},
+	}
+
+	if _, err := client.Class("Meeting").Create(&meeting); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := client.Object(meeting).Destroy(); err != nil {
+		t.Fatal(err)
+	}
+
+	newMeeting := new(Meeting)
+	if err := client.Object(meeting).Get(newMeeting); err == nil {
+		t.FailNow()
+	}
+}
