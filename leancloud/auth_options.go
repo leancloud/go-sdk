@@ -37,10 +37,8 @@ func UseSessionToken(sessionToken string) AuthOption {
 	}
 }
 
-// TODO
-
 func UseUser(user *User) AuthOption {
 	return &authOption{
-		sessionToken: user.GetSessionToken(),
+		sessionToken: user.SessionToken(),
 	}
 }

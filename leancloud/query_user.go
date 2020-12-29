@@ -3,44 +3,36 @@ package leancloud
 import "fmt"
 
 type UserQuery struct {
-	c     *Client
-	class *Class
-	where map[string]interface{}
-	order []string
-	limit int
-	skip  int
+	c       *Client
+	class   *Class
+	where   map[string]interface{}
+	include []string
+	keys    []string
+	order   []string
+	limit   int
+	skip    int
 }
 
-func (q *UserQuery) Find(authOptions ...AuthOption) ([]User, error) {
-	respUsers, err := objectQuery(q, false, false, authOptions...)
+func (q *UserQuery) Find(users interface{}, authOptions ...AuthOption) error {
+	_, err := objectQuery(q, users, false, false, authOptions...)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	users, ok := respUsers.([]User)
-	if !ok {
-		return nil, fmt.Errorf("unable to parse users from response")
-	}
-
-	return users, nil
+	return nil
 }
 
-func (q *UserQuery) First(authOptions ...AuthOption) (*User, error) {
-	respUsers, err := objectQuery(q, false, true, authOptions...)
+func (q *UserQuery) First(user interface{}, authOptions ...AuthOption) error {
+	_, err := objectQuery(q, user, false, true, authOptions...)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	users, ok := respUsers.([]User)
-	if !ok {
-		return nil, fmt.Errorf("unable to parse user from response: ")
-	}
-
-	return &users[0], nil
+	return nil
 }
 
 func (q *UserQuery) Count(authOptions ...AuthOption) (int, error) {
-	resp, err := objectQuery(q, true, false, authOptions...)
+	resp, err := objectQuery(q, nil, true, false, authOptions...)
 	if err != nil {
 		return 0, err
 	}
@@ -65,6 +57,78 @@ func (q *UserQuery) Limit(limit int) *UserQuery {
 
 func (q *UserQuery) Order(keys ...string) *UserQuery {
 	q.order = keys
+	return q
+}
+func (q *UserQuery) Or(queries ...*Query) *UserQuery {
+	qArray := make([]map[string]interface{}, 1)
+	for _, v := range queries {
+		qArray = append(qArray, v.where)
+	}
+	q.where["$or"] = qArray
+	return q
+}
+
+func (q *UserQuery) And(queries ...*UserQuery) *UserQuery {
+	qArray := make([]map[string]interface{}, 1)
+	for _, v := range queries {
+		qArray = append(qArray, v.where)
+	}
+	q.where["$and"] = qArray
+	return q
+}
+
+func (q *UserQuery) Near(key string, point *GeoPoint) *UserQuery {
+	return q
+}
+
+func (q *UserQuery) WithinGeoBox(key string, point *GeoPoint) *UserQuery {
+	return q
+}
+
+func (q *UserQuery) WithinKilometers(key string, point *GeoPoint) *UserQuery {
+	return q
+}
+
+func (q *UserQuery) WithinMiles(key string, point *GeoPoint) *UserQuery {
+	return q
+}
+
+func (q *UserQuery) WithinRadians(key string, point *GeoPoint) *UserQuery {
+	return q
+}
+
+func (q *UserQuery) Include(keys ...string) *UserQuery {
+	q.include = append(q.include, keys...)
+	return q
+}
+
+func (q *UserQuery) Select(keys ...string) *UserQuery {
+	q.keys = append(q.keys, keys...)
+	return q
+}
+
+func (q *UserQuery) MatchesQuery(key string, query *UserQuery) *UserQuery {
+	q.where[key] = map[string]interface{}{
+		"$select": map[string]interface{}{
+			"query": map[string]interface{}{
+				"className": query.class,
+				"where":     query.where,
+			},
+		},
+	}
+	return q
+}
+
+func (q *UserQuery) MatchesKeyQuery(key, queryKey string, query *UserQuery) *UserQuery {
+	q.where[key] = map[string]interface{}{
+		"$select": map[string]interface{}{
+			"query": map[string]interface{}{
+				"className": query.class,
+				"where":     query.where,
+			},
+			"key": queryKey,
+		},
+	}
 	return q
 }
 

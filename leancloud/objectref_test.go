@@ -1,208 +1,245 @@
 package leancloud
 
 import (
-	"encoding/json"
-	"errors"
-	"fmt"
-	"math/rand"
-	"os"
 	"testing"
 	"time"
 )
 
-type Todo struct {
-	Title      string    `json:"title"`
-	Priority   int       `json:"priority"`
-	Done       bool      `json:"done"`
-	Progress   float64   `json:"progress"`
-	FinishedAt time.Time `json:"finishedAt"`
+type Staff struct {
+	Object
+	Name string `json:"name"`
+	Age  int    `json:"age"`
 }
 
-var c *Client
-
-func TestMain(m *testing.M) {
-	c = NewEnvClient()
-	rand.Seed(time.Now().UnixNano())
-
-	os.Exit(m.Run())
+type Meeting struct {
+	Object
+	Title        string    `json:"title"`
+	Number       int       `json:"number"`
+	Progress     float64   `json:"progress"`
+	Date         time.Time `json:"date"`
+	Attachment   []byte    `json:"attachment"`
+	Host         Staff     `json:"host"`
+	Participants []Staff   `json:"participants"`
+	Location     *GeoPoint `json:"location"`
 }
 
-func TestObjectRefCreate(t *testing.T) {
-	todo := Todo{
+func TestObjectCreate(t *testing.T) {
+	t.Run("Struct", func(t *testing.T) {
+		meeting := Meeting{
+			Title:      "Team Meeting",
+			Number:     1,
+			Progress:   12.5,
+			Date:       time.Now(),
+			Attachment: []byte("There is nothing attachable."),
+			Location:   &GeoPoint{1, 2},
+		}
+
+		if ref, err := client.Class("Meeting").Create(&meeting); err != nil {
+			t.Fatal(err)
+		} else {
+			if ref.class == "" || ref.ID == "" {
+				t.FailNow()
+			}
+			t.Log(ref)
+		}
+	})
+
+	t.Run("Map", func(t *testing.T) {
+		meeting := map[string]interface{}{
+			"title":      "Team Meeting",
+			"number":     1,
+			"progress":   12.5,
+			"date":       time.Now(),
+			"attachment": []byte("There is nothing attachable."),
+			"location":   &GeoPoint{1, 2},
+		}
+
+		if ref, err := client.Class("Meeting").Create(meeting); err != nil {
+			t.Fatal(err)
+		} else {
+			if ref.class == "" || ref.ID == "" {
+				t.FailNow()
+			}
+			t.Log(ref)
+		}
+	})
+}
+
+func TestObjectGet(t *testing.T) {
+	t.Run("Custom", func(t *testing.T) {
+		jake := Staff{
+			Name: "Jake",
+			Age:  20,
+		}
+
+		_, err := client.Class("Staff").Create(&jake)
+		if err != nil {
+			t.Fatal()
+		}
+		t.Log(jake)
+
+		meeting := Meeting{
+			Title:        "Team Meeting",
+			Number:       1,
+			Progress:     12.5,
+			Host:         jake,
+			Participants: []Staff{jake, jake, jake},
+			Date:         time.Now(),
+			Attachment:   []byte("There is nothing attachable."),
+			Location:     &GeoPoint{1, 2},
+		}
+
+		_, err = client.Class("Meeting").Create(&meeting)
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Log(meeting)
+
+		newMeeting := new(Meeting)
+		if err := client.Class("Meeting").ID(meeting.ID).Get(newMeeting); err != nil {
+			t.Fatal(err)
+		}
+
+		t.Log(newMeeting)
+	})
+
+	t.Run("Bare", func(t *testing.T) {
+		meeting := map[string]interface{}{
+			"title":      "Team Meeting",
+			"number":     1,
+			"progress":   12.5,
+			"date":       time.Now(),
+			"attachment": []byte("There is nothing attachable."),
+			"location":   &GeoPoint{1, 2},
+		}
+
+		ref, err := client.Class("Meeting").Create(meeting)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		object := new(Object)
+		if err := client.Class("Meeting").ID(ref.ID).Get(object); err != nil {
+			t.Fatal(err)
+		}
+
+		t.Log(object)
+	})
+}
+
+func TestObjectSet(t *testing.T) {
+	meeting := Meeting{
 		Title:      "Team Meeting",
-		Priority:   1,
-		Done:       false,
+		Number:     1,
 		Progress:   12.5,
-		FinishedAt: time.Now(),
+		Date:       time.Now(),
+		Attachment: []byte("There is nothing attachable."),
+		Location:   &GeoPoint{1, 2},
 	}
 
-	ref, err := c.Class("Todo").Create(todo)
-	if err != nil {
+	if _, err := client.Class("Meeting").Create(&meeting); err != nil {
 		t.Fatal(err)
 	}
 
-	path := fmt.Sprint("/1.1/classes/Todo/", ref.ID)
-	resp, err := c.Request(ServiceAPI, MethodGet, path, ref.c.GetRequestOptions())
-	if err != nil {
+	if err := client.Object(meeting).Set("title", "Another Team Meeting"); err != nil {
 		t.Fatal(err)
 	}
-	respJSON := map[string]interface{}{}
-	if err := json.Unmarshal(resp.Bytes(), &respJSON); err != nil {
+
+	newMeeting := new(Meeting)
+	if err := client.Object(meeting).Get(newMeeting); err != nil {
 		t.Fatal(err)
 	}
-	if respJSON["title"].(string) != todo.Title {
-		t.Fatal(errors.New("value of title unmatch"))
-	}
-	if (int)(respJSON["priority"].(float64)) != todo.Priority {
-		t.Fatal(errors.New("value of priority unmatch"))
-	}
-	if respJSON["done"].(bool) != todo.Done {
-		t.Fatal(errors.New("value of done unmatch"))
-	}
-	finishedAt, _ := respJSON["finishedAt"].(map[string]interface{})
-	date, _ := decodeDate(finishedAt)
-	if date.Unix() != todo.FinishedAt.Unix() {
-		t.Fatal(errors.New("value of finishedAt field unmatch"))
-	}
+
+	t.Log(newMeeting)
 }
 
-func TestObjectRefGet(t *testing.T) {
-	todo := Todo{
+func TestObjectUpdate(t *testing.T) {
+	t.Run("Struct", func(t *testing.T) {
+		meeting := Meeting{
+			Title:      "Team Meeting",
+			Number:     1,
+			Progress:   12.5,
+			Date:       time.Now(),
+			Attachment: []byte("There is nothing attachable."),
+			Location:   &GeoPoint{1, 2},
+		}
+
+		if _, err := client.Class("Meeting").Create(&meeting); err != nil {
+			t.Fatal(err)
+		}
+
+		diff := &Meeting{
+			Title:    "Another Team Meeting",
+			Number:   2,
+			Progress: 13.5,
+			Date:     time.Now(),
+		}
+
+		if err := client.Object(meeting).Update(diff); err != nil {
+			t.Fatal(err)
+		}
+
+		newMeeting := new(Meeting)
+		if err := client.Object(meeting).Get(newMeeting); err != nil {
+			t.Fatal(err)
+		}
+
+		t.Log(newMeeting)
+	})
+
+	t.Run("Map", func(t *testing.T) {
+		meeting := map[string]interface{}{
+			"title":      "Team Meeting",
+			"number":     1,
+			"progress":   12.5,
+			"date":       time.Now(),
+			"attachment": []byte("There is nothing attachable."),
+			"location":   &GeoPoint{1, 2},
+		}
+
+		ref, err := client.Class("Meeting").Create(meeting)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if err := client.Class("Meeting").ID(ref.ID).Update(map[string]interface{}{
+			"title":    "Another Team Meeting",
+			"number":   2,
+			"progress": 13.5,
+			"date":     time.Now(),
+		}); err != nil {
+			t.Fatal(err)
+		}
+
+		newMeeting := new(Meeting)
+		if err := client.Class("Meeting").ID(ref.ID).Get(newMeeting); err != nil {
+			t.Fatal(err)
+		}
+
+		t.Log(newMeeting)
+	})
+}
+
+func TestObjectDestroy(t *testing.T) {
+	meeting := Meeting{
 		Title:      "Team Meeting",
-		Priority:   1,
-		Done:       false,
+		Number:     1,
 		Progress:   12.5,
-		FinishedAt: time.Now(),
+		Date:       time.Now(),
+		Attachment: []byte("There is nothing attachable."),
+		Location:   &GeoPoint{1, 2},
 	}
-	ref, err := c.Class("Todo").Create(todo)
-	if err != nil {
+
+	if _, err := client.Class("Meeting").Create(&meeting); err != nil {
 		t.Fatal(err)
 	}
 
-	object, err := ref.Get()
-	if err != nil {
+	if err := client.Object(meeting).Destroy(); err != nil {
 		t.Fatal(err)
 	}
 
-	if object.fields["title"].(string) != todo.Title {
-		t.Fatal(errors.New("value of title unmatch"))
-	}
-	if (int)(object.fields["priority"].(float64)) != todo.Priority {
-		t.Fatal(errors.New("value of priority unmatch"))
-	}
-	if object.fields["done"].(bool) != todo.Done {
-		t.Fatal(errors.New("value of done field unmatch"))
-	}
-	if object.fields["progress"].(float64) != todo.Progress {
-		t.Fatal(errors.New("value of progress field unmatch"))
-	}
-	finishedAt := object.fields["finishedAt"].(time.Time)
-	if finishedAt.Unix() != todo.FinishedAt.Unix() {
-		t.Fatal(errors.New("value of finishedAt field unmatch"))
-	}
-}
-
-func TestObjectRefSet(t *testing.T) {
-	todo := Todo{
-		Title:      "Team Meeting",
-		Priority:   1,
-		Done:       false,
-		Progress:   12.5,
-		FinishedAt: time.Now(),
-	}
-	ref, err := c.Class("Todo").Create(todo)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if err := ref.Set("title", "Another Team Meeting"); err != nil {
-		t.Fatal(err)
-	}
-
-	object, err := c.Class("Todo").Object(ref.ID).Get()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if object.fields["title"].(string) != "Another Team Meeting" {
-		t.Fatal("value of title unchanged")
-	}
-}
-
-func TestObjectRefUpdate(t *testing.T) {
-	todo := Todo{
-		Title:      "Team Meeting",
-		Priority:   1,
-		Done:       false,
-		Progress:   12.5,
-		FinishedAt: time.Now(),
-	}
-	ref, err := c.Class("Todo").Create(todo)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	updateMap := map[string]interface{}{
-		"title":      "Another Team Meeting",
-		"priority":   10,
-		"done":       true,
-		"progress":   100.0,
-		"finishedAt": time.Now(),
-	}
-
-	if err := ref.Update(updateMap); err != nil {
-		t.Fatal(err)
-	}
-
-	object, err := c.Class("Todo").Object(ref.ID).Get()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if object.fields["title"].(string) != updateMap["title"] {
-		t.Fatal(errors.New("value of title unmatch"))
-	}
-	if (int)(object.fields["priority"].(float64)) != updateMap["priority"] {
-		t.Fatal(errors.New("value of priority unmatch"))
-	}
-	if object.fields["done"].(bool) != updateMap["done"] {
-		t.Fatal(errors.New("value of done field unmatch"))
-	}
-	if object.fields["progress"].(float64) != updateMap["progress"] {
-		t.Fatal(errors.New("value of progress field unmatch"))
-	}
-	finishedAt := object.fields["finishedAt"].(time.Time)
-	if finishedAt.Unix() != updateMap["finishedAt"].(time.Time).Unix() {
-		t.Fatal(errors.New("value of finishedAt field unmatch"))
-	}
-}
-
-func TestObjectRefUpdateWithQuery(t *testing.T) {
-	// TODO
-}
-
-func TestObjectRefDestroy(t *testing.T) {
-	todo := Todo{
-		Title:      "Team Meeting",
-		Priority:   1,
-		Done:       false,
-		Progress:   12.5,
-		FinishedAt: time.Now(),
-	}
-	ref, err := c.Class("Todo").Create(todo)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if err := ref.Destroy(); err != nil {
-		t.Fatal(err)
-	}
-
-	path := fmt.Sprint("/1.1/classes/Todo/", ref.ID)
-	resp, err := c.Request(ServiceAPI, MethodGet, path, c.GetRequestOptions())
-	if err != nil {
-		t.Fatal(err)
-	}
-	if string(resp.Bytes()) != "{}" {
-		t.Fatal("unable to destroy object")
+	newMeeting := new(Meeting)
+	if err := client.Object(meeting).Get(newMeeting); err == nil {
+		t.FailNow()
 	}
 }

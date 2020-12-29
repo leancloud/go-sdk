@@ -113,7 +113,7 @@ func TestClientClass(t *testing.T) {
 
 func TestClientObject(t *testing.T) {
 	client := &Client{}
-	ref := client.Object("class", "f47ac10b58cc4372a5670e02b2c3d479")
+	ref := client.Class("class").ID("f47ac10b58cc4372a5670e02b2c3d479")
 	if ref.c != client {
 		t.Fatal(errors.New("client unmatch"))
 	}

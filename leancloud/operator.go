@@ -44,3 +44,23 @@ func OpDelete() Operator {
 		},
 	}
 }
+
+func OpAddRelation(objects interface{}) Operator {
+	return op{}
+}
+
+func OpRemoveRelation(objects interface{}) Operator {
+	return op{}
+}
+
+func OpBitAnd() Operator {
+	return op{}
+}
+
+func OpBitOr() Operator {
+	return op{}
+}
+
+func OpBitXor() Operator {
+	return op{}
+}
