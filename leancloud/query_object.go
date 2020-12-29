@@ -15,6 +15,7 @@ type Query struct {
 	c          *Client
 	class      *Class
 	where      map[string]interface{}
+	include    []string
 	order      []string
 	limit      int
 	skip       int
@@ -68,6 +69,58 @@ func (q *Query) Limit(limit int) *Query {
 
 func (q *Query) Order(keys ...string) *Query {
 	q.order = keys
+	return q
+}
+
+func (q *Query) Or(queries ...*Query) *Query {
+	qArray := make([]map[string]interface{}, 1)
+	for _, v := range queries {
+		qArray = append(qArray, v.where)
+	}
+	q.where["$or"] = qArray
+	return q
+}
+
+func (q *Query) And(queries ...*Query) *Query {
+	qArray := make([]map[string]interface{}, 1)
+	for _, v := range queries {
+		qArray = append(qArray, v.where)
+	}
+	q.where["$and"] = qArray
+	return q
+}
+
+func (q *Query) Near(key string, point *GeoPoint) *Query {
+	q.where[key] = wrapCondition("$nearSphere", point, "")
+	return q
+}
+
+func (q *Query) WithinGeoBox(key string, southwest *GeoPoint, northeast *GeoPoint) *Query {
+	q.where[key] = wrapCondition("$withinBox", []GeoPoint{*southwest, *northeast}, "")
+	return q
+}
+
+func (q *Query) WithinKilometers(key string, point *GeoPoint) *Query {
+	q.where[key] = wrapCondition("$maxDistanceInKilometers", point, "")
+	return q
+}
+
+func (q *Query) WithinMiles(key string, point *GeoPoint) *Query {
+	q.where[key] = wrapCondition("$maxDistanceInMiles", point, "")
+	return q
+}
+
+func (q *Query) WithinRadians(key string, point *GeoPoint) *Query {
+	q.where[key] = wrapCondition("$maxDistanceInRadians", point, "")
+	return q
+}
+
+func (q *Query) Include(keys ...string) *Query {
+	q.include = append(q.include, keys...)
+	return q
+}
+
+func (q *Query) Select(keys ...string) *Query {
 	return q
 }
 
@@ -138,31 +191,14 @@ func (q *Query) IncludeACL() *Query {
 
 func wrapCondition(verb string, value interface{}, options string) interface{} {
 	switch verb {
-	case "$ne":
-		fallthrough
-	case "$lt":
-		fallthrough
-	case "$lte":
-		fallthrough
-	case "$gt":
-		fallthrough
-	case "$gte":
-		fallthrough
-	case "$in":
-		fallthrough
-	case "$nin":
-		fallthrough
-	case "$all":
-		switch v := value.(type) {
-		case time.Time:
-			return map[string]interface{}{
-				verb: encodeDate(&v),
-			}
-		default:
-			return map[string]interface{}{
-				verb: value,
-			}
+	case "$ne", "$lt", "$lte", "$gt", "$gte", "$in", "$nin", "$all", "nearShpere":
+		return map[string]interface{}{
+			verb: encode(value, false),
 		}
+	case "$withinBox":
+		return encode(map[string]interface{}{
+			"$box": value,
+		}, true)
 	case "$regex":
 		return map[string]interface{}{
 			"$regex":   value,
@@ -256,17 +292,20 @@ func objectQuery(query interface{}, objects interface{}, count bool, first bool,
 func wrapParams(query interface{}, count, first bool) (map[string]string, error) {
 	var where map[string]interface{}
 	var order []string
+	var include string
 	var skip, limit int
 
 	switch v := query.(type) {
 	case *Query:
 		where = v.where
 		order = v.order
+		include = strings.Join(v.include, ",")
 		skip, limit = v.skip, v.limit
 		break
 	case *UserQuery:
 		where = v.where
 		order = v.order
+		include = strings.Join(v.include, ",")
 		skip, limit = v.skip, v.limit
 		break
 	}
@@ -292,6 +331,9 @@ func wrapParams(query interface{}, count, first bool) (map[string]string, error)
 		params["order"] = strings.Join(order, ",")
 	}
 
+	if len(include) != 0 {
+		params["include"] = include
+	}
 	if count {
 		params["count"] = "1"
 	}

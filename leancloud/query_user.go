@@ -3,12 +3,13 @@ package leancloud
 import "fmt"
 
 type UserQuery struct {
-	c     *Client
-	class *Class
-	where map[string]interface{}
-	order []string
-	limit int
-	skip  int
+	c       *Client
+	class   *Class
+	where   map[string]interface{}
+	include []string
+	order   []string
+	limit   int
+	skip    int
 }
 
 func (q *UserQuery) Find(users interface{}, authOptions ...AuthOption) error {
@@ -55,6 +56,52 @@ func (q *UserQuery) Limit(limit int) *UserQuery {
 
 func (q *UserQuery) Order(keys ...string) *UserQuery {
 	q.order = keys
+	return q
+}
+func (q *UserQuery) Or(queries ...*Query) *UserQuery {
+	qArray := make([]map[string]interface{}, 1)
+	for _, v := range queries {
+		qArray = append(qArray, v.where)
+	}
+	q.where["$or"] = qArray
+	return q
+}
+
+func (q *UserQuery) And(queries ...*UserQuery) *UserQuery {
+	qArray := make([]map[string]interface{}, 1)
+	for _, v := range queries {
+		qArray = append(qArray, v.where)
+	}
+	q.where["$and"] = qArray
+	return q
+}
+
+func (q *UserQuery) Near(key string, point *GeoPoint) *UserQuery {
+	return q
+}
+
+func (q *UserQuery) WithinGeoBox(key string, point *GeoPoint) *UserQuery {
+	return q
+}
+
+func (q *UserQuery) WithinKilometers(key string, point *GeoPoint) *UserQuery {
+	return q
+}
+
+func (q *UserQuery) WithinMiles(key string, point *GeoPoint) *UserQuery {
+	return q
+}
+
+func (q *UserQuery) WithinRadians(key string, point *GeoPoint) *UserQuery {
+	return q
+}
+
+func (q *UserQuery) Include(keys ...string) *UserQuery {
+	q.include = append(q.include, keys...)
+	return q
+}
+
+func (q *UserQuery) Select(keys ...string) *UserQuery {
 	return q
 }
 
