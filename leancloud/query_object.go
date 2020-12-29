@@ -16,6 +16,7 @@ type Query struct {
 	class      *Class
 	where      map[string]interface{}
 	include    []string
+	keys       []string
 	order      []string
 	limit      int
 	skip       int
@@ -121,6 +122,32 @@ func (q *Query) Include(keys ...string) *Query {
 }
 
 func (q *Query) Select(keys ...string) *Query {
+	q.keys = append(q.keys, keys...)
+	return q
+}
+
+func (q *Query) MatchesQuery(key string, query *Query) *Query {
+	q.where[key] = map[string]interface{}{
+		"$select": map[string]interface{}{
+			"query": map[string]interface{}{
+				"className": query.class,
+				"where":     query.where,
+			},
+		},
+	}
+	return q
+}
+
+func (q *Query) MatchesKeyQuery(key, queryKey string, query *Query) *Query {
+	q.where[key] = map[string]interface{}{
+		"$select": map[string]interface{}{
+			"query": map[string]interface{}{
+				"className": query.class,
+				"where":     query.where,
+			},
+			"key": queryKey,
+		},
+	}
 	return q
 }
 
@@ -291,21 +318,24 @@ func objectQuery(query interface{}, objects interface{}, count bool, first bool,
 
 func wrapParams(query interface{}, count, first bool) (map[string]string, error) {
 	var where map[string]interface{}
-	var order []string
+	var order string
 	var include string
+	var keys string
 	var skip, limit int
 
 	switch v := query.(type) {
 	case *Query:
 		where = v.where
-		order = v.order
+		order = strings.Join(v.order, ",")
 		include = strings.Join(v.include, ",")
+		keys = strings.Join(v.keys, ",")
 		skip, limit = v.skip, v.limit
 		break
 	case *UserQuery:
 		where = v.where
-		order = v.order
+		order = strings.Join(v.order, ",")
 		include = strings.Join(v.include, ",")
+		keys = strings.Join(v.keys, ",")
 		skip, limit = v.skip, v.limit
 		break
 	}
@@ -328,12 +358,17 @@ func wrapParams(query interface{}, count, first bool) (map[string]string, error)
 	}
 
 	if len(order) != 0 {
-		params["order"] = strings.Join(order, ",")
+		params["order"] = order
 	}
 
 	if len(include) != 0 {
 		params["include"] = include
 	}
+
+	if len(keys) != 0 {
+		params["keys"] = keys
+	}
+
 	if count {
 		params["count"] = "1"
 	}

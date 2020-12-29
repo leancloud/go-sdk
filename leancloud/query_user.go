@@ -7,6 +7,7 @@ type UserQuery struct {
 	class   *Class
 	where   map[string]interface{}
 	include []string
+	keys    []string
 	order   []string
 	limit   int
 	skip    int
@@ -102,6 +103,32 @@ func (q *UserQuery) Include(keys ...string) *UserQuery {
 }
 
 func (q *UserQuery) Select(keys ...string) *UserQuery {
+	q.keys = append(q.keys, keys...)
+	return q
+}
+
+func (q *UserQuery) MatchesQuery(key string, query *UserQuery) *UserQuery {
+	q.where[key] = map[string]interface{}{
+		"$select": map[string]interface{}{
+			"query": map[string]interface{}{
+				"className": query.class,
+				"where":     query.where,
+			},
+		},
+	}
+	return q
+}
+
+func (q *UserQuery) MatchesKeyQuery(key, queryKey string, query *UserQuery) *UserQuery {
+	q.where[key] = map[string]interface{}{
+		"$select": map[string]interface{}{
+			"query": map[string]interface{}{
+				"className": query.class,
+				"where":     query.where,
+			},
+			"key": queryKey,
+		},
+	}
 	return q
 }
 
