@@ -3,6 +3,7 @@ package leancloud
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
 
 	"github.com/levigross/grequests"
 )
@@ -200,9 +201,24 @@ func Run(name string, object interface{}, runOptions ...RunOption) (interface{},
 	return functions[name].call(&request)
 }
 
-func RPC(name string, object interface{}, runOptions ...RunOption) (interface{}, error) {
-	// TODO
-	return nil, nil
+func RPC(name string, object interface{}, ret interface{}, runOptions ...RunOption) error {
+	encodedObject := encode(object, true)
+
+	resp, err := Run(name, encodedObject, runOptions...)
+	if err != nil {
+		return err
+	}
+
+	decodedObject, err := decode(resp)
+	if err != nil {
+		return err
+	}
+
+	if err := bind(reflect.Indirect(reflect.ValueOf(decodedObject)), reflect.Indirect(reflect.ValueOf(ret))); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (ferr *functionError) Error() string {
