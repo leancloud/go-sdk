@@ -124,7 +124,7 @@ func constructRequest(r *http.Request, name string) (*Request, error) {
 		"remoteAddr": r.RemoteAddr,
 	}
 	sessionToken := r.Header.Get("X-LC-Session")
-	if !functions[name].NotFetchUser && sessionToken != "" {
+	if functions[name].defineOption["fetchUser"] == true && sessionToken != "" {
 		user, err := client.Users.Become(sessionToken)
 		if err != nil {
 			return nil, err

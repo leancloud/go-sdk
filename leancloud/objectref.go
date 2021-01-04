@@ -217,14 +217,14 @@ func objectGet(ref interface{}, object interface{}, authOptions ...AuthOption) e
 			return err
 		}
 		decodedUser.ref = v
-		if reflect.TypeOf(reflect.Indirect(reflect.ValueOf(object))) == reflect.TypeOf(User{}) {
-			object = decodedUser
+		if reflect.Indirect(reflect.ValueOf(object)).Type() == reflect.TypeOf(User{}) {
+			reflect.Indirect(reflect.ValueOf(object)).Set(reflect.ValueOf(*decodedUser))
 		} else if meta := extractUserMeta(reflect.Indirect(reflect.ValueOf(object)).Interface()); meta != nil {
 			if err := bind(reflect.ValueOf(decodedUser.fields), reflect.Indirect(reflect.ValueOf(object))); err != nil {
 				return err
 			}
+			reflect.ValueOf(object).Elem().FieldByName("User").Set(reflect.Indirect(reflect.ValueOf(decodedUser)))
 		}
-		reflect.ValueOf(object).Elem().FieldByName("User").Set(reflect.Indirect(reflect.ValueOf(decodedUser)))
 	case *FileRef:
 		decodedFile, err := decodeFile(respJSON)
 		if err != nil {

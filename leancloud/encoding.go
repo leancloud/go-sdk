@@ -431,7 +431,7 @@ func bind(src reflect.Value, dst reflect.Value) error {
 			dst.Set(slice)
 		}
 	case reflect.String:
-		dst.Set(reflect.ValueOf(src.Interface()))
+		dst.Set(reflect.Indirect(reflect.ValueOf(src.Interface())))
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		if src.Kind() != reflect.Interface {
 			dst.Set(src.Convert(dst.Type()))
@@ -635,7 +635,7 @@ func decodeUser(fields interface{}) (*User, error) {
 	}
 	return &User{
 		Object:       *object,
-		sessionToken: sessionToken,
+		SessionToken: sessionToken,
 	}, nil
 }
 

@@ -140,7 +140,7 @@ func Run(name string, object interface{}, runOptions ...RunOption) (interface{},
 		return nil, fmt.Errorf("unable to set both of sessionToken & User")
 	}
 
-	if options["sessionToken"] != "" {
+	if options["sessionToken"] != nil {
 		sessionToken = options["sessionToken"].(string)
 	}
 
@@ -195,7 +195,7 @@ func Run(name string, object interface{}, runOptions ...RunOption) (interface{},
 
 	if currentUser != nil {
 		request.CurrentUser = currentUser
-		request.SessionToken = currentUser.sessionToken
+		request.SessionToken = currentUser.SessionToken
 	}
 
 	return functions[name].call(&request)
