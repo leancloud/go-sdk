@@ -16,20 +16,82 @@ type Request struct {
 	Meta         map[string]string
 }
 
-type DefineOption struct {
-	NotFetchUser bool
-	Internal     bool
+type DefineOption interface {
+	apply(*functionType)
 }
 
-type RunOption struct {
-	Remote       bool
-	User         *User
-	SessionToken string
+type defineOption struct {
+	fetchUser bool
+	internal  bool
+}
+
+func (option *defineOption) apply(fn *functionType) {
+	if option.fetchUser == false {
+		fn.defineOption["fetchUser"] = false
+	}
+
+	if option.internal == true {
+		fn.defineOption["internal"] = true
+	}
+}
+
+func WithoutFetchUser() DefineOption {
+	return &defineOption{
+		fetchUser: false,
+	}
+}
+
+func WithInteral() DefineOption {
+	return &defineOption{
+		internal: true,
+	}
+}
+
+type RunOption interface {
+	apply(*map[string]interface{})
+}
+
+type runOption struct {
+	remote       bool
+	user         *User
+	sessionToken string
+}
+
+func (option *runOption) apply(runOption *map[string]interface{}) {
+	if option.remote == true {
+		(*runOption)["remote"] = true
+	}
+
+	if option.user != nil {
+		(*runOption)["user"] = option.user
+	}
+
+	if option.sessionToken != "" {
+		(*runOption)["sessionToken"] = option.sessionToken
+	}
+}
+
+func WithRemote() RunOption {
+	return &runOption{
+		remote: true,
+	}
+}
+
+func WithUser(user *User) RunOption {
+	return &runOption{
+		user: user,
+	}
+}
+
+func WithSessionToken(token string) RunOption {
+	return &runOption{
+		sessionToken: token,
+	}
 }
 
 type functionType struct {
-	call function
-	DefineOption
+	call         function
+	defineOption map[string]interface{}
 }
 
 type functionError struct {
@@ -46,141 +108,102 @@ func init() {
 	client = NewEnvClient()
 }
 
-func Define(name string, fn function) {
-	define(name, fn, nil)
-}
-
-func DefineWithOption(name string, fn function, option *DefineOption) {
-	define(name, fn, option)
-}
-
-func define(name string, fn function, option *DefineOption) {
+func Define(name string, fn function, defineOptions ...DefineOption) {
 	if functions[name] != nil {
 		panic(fmt.Errorf("%s alreay defined", name))
 	}
 
 	functions[name] = new(functionType)
+	functions[name].defineOption = map[string]interface{}{
+		"fetchUser": true,
+		"internal":  false,
+	}
 
-	if option != nil {
-		functions[name].DefineOption = *option
-	} else {
-		functions[name].DefineOption = DefineOption{
-			NotFetchUser: true,
-			Internal:     false,
-		}
+	for _, v := range defineOptions {
+		v.apply(functions[name])
 	}
 
 	functions[name].call = fn
 }
 
-func Run(name string, payload interface{}) (interface{}, error) {
-	return run(name, payload, nil)
-}
+func Run(name string, object interface{}, runOptions ...RunOption) (interface{}, error) {
+	options := make(map[string]interface{})
+	sessionToken := ""
+	var currentUser *User
 
-func RunWithOption(name string, payload interface{}, option *RunOption) (interface{}, error) {
-	return run(name, payload, option)
-}
-
-func run(name string, payload interface{}, options *RunOption) (interface{}, error) {
-	if options == nil {
-		return runRemote(name, payload, nil)
+	for _, v := range runOptions {
+		v.apply(&options)
 	}
 
-	if options.SessionToken != "" && options.User != nil {
+	if options["sessionToken"] != "" && options["user"] != nil {
 		return nil, fmt.Errorf("unable to set both of sessionToken & User")
 	}
 
-	if options.Remote {
-		return runRemote(name, payload, options)
+	if options["sessionToken"] != "" {
+		sessionToken = options["sessionToken"].(string)
 	}
 
-	return runLocal(name, payload, options)
-}
+	if options["user"] != nil {
+		currentUser = options["user"].(*User)
+	}
 
-func runLocal(name string, payload interface{}, options *RunOption) (interface{}, error) {
+	if options["remote"] == true {
+		var err error
+		var resp *grequests.Response
+		path := fmt.Sprint("/1.1/functions/", name)
+		reqOption := client.getRequestOptions()
+		reqOption.JSON = object
+		if sessionToken != "" {
+			resp, err = client.request(ServiceAPI, MethodPost, path, reqOption, UseSessionToken(sessionToken))
+		} else if currentUser != nil {
+			resp, err = client.request(ServiceAPI, MethodPost, path, reqOption, UseUser(currentUser))
+		} else {
+			resp, err = client.request(ServiceAPI, MethodPost, path, reqOption)
+		}
+		if err != nil {
+			return nil, err
+		}
+
+		respJSON := new(functionResponse)
+		if err := json.Unmarshal(resp.Bytes(), respJSON); err != nil {
+			return nil, err
+		}
+
+		return respJSON.Result, err
+	}
+
+	if functions[name] == nil {
+		return nil, fmt.Errorf("no such cloud function %s", name)
+	}
+
 	request := Request{
-		Params: payload,
+		Params: object,
 		Meta: map[string]string{
 			"remoteAddr": "127.0.0.1",
 		},
 	}
-	if options.SessionToken != "" {
-		user, err := client.Users.Become(options.SessionToken)
+
+	if sessionToken != "" {
+		request.SessionToken = sessionToken
+		user, err := client.Users.Become(sessionToken)
 		if err != nil {
 			return nil, err
 		}
 		request.CurrentUser = user
-		request.SessionToken = options.SessionToken
-	} else if options.User != nil {
-		request.CurrentUser = options.User
-		request.SessionToken = options.User.SessionToken()
 	}
-	if functions[name] == nil {
-		return nil, fmt.Errorf("no such cloud function %s", name)
+
+	if currentUser != nil {
+		request.CurrentUser = currentUser
+		request.SessionToken = currentUser.sessionToken
 	}
+
 	return functions[name].call(&request)
 }
 
-func runRemote(name string, payload interface{}, options *RunOption) (interface{}, error) {
-	var resp *grequests.Response
-	var err error
-	path := fmt.Sprint("/1.1/functions/", name)
-	option := client.getRequestOptions()
-	if payload != nil {
-		option.JSON = payload
-	}
-	if options == nil {
-		resp, err = client.request(ServiceAPI, MethodPost, path, option)
-	} else {
-		if options.SessionToken != "" {
-			resp, err = client.request(ServiceAPI, MethodPost, path, option, UseSessionToken(options.SessionToken))
-		} else if options.User != nil {
-			resp, err = client.request(ServiceAPI, MethodPost, path, option, UseUser(options.User))
-		} else {
-			resp, err = client.request(ServiceAPI, MethodPost, path, option)
-		}
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	respJSON := new(functionResponse)
-	if err := json.Unmarshal(resp.Bytes(), respJSON); err != nil {
-		return nil, err
-	}
-
-	return respJSON.Result, err
+func RPC(name string, object interface{}, runOptions ...RunOption) (interface{}, error) {
+	// TODO
+	return nil, nil
 }
-
-/*
-func RPC(name string, payload interface{}) (interface{}, error) {
-	return rpc(name, payload, nil)
-}
-
-func RPCWithOption(name string, payload interface{}, options *RunOption) (interface{}, error) {
-	return rpc(name, payload, options)
-}
-
-func rpc(name string, payload interface{}, options *RunOption) (interface{}, error) {
-	encodedPayload, err := encode(payload)
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := run(name, encodedPayload, options)
-	if err != nil {
-		return nil, err
-	}
-
-	object := new(leancloud.Object)
-	decode(resp, object)
-	if err := decode(resp, object); err != nil {
-		return nil, err
-	}
-
-	return object, nil
-}
-*/
 
 func (ferr *functionError) Error() string {
 	errString, err := json.Marshal(ferr)

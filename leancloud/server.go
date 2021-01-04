@@ -68,7 +68,7 @@ func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
 		"version": "0.1.0",
 	})
 	if err != nil {
-		errorResponse(w, err)
+		errorResponse(w, r, err)
 		return
 	}
 	w.Header().Add("Content-Type", "application/json; charset=UTF-8")
