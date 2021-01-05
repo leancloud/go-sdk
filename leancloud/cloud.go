@@ -201,24 +201,97 @@ func Run(name string, object interface{}, runOptions ...RunOption) (interface{},
 	return functions[name].call(&request)
 }
 
-func RPC(name string, object interface{}, ret interface{}, runOptions ...RunOption) error {
-	encodedObject := encode(object, true)
+func RPC(name string, object interface{}, ret interface{}, runOptions ...RunOption) (interface{}, error) {
+	options := make(map[string]interface{})
+	sessionToken := ""
+	var currentUser *User
 
-	resp, err := Run(name, encodedObject, runOptions...)
+	for _, v := range runOptions {
+		v.apply(&options)
+	}
+
+	if options["sessionToken"] != nil && options["user"] != nil {
+		return nil, fmt.Errorf("unable to set both of sessionToken & User")
+	}
+
+	if options["sessionToken"] != nil {
+		sessionToken = options["sessionToken"].(string)
+	}
+
+	if options["usr"] != nil {
+		currentUser = options["user"].(*User)
+	}
+
+	if options["remote"] == true {
+		var err error
+		var resp *grequests.Response
+		path := fmt.Sprint("/1.1/call/", name)
+		reqOption := client.getRequestOptions()
+		reqOption.JSON = encode(object, true)
+		if sessionToken != "" {
+			resp, err = client.request(ServiceAPI, MethodPost, path, reqOption, UseSessionToken(sessionToken))
+		} else if currentUser != nil {
+			resp, err = client.request(ServiceAPI, MethodPost, path, reqOption, UseUser(currentUser))
+		} else {
+			resp, err = client.request(ServiceAPI, MethodPost, path, reqOption)
+		}
+
+		if err != nil {
+			return nil, err
+		}
+
+		respJSON := new(functionResponse)
+		if err := json.Unmarshal(resp.Bytes(), respJSON); err != nil {
+			return nil, err
+		}
+
+		res, err := decode(respJSON.Result)
+		if err != nil {
+			return res, nil
+		}
+
+		if err := bind(reflect.Indirect(reflect.ValueOf(res)), reflect.Indirect(reflect.ValueOf(ret))); err != nil {
+			return res, nil
+		}
+
+		return nil, nil
+	}
+
+	if functions[name] == nil {
+		return nil, fmt.Errorf("no such cloud function %s", name)
+	}
+
+	request := Request{
+		Params: object,
+		Meta: map[string]string{
+			"remoteAddr": "127.0.0.1",
+		},
+	}
+
+	if sessionToken != "" {
+		request.SessionToken = sessionToken
+		user, err := client.Users.Become(sessionToken)
+		if err != nil {
+			return nil, err
+		}
+		request.CurrentUser = user
+	}
+
+	if currentUser != nil {
+		request.CurrentUser = currentUser
+		request.SessionToken = currentUser.SessionToken
+	}
+
+	res, err := functions[name].call(&request)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	decodedObject, err := decode(resp)
-	if err != nil {
-		return err
+	if err := bind(reflect.Indirect(reflect.ValueOf(res)), reflect.Indirect(reflect.ValueOf(ret))); err != nil {
+		return res, nil
 	}
 
-	if err := bind(reflect.Indirect(reflect.ValueOf(decodedObject)), reflect.Indirect(reflect.ValueOf(ret))); err != nil {
-		return err
-	}
-
-	return nil
+	return nil, nil
 }
 
 func (ferr *functionError) Error() string {
