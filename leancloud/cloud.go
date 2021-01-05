@@ -8,7 +8,7 @@ import (
 	"github.com/levigross/grequests"
 )
 
-type function func(*Request) (interface{}, error)
+type Function func(*Request) (interface{}, error)
 
 type Request struct {
 	Params       interface{}
@@ -91,7 +91,7 @@ func WithSessionToken(token string) RunOption {
 }
 
 type functionType struct {
-	call         function
+	call         Function
 	defineOption map[string]interface{}
 }
 
@@ -109,7 +109,7 @@ func init() {
 	client = NewEnvClient()
 }
 
-func Define(name string, fn function, defineOptions ...DefineOption) {
+func Define(name string, fn Function, defineOptions ...DefineOption) {
 	if functions[name] != nil {
 		panic(fmt.Errorf("%s alreay defined", name))
 	}
