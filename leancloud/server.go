@@ -1,11 +1,13 @@
 package leancloud
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"strings"
+	"time"
 )
 
 type metadataResponse struct {
@@ -82,23 +84,37 @@ func functionHandler(w http.ResponseWriter, r *http.Request, name string) {
 		return
 	}
 
-	resp, err := functions[name].call(request)
-	if err != nil {
-		errorResponse(w, r, err)
-		return
-	}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
+	defer cancel()
 
-	funcResp := functionResponse{
-		Result: resp,
-	}
-	respJSON, err := json.Marshal(funcResp)
-	if err != nil {
-		errorResponse(w, r, err)
-		return
-	}
+	var resp interface{}
+	ch := make(chan bool, 0)
+	go func() {
+		resp, err = functions[name].call(request)
+		if err != nil {
+			errorResponse(w, r, err)
+		}
+		ch <- true
+	}()
 
-	w.Header().Add("Contetn-Type", "application/json; charset=UTF-8")
-	fmt.Fprintln(w, string(respJSON))
+	select {
+	case <-ch: // done
+		if err == nil {
+			funcResp := functionResponse{
+				Result: resp,
+			}
+			respJSON, err := json.Marshal(funcResp)
+			if err != nil {
+				errorResponse(w, r, err)
+				return
+			}
+
+			w.Header().Add("Contetn-Type", "application/json; charset=UTF-8")
+			fmt.Fprintln(w, string(respJSON))
+		}
+	case <-ctx.Done(): // timeout
+		errorResponse(w, r, fmt.Errorf("LeanEngine: /1.1/functions/%s : function timeout (15000ms)", name))
+	}
 }
 
 func unmarshalBody(r *http.Request) (interface{}, error) {
