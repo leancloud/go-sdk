@@ -8,8 +8,10 @@ import (
 	"github.com/levigross/grequests"
 )
 
+// Function represents an Cloud Function
 type Function func(*Request) (interface{}, error)
 
+// Request contains request information of Cloud Function
 type Request struct {
 	Params       interface{}
 	CurrentUser  *User
@@ -17,6 +19,7 @@ type Request struct {
 	Meta         map[string]string
 }
 
+// DefineOption apply options for definition of Cloud Function
 type DefineOption interface {
 	apply(*functionType)
 }
@@ -36,18 +39,21 @@ func (option *defineOption) apply(fn *functionType) {
 	}
 }
 
+// WithoutFetchUser don't fetch current user originated the request
 func WithoutFetchUser() DefineOption {
 	return &defineOption{
 		fetchUser: false,
 	}
 }
 
-func WithInteral() DefineOption {
+// WithInternal restricts that the Cloud Function can only be executed in LeanEngine
+func WithInternal() DefineOption {
 	return &defineOption{
 		internal: true,
 	}
 }
 
+// RunOption apply options for execution of Cloud Function
 type RunOption interface {
 	apply(*map[string]interface{})
 }
@@ -72,18 +78,21 @@ func (option *runOption) apply(runOption *map[string]interface{}) {
 	}
 }
 
+// WithRemote executes the Cloud Function from remote
 func WithRemote() RunOption {
 	return &runOption{
 		remote: true,
 	}
 }
 
+// WithUser specifics the user of the calling
 func WithUser(user *User) RunOption {
 	return &runOption{
 		user: user,
 	}
 }
 
+// WithSessionToken specifics the sessionToken of the calling
 func WithSessionToken(token string) RunOption {
 	return &runOption{
 		sessionToken: token,
@@ -109,6 +118,7 @@ func init() {
 	client = NewEnvClient()
 }
 
+// Define declares an Cloud Function with name & options of definition
 func Define(name string, fn Function, defineOptions ...DefineOption) {
 	if functions[name] != nil {
 		panic(fmt.Errorf("%s alreay defined", name))
@@ -127,6 +137,7 @@ func Define(name string, fn Function, defineOptions ...DefineOption) {
 	functions[name].call = fn
 }
 
+// Run executes an Cloud Function with options
 func Run(name string, object interface{}, runOptions ...RunOption) (interface{}, error) {
 	options := make(map[string]interface{})
 	sessionToken := ""
@@ -201,6 +212,7 @@ func Run(name string, object interface{}, runOptions ...RunOption) (interface{},
 	return functions[name].call(&request)
 }
 
+// RPC executes an Cloud Function with serialization/deserialization Object if possible
 func RPC(name string, object interface{}, ret interface{}, runOptions ...RunOption) (interface{}, error) {
 	options := make(map[string]interface{})
 	sessionToken := ""
