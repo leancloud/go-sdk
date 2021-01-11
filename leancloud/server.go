@@ -10,6 +10,10 @@ import (
 	"time"
 )
 
+const cloudFunctionTimeout = time.Second * 15
+const beforeSaveTimeout = time.Second * 13
+const generalHookTimeout = time.Second * 3
+
 type metadataResponse struct {
 	Result []string `json:"result"`
 }
@@ -28,14 +32,18 @@ func Handler(handler http.Handler) http.Handler {
 				metadataHandler(w, r)
 			} else {
 				if functions[uri[3]] != nil {
-					functionHandler(w, r, uri[3])
+					if uri[4] != "" {
+						hookHandler(w, r, uri[3], uri[4])
+					} else {
+						functionHandler(w, r, uri[3], false)
+					}
 				} else {
 					w.WriteHeader(http.StatusNotFound)
 				}
 			}
 		} else if strings.HasPrefix(r.RequestURI, "/1.1/call/") {
 			if functions[uri[3]] != nil {
-				// TODO: RPC Calling
+				functionHandler(w, r, uri[3], true)
 			} else {
 				w.WriteHeader(http.StatusNotFound)
 			}
@@ -75,46 +83,102 @@ func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Add("Content-Type", "application/json; charset=UTF-8")
-	fmt.Fprintln(w, string(resp))
+	w.Write(resp)
 }
 
-func functionHandler(w http.ResponseWriter, r *http.Request, name string) {
-	request, err := constructRequest(r, name)
+func functionHandler(w http.ResponseWriter, r *http.Request, name string, rpc bool) {
+	if functions[name].defineOption["internal"] == true {
+		errorResponse(w, r, fmt.Errorf("Internal cloud function, request from %s", r.RemoteAddr))
+		return
+	}
+
+	request, err := constructRequest(r, name, rpc)
 	if err != nil {
 		errorResponse(w, r, err)
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
+	ret, err := executeTimeout(request, name, cloudFunctionTimeout)
+	if err != nil {
+		errorResponse(w, r, err)
+		return
+	}
+
+	resp := functionResponse{
+		Result: ret,
+	}
+
+	respJSON, err := json.Marshal(resp)
+	w.Header().Add("Contetn-Type", "application/json; charset=UTF-8")
+	w.Write(respJSON)
+}
+
+func hookHandler(w http.ResponseWriter, r *http.Request, class, hook string) {
+	if !hookAuthenticate(r.Header.Get("X-LC-Hook-Key")) {
+		errorResponse(w, r, fmt.Errorf("Hook key check failed, request from %s", r.RemoteAddr))
+		return
+	}
+
+	var name string
+	if storageHookmap[hook] != "" {
+		name = fmt.Sprint(storageHookmap[hook], class)
+	} else {
+		name = realtimeHookmap[hook]
+	}
+
+	request, err := constructRequest(r, name, false)
+	if err != nil {
+		errorResponse(w, r, err)
+		return
+	}
+
+	var ret interface{}
+	if hook == "beforeSave" {
+		ret, err = executeTimeout(request, name, beforeSaveTimeout)
+	} else {
+		ret, err = executeTimeout(request, name, generalHookTimeout)
+	}
+
+	if err != nil {
+		errorResponse(w, r, err)
+		return
+	}
+
+	var resp functionResponse
+	if strings.HasPrefix(hook, "before") {
+		resp.Result = encode(ret, false)
+	} else if strings.HasPrefix(hook, "onIM") {
+
+	} else {
+		resp.Result = "ok"
+	}
+
+	respJSON, err := json.Marshal(resp)
+	if err != nil {
+		errorResponse(w, r, err)
+		return
+	}
+	w.Header().Add("Contetn-Type", "application/json; charset=UTF-8")
+	w.Write(respJSON)
+}
+
+func executeTimeout(r *Request, name string, timeout time.Duration) (interface{}, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
-	var resp interface{}
+	var ret interface{}
+	var err error
 	ch := make(chan bool, 0)
 	go func() {
-		resp, err = functions[name].call(request)
-		if err != nil {
-			errorResponse(w, r, err)
-		}
+		ret, err = functions[name].call(r)
 		ch <- true
 	}()
 
 	select {
-	case <-ch: // done
-		if err == nil {
-			funcResp := functionResponse{
-				Result: resp,
-			}
-			respJSON, err := json.Marshal(funcResp)
-			if err != nil {
-				errorResponse(w, r, err)
-				return
-			}
-
-			w.Header().Add("Contetn-Type", "application/json; charset=UTF-8")
-			fmt.Fprintln(w, string(respJSON))
-		}
-	case <-ctx.Done(): // timeout
-		errorResponse(w, r, fmt.Errorf("LeanEngine: /1.1/functions/%s : function timeout (15000ms)", name))
+	case <-ch:
+		return ret, err
+	case <-ctx.Done():
+		return nil, fmt.Errorf("LeanEngine: /1.1/functions/%s : function timeout (15000ms)", name)
 	}
 }
 
@@ -135,7 +199,7 @@ func unmarshalBody(r *http.Request) (interface{}, error) {
 	return body, nil
 }
 
-func constructRequest(r *http.Request, name string) (*Request, error) {
+func constructRequest(r *http.Request, name string, rpc bool) (*Request, error) {
 	request := new(Request)
 	request.Meta = map[string]string{
 		"remoteAddr": r.RemoteAddr,
@@ -154,11 +218,22 @@ func constructRequest(r *http.Request, name string) (*Request, error) {
 		request.Params = nil
 		return request, nil
 	}
+
 	params, err := unmarshalBody(r)
 	if err != nil {
 		return nil, err
 	}
-	request.Params = params
+
+	if rpc {
+		decodedParams, err := decode(params)
+		if err != nil {
+			return nil, err
+		}
+
+		request.Params = decodedParams
+	} else {
+		request.Params = params
+	}
 
 	return request, nil
 }

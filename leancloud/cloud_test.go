@@ -17,7 +17,7 @@ func init() {
 		return map[string]string{
 			"Hello": "World",
 		}, nil
-	}, WithInteral(), WithoutFetchUser())
+	}, WithInternal(), WithoutFetchUser())
 
 	Define("hello_with_option_fetch_user", func(r *Request) (interface{}, error) {
 		return map[string]string{
@@ -182,4 +182,8 @@ func TestRun(t *testing.T) {
 			}
 		})
 	})
+}
+
+func TestRPC(t *testing.T) {
+
 }

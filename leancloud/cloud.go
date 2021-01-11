@@ -191,7 +191,7 @@ func Run(name string, object interface{}, runOptions ...RunOption) (interface{},
 	request := Request{
 		Params: object,
 		Meta: map[string]string{
-			"remoteAddr": "127.0.0.1",
+			"remoteAddr": "",
 		},
 	}
 
