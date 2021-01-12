@@ -17,6 +17,11 @@ type Object struct {
 	ref        interface{}
 }
 
+// Clone binds Object to user-defined type
+func (object *Object) Clone(dst interface{}) error {
+	return bind(reflect.Indirect(reflect.ValueOf(object)), reflect.Indirect(reflect.ValueOf(dst)))
+}
+
 // Raw returns raw data of Object in form of map
 func (object *Object) Raw() map[string]interface{} {
 	return object.fields

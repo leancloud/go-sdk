@@ -11,7 +11,7 @@ import (
 )
 
 const cloudFunctionTimeout = time.Second * 15
-const beforeSaveTimeout = time.Second * 13
+const beforeHookTimeout = time.Second * 10
 const generalHookTimeout = time.Second * 3
 
 type metadataResponse struct {
@@ -31,10 +31,16 @@ func Handler(handler http.Handler) http.Handler {
 			if strings.Compare(r.RequestURI, "/1.1/functions/_ops/metadatas") == 0 {
 				metadataHandler(w, r)
 			} else {
-				if functions[uri[3]] != nil {
+				if uri[3] != "" {
 					if uri[4] != "" {
 						hookHandler(w, r, uri[3], uri[4])
 					} else {
+						if functions[realtimeHookmap[uri[3]]] != nil {
+							if !hookAuthenticate(r.Header.Get("X-LC-Hook-Key")) {
+								errorResponse(w, r, fmt.Errorf("Hook key check failed, request from %s", r.RemoteAddr))
+								return
+							}
+						}
 						functionHandler(w, r, uri[3], false)
 					}
 				} else {
@@ -60,6 +66,7 @@ func corsHandler(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Access-Control-Max-Age", "86400")
 		w.Header().Add("Access-Control-Allow-Methods", "HEAD, GET, POST, PUT, DELETE, OPTIONS")
 		w.Header().Add("Access-Control-Allow-Headers", `Content-Type,X-AVOSCloud-Application-Id,X-AVOSCloud-Application-Key,X-AVOSCloud-Application-Production,X-AVOSCloud-Client-Version,X-AVOSCloud-Request-Sign,X-AVOSCloud-Session-Token,X-AVOSCloud-Super-Key,X-LC-Hook-Key,X-LC-Id,X-LC-Key,X-LC-Prod,X-LC-Session,X-LC-Sign,X-LC-UA,X-Requested-With,X-Uluru-Application-Id,X-Uluru-Application-Key,X-Uluru-Application-Production,X-Uluru-Client-Version,X-Uluru-Session-Token`)
+		w.WriteHeader(http.StatusOK)
 	}
 }
 
@@ -70,7 +77,7 @@ func metadataHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Add("Content-Type", "application/json; charset=UTF-8")
-	fmt.Fprintln(w, string(meta))
+	w.Write(meta)
 }
 
 func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
@@ -133,8 +140,8 @@ func hookHandler(w http.ResponseWriter, r *http.Request, class, hook string) {
 	}
 
 	var ret interface{}
-	if hook == "beforeSave" {
-		ret, err = executeTimeout(request, name, beforeSaveTimeout)
+	if strings.HasPrefix(hook, "before") {
+		ret, err = executeTimeout(request, name, beforeHookTimeout)
 	} else {
 		ret, err = executeTimeout(request, name, generalHookTimeout)
 	}
@@ -144,13 +151,15 @@ func hookHandler(w http.ResponseWriter, r *http.Request, class, hook string) {
 		return
 	}
 
-	var resp functionResponse
+	var resp map[string]interface{}
 	if strings.HasPrefix(hook, "before") {
-		resp.Result = encode(ret, false)
+		resp = encodeObject(ret, false, false)
 	} else if strings.HasPrefix(hook, "onIM") {
 
 	} else {
-		resp.Result = "ok"
+		resp = map[string]interface{}{
+			"result": "ok",
+		}
 	}
 
 	respJSON, err := json.Marshal(resp)

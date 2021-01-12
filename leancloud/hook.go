@@ -51,15 +51,23 @@ func defineHook(class, hook string, fn func(*Object, *User) (interface{}, error)
 	functions[name].defineOption = map[string]interface{}{
 		"fetchUser": true,
 		"internal":  false,
-		"hook":      true,
 	}
 	functions[name].call = func(r *Request) (interface{}, error) {
 		if r.Params != nil {
-			object, err := decodeObject(r.Params)
+			params, ok := r.Params.(map[string]interface{})
+			if !ok {
+				return nil, fmt.Errorf("request body bad format")
+			}
+			object, err := decodeObject(params["object"])
 			if err != nil {
 				return nil, err
 			}
-			return fn(object, r.CurrentUser)
+			user, err := decodeUser(params["user"])
+			if err != nil {
+				return nil, err
+			}
+
+			return fn(object, user)
 		}
 
 		return nil, nil
