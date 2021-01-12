@@ -568,35 +568,44 @@ func decodeObject(fields interface{}) (*Object, error) {
 	if err != nil {
 		return nil, err
 	}
+	var objectID, createdAt, updatedAt string
+	var decodedCreatedAt, decodedUpdatedAt time.Time
+	var ok bool
 
-	objectID, ok := decodedFields["objectId"].(string)
-	if !ok {
-		return nil, fmt.Errorf("unexpected error when parse objectId: want type string but %v", reflect.TypeOf(decodedFields["objectId"]))
-	}
-
-	createdAt, ok := decodedFields["createdAt"].(string)
-	if !ok {
-		return nil, fmt.Errorf("unexpected error when parse createdAt: want type string but %v", reflect.TypeOf(decodedFields["createdAt"]))
-	}
-	decodedCreatedAt, err := time.Parse(time.RFC3339, createdAt)
-	if err != nil {
-		return nil, fmt.Errorf("unexpected error when parse createdAt: %v", err)
-	}
-	decodedFields["createdAt"] = decodedCreatedAt
-
-	updatedAt, ok := decodedFields["updatedAt"].(string)
-	if !ok {
-		if decodedFields["updatedAt"] == nil {
-			updatedAt = ""
-		} else {
-			return nil, fmt.Errorf("unexpected error when parse updatedAt: want type string but %v", reflect.TypeOf(decodedFields["updatedAt"]))
+	if decodedFields["objectId"] != nil {
+		objectID, ok = decodedFields["objectId"].(string)
+		if !ok {
+			return nil, fmt.Errorf("unexpected error when parse objectId: want type string but %v", reflect.TypeOf(decodedFields["objectId"]))
 		}
 	}
-	decodedUpdatedAt, err := time.Parse(time.RFC3339, updatedAt)
-	if err != nil {
-		return nil, fmt.Errorf("unexpected error when parse updatedAt: %v", err)
+
+	if decodedFields["createdAt"] != nil {
+		createdAt, ok = decodedFields["createdAt"].(string)
+		if !ok {
+			return nil, fmt.Errorf("unexpected error when parse createdAt: want type string but %v", reflect.TypeOf(decodedFields["createdAt"]))
+		}
+		decodedCreatedAt, err = time.Parse(time.RFC3339, createdAt)
+		if err != nil {
+			return nil, fmt.Errorf("unexpected error when parse createdAt: %v", err)
+		}
+		decodedFields["createdAt"] = decodedCreatedAt
 	}
-	decodedFields["updatedAt"] = decodedUpdatedAt
+
+	if decodedFields["updatedAt"] != nil {
+		updatedAt, ok = decodedFields["updatedAt"].(string)
+		if !ok {
+			if decodedFields["updatedAt"] == nil {
+				updatedAt = ""
+			} else {
+				return nil, fmt.Errorf("unexpected error when parse updatedAt: want type string but %v", reflect.TypeOf(decodedFields["updatedAt"]))
+			}
+		}
+		decodedUpdatedAt, err = time.Parse(time.RFC3339, updatedAt)
+		if err != nil {
+			return nil, fmt.Errorf("unexpected error when parse updatedAt: %v", err)
+		}
+		decodedFields["updatedAt"] = decodedUpdatedAt
+	}
 
 	if reflect.ValueOf(decodedFields["ACL"]).Kind() == reflect.Map {
 		if !reflect.ValueOf(decodedFields["ACL"]).IsNil() {
