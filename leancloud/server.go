@@ -27,6 +27,10 @@ func Handler(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		uri := strings.Split(r.RequestURI, "/")
 		corsHandler(w, r)
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
 		if strings.HasPrefix(r.RequestURI, "/1.1/functions/") || strings.HasPrefix(r.RequestURI, "/1/functions/") {
 			if strings.Compare(r.RequestURI, "/1.1/functions/_ops/metadatas") == 0 || strings.Compare(r.RequestURI, "/1/functions/_ops/metadatas") == 0 {
 				metadataHandler(w, r)
@@ -66,7 +70,6 @@ func corsHandler(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Access-Control-Max-Age", "86400")
 		w.Header().Add("Access-Control-Allow-Methods", "HEAD, GET, POST, PUT, DELETE, OPTIONS")
 		w.Header().Add("Access-Control-Allow-Headers", `Content-Type,X-AVOSCloud-Application-Id,X-AVOSCloud-Application-Key,X-AVOSCloud-Application-Production,X-AVOSCloud-Client-Version,X-AVOSCloud-Request-Sign,X-AVOSCloud-Session-Token,X-AVOSCloud-Super-Key,X-LC-Hook-Key,X-LC-Id,X-LC-Key,X-LC-Prod,X-LC-Session,X-LC-Sign,X-LC-UA,X-Requested-With,X-Uluru-Application-Id,X-Uluru-Application-Key,X-Uluru-Application-Production,X-Uluru-Client-Version,X-Uluru-Session-Token`)
-		w.WriteHeader(http.StatusOK)
 	}
 }
 
@@ -152,10 +155,10 @@ func hookHandler(w http.ResponseWriter, r *http.Request, class, hook string) {
 	}
 
 	var resp map[string]interface{}
-	if strings.HasPrefix(hook, "before") {
+	if hook == "beforeSave" {
 		resp = encodeObject(ret, false, false)
 	} else if strings.HasPrefix(hook, "onIM") {
-
+		resp = ret.(map[string]interface{})
 	} else {
 		resp = map[string]interface{}{
 			"result": "ok",
@@ -251,11 +254,11 @@ func errorResponse(w http.ResponseWriter, r *http.Request, err error) {
 	w.Header().Add("Contetn-Type", "application/json; charset=UTF-8")
 	switch err.(type) {
 	case *functionError:
-		fmt.Fprintln(w, err.Error())
 		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(err.Error()))
 	default:
-		fmt.Fprintln(w, Error(err.Error()))
 		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(err.Error()))
 	}
 }
 
