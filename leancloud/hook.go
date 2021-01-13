@@ -139,7 +139,7 @@ func OnLogin(fn func(*User) error) {
 }
 
 func OnIMMessageReceived(fn func(map[string]interface{}) (interface{}, error)) {
-	Define(realtimeHookmap["OnIMMessageReceived"], func(r *Request) (interface{}, error) {
+	Define(realtimeHookmap["onIMMessageReceived"], func(r *Request) (interface{}, error) {
 		params, ok := r.Params.(map[string]interface{})
 		if !ok {
 			return nil, fmt.Errorf("invalid request body")
@@ -150,7 +150,7 @@ func OnIMMessageReceived(fn func(map[string]interface{}) (interface{}, error)) {
 }
 
 func OnIMReceiversOffline(fn func(map[string]interface{}) (interface{}, error)) {
-	Define(realtimeHookmap["OnIMMessageReceiversOffline"], func(r *Request) (interface{}, error) {
+	Define(realtimeHookmap["onIMMessageReceiversOffline"], func(r *Request) (interface{}, error) {
 		params, ok := r.Params.(map[string]interface{})
 		if !ok {
 			return nil, fmt.Errorf("invalid request body")
@@ -161,7 +161,7 @@ func OnIMReceiversOffline(fn func(map[string]interface{}) (interface{}, error)) 
 }
 
 func OnIMMessageSent(fn func(map[string]interface{}) (interface{}, error)) {
-	Define(realtimeHookmap["OnIMMessageSent"], func(r *Request) (interface{}, error) {
+	Define(realtimeHookmap["onIMMessageSent"], func(r *Request) (interface{}, error) {
 		params, ok := r.Params.(map[string]interface{})
 		if !ok {
 			return nil, fmt.Errorf("invalid request body")
@@ -172,7 +172,7 @@ func OnIMMessageSent(fn func(map[string]interface{}) (interface{}, error)) {
 }
 
 func OnIMMessageUpdate(fn func(map[string]interface{}) (interface{}, error)) {
-	Define(realtimeHookmap["OnIMMessageUpdated"], func(r *Request) (interface{}, error) {
+	Define(realtimeHookmap["onIMMessageUpdated"], func(r *Request) (interface{}, error) {
 		params, ok := r.Params.(map[string]interface{})
 		if !ok {
 			return nil, fmt.Errorf("invalid request body")
@@ -183,7 +183,7 @@ func OnIMMessageUpdate(fn func(map[string]interface{}) (interface{}, error)) {
 }
 
 func OnImConversationStart(fn func(map[string]interface{}) (interface{}, error)) {
-	Define(realtimeHookmap["OnIMConversationStart"], func(r *Request) (interface{}, error) {
+	Define(realtimeHookmap["onIMConversationStart"], func(r *Request) (interface{}, error) {
 		params, ok := r.Params.(map[string]interface{})
 		if !ok {
 			return nil, fmt.Errorf("invalid request body")
@@ -194,7 +194,7 @@ func OnImConversationStart(fn func(map[string]interface{}) (interface{}, error))
 }
 
 func OnImConversationStarted(fn func(map[string]interface{}) (interface{}, error)) {
-	Define(realtimeHookmap["OnIMConversationStarted"], func(r *Request) (interface{}, error) {
+	Define(realtimeHookmap["onIMConversationStarted"], func(r *Request) (interface{}, error) {
 		params, ok := r.Params.(map[string]interface{})
 		if !ok {
 			return nil, fmt.Errorf("invalid request body")
@@ -205,7 +205,7 @@ func OnImConversationStarted(fn func(map[string]interface{}) (interface{}, error
 }
 
 func OnIMConversationAdd(fn func(map[string]interface{}) (interface{}, error)) {
-	Define(realtimeHookmap["OnIMConversationAdd"], func(r *Request) (interface{}, error) {
+	Define(realtimeHookmap["onIMConversationAdd"], func(r *Request) (interface{}, error) {
 		params, ok := r.Params.(map[string]interface{})
 		if !ok {
 			return nil, fmt.Errorf("invalid request body")
@@ -216,7 +216,7 @@ func OnIMConversationAdd(fn func(map[string]interface{}) (interface{}, error)) {
 }
 
 func OnIMConversationRemove(fn func(map[string]interface{}) (interface{}, error)) {
-	Define(realtimeHookmap["OnIMConversationRemove"], func(r *Request) (interface{}, error) {
+	Define(realtimeHookmap["onIMConversationRemove"], func(r *Request) (interface{}, error) {
 		params, ok := r.Params.(map[string]interface{})
 		if !ok {
 			return nil, fmt.Errorf("invalid request body")
@@ -227,7 +227,7 @@ func OnIMConversationRemove(fn func(map[string]interface{}) (interface{}, error)
 }
 
 func OnIMConversationAdded(fn func(map[string]interface{}) (interface{}, error)) {
-	Define(realtimeHookmap["OnIMConversationAdded"], func(r *Request) (interface{}, error) {
+	Define(realtimeHookmap["onIMConversationAdded"], func(r *Request) (interface{}, error) {
 		params, ok := r.Params.(map[string]interface{})
 		if !ok {
 			return nil, fmt.Errorf("invalid request body")
@@ -238,7 +238,7 @@ func OnIMConversationAdded(fn func(map[string]interface{}) (interface{}, error))
 }
 
 func OnIMConversationRemoved(fn func(map[string]interface{}) (interface{}, error)) {
-	Define(realtimeHookmap["OnIMConversationRemoved"], func(r *Request) (interface{}, error) {
+	Define(realtimeHookmap["onIMConversationRemoved"], func(r *Request) (interface{}, error) {
 		params, ok := r.Params.(map[string]interface{})
 		if !ok {
 			return nil, fmt.Errorf("invalid request body")
@@ -249,7 +249,7 @@ func OnIMConversationRemoved(fn func(map[string]interface{}) (interface{}, error
 }
 
 func OnIMConversationUpdate(fn func(map[string]interface{}) (interface{}, error)) {
-	Define(realtimeHookmap["OnIMConversationUpdated"], func(r *Request) (interface{}, error) {
+	Define(realtimeHookmap["onIMConversationUpdated"], func(r *Request) (interface{}, error) {
 		params, ok := r.Params.(map[string]interface{})
 		if !ok {
 			return nil, fmt.Errorf("invalid request body")
@@ -260,7 +260,7 @@ func OnIMConversationUpdate(fn func(map[string]interface{}) (interface{}, error)
 }
 
 func OnIMClientOnline(fn func(map[string]interface{}) (interface{}, error)) {
-	Define(realtimeHookmap["OnIMClientOnline"], func(r *Request) (interface{}, error) {
+	Define(realtimeHookmap["onIMClientOnline"], func(r *Request) (interface{}, error) {
 		params, ok := r.Params.(map[string]interface{})
 		if !ok {
 			return nil, fmt.Errorf("invalid request body")
@@ -271,7 +271,7 @@ func OnIMClientOnline(fn func(map[string]interface{}) (interface{}, error)) {
 }
 
 func OnIMClientOffline(fn func(map[string]interface{}) (interface{}, error)) {
-	Define(realtimeHookmap["OnIMClientOffline"], func(r *Request) (interface{}, error) {
+	Define(realtimeHookmap["onIMClientOffline"], func(r *Request) (interface{}, error) {
 		params, ok := r.Params.(map[string]interface{})
 		if !ok {
 			return nil, fmt.Errorf("invalid request body")
