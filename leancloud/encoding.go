@@ -607,22 +607,6 @@ func decodeObject(fields interface{}) (*Object, error) {
 		decodedFields["updatedAt"] = decodedUpdatedAt
 	}
 
-	if reflect.ValueOf(decodedFields["ACL"]).Kind() == reflect.Map {
-		if !reflect.ValueOf(decodedFields["ACL"]).IsNil() {
-			aclMap, ok := decodedFields["ACL"].(map[string]map[string]bool)
-			if !ok {
-				return nil, fmt.Errorf("unexpected error when parse ACL: ant type map[string]map[string]bool but %v", reflect.TypeOf(decodedFields["ACL"]))
-			}
-
-			acl, err := decodeACL(aclMap)
-			if err != nil {
-				return nil, err
-			}
-
-			decodedFields["ACL"] = acl
-		}
-	}
-
 	return &Object{
 		ID:        objectID,
 		CreatedAt: decodedCreatedAt,
