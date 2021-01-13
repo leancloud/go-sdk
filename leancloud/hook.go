@@ -56,18 +56,20 @@ func defineHook(class, hook string, fn func(*Object, *User) (interface{}, error)
 		if r.Params != nil {
 			params, ok := r.Params.(map[string]interface{})
 			if !ok {
-				return nil, fmt.Errorf("request body bad format")
+				return nil, fmt.Errorf("invalid request body")
 			}
 			object, err := decodeObject(params["object"])
 			if err != nil {
 				return nil, err
 			}
-			user, err := decodeUser(params["user"])
-			if err != nil {
-				return nil, err
+			if params["user"] != nil {
+				user, err := decodeUser(params["user"])
+				if err != nil {
+					return nil, err
+				}
+				return fn(object, user)
 			}
-
-			return fn(object, user)
+			return fn(object, nil)
 		}
 
 		return nil, nil
@@ -104,10 +106,14 @@ func AfterDelete(class string, fn func(*Object, *User) (interface{}, error)) {
 	defineHook(class, "__after_delete_for_", fn)
 }
 
-// OnVerified will be called
+// OnVerified will be called when user was online
 func OnVerified(verifyType string, fn func(*User) error) {
 	Define(fmt.Sprint("__on_verified_", verifyType), func(r *Request) (interface{}, error) {
-		user, err := decodeUser(r.Params)
+		params, ok := r.Params.(map[string]interface{})
+		if !ok {
+			return nil, fmt.Errorf("invalid request body")
+		}
+		user, err := decodeUser(params["user"])
 		if err != nil {
 			return nil, err
 		}
@@ -116,10 +122,14 @@ func OnVerified(verifyType string, fn func(*User) error) {
 	})
 }
 
-// OnLogin will be called
+// OnLogin will be called when user logged in
 func OnLogin(fn func(*User) error) {
 	Define("__on_login__User", func(r *Request) (interface{}, error) {
-		user, err := decodeUser(r.Params)
+		params, ok := r.Params.(map[string]interface{})
+		if !ok {
+			return nil, fmt.Errorf("invalid request body")
+		}
+		user, err := decodeUser(params["user"])
 		if err != nil {
 			return nil, err
 		}
@@ -128,54 +138,145 @@ func OnLogin(fn func(*User) error) {
 	})
 }
 
-func OnIMMessageReceived(fn Function) {
+func OnIMMessageReceived(fn func(map[string]interface{}) (interface{}, error)) {
+	Define(realtimeHookmap["OnIMMessageReceived"], func(r *Request) (interface{}, error) {
+		params, ok := r.Params.(map[string]interface{})
+		if !ok {
+			return nil, fmt.Errorf("invalid request body")
+		}
 
+		return fn(params)
+	})
 }
 
-func OnIMReceiversOffline(fn Function) {
+func OnIMReceiversOffline(fn func(map[string]interface{}) (interface{}, error)) {
+	Define(realtimeHookmap["OnIMMessageReceiversOffline"], func(r *Request) (interface{}, error) {
+		params, ok := r.Params.(map[string]interface{})
+		if !ok {
+			return nil, fmt.Errorf("invalid request body")
+		}
 
+		return fn(params)
+	})
 }
 
-func OnIMMessageSent(fn Function) {
+func OnIMMessageSent(fn func(map[string]interface{}) (interface{}, error)) {
+	Define(realtimeHookmap["OnIMMessageSent"], func(r *Request) (interface{}, error) {
+		params, ok := r.Params.(map[string]interface{})
+		if !ok {
+			return nil, fmt.Errorf("invalid request body")
+		}
 
+		return fn(params)
+	})
 }
 
-func OnIMMessageUpdate(fn Function) {
+func OnIMMessageUpdate(fn func(map[string]interface{}) (interface{}, error)) {
+	Define(realtimeHookmap["OnIMMessageUpdated"], func(r *Request) (interface{}, error) {
+		params, ok := r.Params.(map[string]interface{})
+		if !ok {
+			return nil, fmt.Errorf("invalid request body")
+		}
 
+		return fn(params)
+	})
 }
 
-func OnImConversationStart(fn Function) {
+func OnImConversationStart(fn func(map[string]interface{}) (interface{}, error)) {
+	Define(realtimeHookmap["OnIMConversationStart"], func(r *Request) (interface{}, error) {
+		params, ok := r.Params.(map[string]interface{})
+		if !ok {
+			return nil, fmt.Errorf("invalid request body")
+		}
 
+		return fn(params)
+	})
 }
 
-func OnImConversationStarted(fn Function) {
+func OnImConversationStarted(fn func(map[string]interface{}) (interface{}, error)) {
+	Define(realtimeHookmap["OnIMConversationStarted"], func(r *Request) (interface{}, error) {
+		params, ok := r.Params.(map[string]interface{})
+		if !ok {
+			return nil, fmt.Errorf("invalid request body")
+		}
 
+		return fn(params)
+	})
 }
 
-func OnIMConversationAdd(fn Function) {
+func OnIMConversationAdd(fn func(map[string]interface{}) (interface{}, error)) {
+	Define(realtimeHookmap["OnIMConversationAdd"], func(r *Request) (interface{}, error) {
+		params, ok := r.Params.(map[string]interface{})
+		if !ok {
+			return nil, fmt.Errorf("invalid request body")
+		}
 
+		return fn(params)
+	})
 }
 
-func OnIMConversationRemove(fn Function) {
+func OnIMConversationRemove(fn func(map[string]interface{}) (interface{}, error)) {
+	Define(realtimeHookmap["OnIMConversationRemove"], func(r *Request) (interface{}, error) {
+		params, ok := r.Params.(map[string]interface{})
+		if !ok {
+			return nil, fmt.Errorf("invalid request body")
+		}
 
+		return fn(params)
+	})
 }
 
-func OnIMConversationAdded(fn Function) {
+func OnIMConversationAdded(fn func(map[string]interface{}) (interface{}, error)) {
+	Define(realtimeHookmap["OnIMConversationAdded"], func(r *Request) (interface{}, error) {
+		params, ok := r.Params.(map[string]interface{})
+		if !ok {
+			return nil, fmt.Errorf("invalid request body")
+		}
 
+		return fn(params)
+	})
 }
 
-func OnIMConversationRemoved(fn Function) {
+func OnIMConversationRemoved(fn func(map[string]interface{}) (interface{}, error)) {
+	Define(realtimeHookmap["OnIMConversationRemoved"], func(r *Request) (interface{}, error) {
+		params, ok := r.Params.(map[string]interface{})
+		if !ok {
+			return nil, fmt.Errorf("invalid request body")
+		}
 
+		return fn(params)
+	})
 }
 
-func OnIMConversationUpdate(fn Function) {
+func OnIMConversationUpdate(fn func(map[string]interface{}) (interface{}, error)) {
+	Define(realtimeHookmap["OnIMConversationUpdated"], func(r *Request) (interface{}, error) {
+		params, ok := r.Params.(map[string]interface{})
+		if !ok {
+			return nil, fmt.Errorf("invalid request body")
+		}
 
+		return fn(params)
+	})
 }
 
-func OnIMClientOnline(fn Function) {
+func OnIMClientOnline(fn func(map[string]interface{}) (interface{}, error)) {
+	Define(realtimeHookmap["OnIMClientOnline"], func(r *Request) (interface{}, error) {
+		params, ok := r.Params.(map[string]interface{})
+		if !ok {
+			return nil, fmt.Errorf("invalid request body")
+		}
 
+		return fn(params)
+	})
 }
 
-func OnIMClientOffline(fn Function) {
+func OnIMClientOffline(fn func(map[string]interface{}) (interface{}, error)) {
+	Define(realtimeHookmap["OnIMClientOffline"], func(r *Request) (interface{}, error) {
+		params, ok := r.Params.(map[string]interface{})
+		if !ok {
+			return nil, fmt.Errorf("invalid request body")
+		}
 
+		return fn(params)
+	})
 }
