@@ -27,8 +27,8 @@ func Handler(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		uri := strings.Split(r.RequestURI, "/")
 		corsHandler(w, r)
-		if strings.HasPrefix(r.RequestURI, "/1.1/functions/") {
-			if strings.Compare(r.RequestURI, "/1.1/functions/_ops/metadatas") == 0 {
+		if strings.HasPrefix(r.RequestURI, "/1.1/functions/") || strings.HasPrefix(r.RequestURI, "/1/functions/") {
+			if strings.Compare(r.RequestURI, "/1.1/functions/_ops/metadatas") == 0 || strings.Compare(r.RequestURI, "/1/functions/_ops/metadatas") == 0 {
 				metadataHandler(w, r)
 			} else {
 				if uri[3] != "" {
@@ -47,7 +47,7 @@ func Handler(handler http.Handler) http.Handler {
 					w.WriteHeader(http.StatusNotFound)
 				}
 			}
-		} else if strings.HasPrefix(r.RequestURI, "/1.1/call/") {
+		} else if strings.HasPrefix(r.RequestURI, "/1.1/call/") || strings.HasPrefix(r.RequestURI, "/1/call/") {
 			if functions[uri[3]] != nil {
 				functionHandler(w, r, uri[3], true)
 			} else {
