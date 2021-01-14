@@ -36,7 +36,7 @@ func Handler(handler http.Handler) http.Handler {
 				metadataHandler(w, r)
 			} else {
 				if uri[3] != "" {
-					if uri[4] != "" {
+					if len(uri) == 5 {
 						hookHandler(w, r, uri[3], uri[4])
 					} else {
 						if functions[realtimeHookmap[uri[3]]] != nil {
