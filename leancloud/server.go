@@ -97,6 +97,10 @@ func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func functionHandler(w http.ResponseWriter, r *http.Request, name string, rpc bool) {
+	if functions[name] == nil {
+		errorResponse(w, r, fmt.Errorf("no such cloud function %s", name))
+		return
+	}
 	if functions[name].defineOption["internal"] == true {
 		errorResponse(w, r, fmt.Errorf("Internal cloud function, request from %s", r.RemoteAddr))
 		return
@@ -113,9 +117,11 @@ func functionHandler(w http.ResponseWriter, r *http.Request, name string, rpc bo
 		errorResponse(w, r, err)
 		return
 	}
-
-	resp := functionResponse{
-		Result: ret,
+	var resp functionResponse
+	if rpc {
+		resp.Result = encode(ret, true)
+	} else {
+		resp.Result = ret
 	}
 
 	respJSON, err := json.Marshal(resp)

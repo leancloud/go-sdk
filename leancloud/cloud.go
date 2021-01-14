@@ -227,7 +227,7 @@ func RPC(name string, object interface{}, ret interface{}, runOptions ...RunOpti
 		sessionToken = options["sessionToken"].(string)
 	}
 
-	if options["usr"] != nil {
+	if options["user"] != nil {
 		currentUser = options["user"].(*User)
 	}
 

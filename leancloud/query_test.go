@@ -1,7 +1,6 @@
 package leancloud
 
 import (
-	"encoding/json"
 	"testing"
 	"time"
 )
@@ -14,8 +13,6 @@ func TestQueryFind(t *testing.T) {
 
 	if _, err := client.Class("Staff").Create(&jake); err != nil {
 		t.Fatal(err)
-	} else {
-		t.Log(jake)
 	}
 
 	meeting := Meeting{
@@ -31,23 +28,12 @@ func TestQueryFind(t *testing.T) {
 
 	if _, err := client.Class("Meeting").Create(&meeting); err != nil {
 		t.Fatal(err)
-	} else {
-		t.Log(meeting)
 	}
 
 	ret := make([]Meeting, 10)
 	if err := client.Class("Meeting").NewQuery().EqualTo("title", "Team Meeting").Include("host").Find(&ret); err != nil {
 		t.Fatal(err)
-	} else {
-		t.Log(ret)
 	}
-
-	retJSON, err := json.MarshalIndent(ret, "", "  ")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	t.Log("\n" + string(retJSON))
 }
 
 func TestQueryFirst(t *testing.T) {
@@ -94,6 +80,5 @@ func TestQueryCount(t *testing.T) {
 		if count < 1 {
 			t.Fatal("unexpected count of results")
 		}
-		t.Log(count)
 	}
 }

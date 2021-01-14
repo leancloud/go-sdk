@@ -30,6 +30,10 @@ func init() {
 			"sessionToken": r.SessionToken,
 		}, nil
 	}, WithoutFetchUser())
+
+	Define("hello_with_object", func(r *Request) (interface{}, error) {
+		return r.CurrentUser, nil
+	})
 }
 
 func TestRun(t *testing.T) {
@@ -185,5 +189,42 @@ func TestRun(t *testing.T) {
 }
 
 func TestRPC(t *testing.T) {
+	t.Run("local", func(t *testing.T) {
+		user := new(User)
+		if err := client.Users.ID("5fa504d0f98fd535ebe8b3f0").Get(user, UseMasterKey(true)); err != nil {
+			t.Fatal(err)
+		}
 
+		retUser := new(User)
+		ret, err := RPC("hello_with_object", nil, retUser, WithUser(user))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if ret != nil {
+			t.Fatal(fmt.Errorf("should clone object to user types"))
+		}
+		if retUser.SessionToken != user.SessionToken {
+			t.Fatal(fmt.Errorf("dismatch sessionToken"))
+		}
+	})
+
+	t.Run("remote", func(t *testing.T) {
+		user := new(User)
+		if err := client.Users.ID("5fa504d0f98fd535ebe8b3f0").Get(user, UseMasterKey(true)); err != nil {
+			t.Fatal(err)
+		}
+
+		retUser := new(User)
+		ret, err := RPC("hello_with_object", nil, retUser, WithUser(user), WithRemote())
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if ret != nil {
+			t.Fatal(fmt.Errorf("should clone object to user types"))
+		}
+		if retUser.ID != user.ID {
+			t.Fatal(fmt.Errorf("dismatch sessionToken"))
+		}
+	})
 }

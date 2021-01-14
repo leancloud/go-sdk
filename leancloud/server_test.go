@@ -19,7 +19,7 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 func TestMetadataResponse(t *testing.T) {
-	resp, err := grequests.Get(cloudEndpoint+"/1.1/functions/_ops/metadata", &grequests.RequestOptions{})
+	resp, err := grequests.Get(cloudEndpoint+"/1.1/functions/_ops/metadatas", &grequests.RequestOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -91,7 +91,6 @@ func TestHandler(t *testing.T) {
 			t.Fatal("unexpected response format")
 		}
 
-		t.Log(respBody)
 		if respBody["sessionToken"] != user.SessionToken {
 			t.Fatal("unexpected response format")
 		}
