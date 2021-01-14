@@ -113,7 +113,7 @@ func OnVerified(verifyType string, fn func(*User) error) {
 		if !ok {
 			return nil, fmt.Errorf("invalid request body")
 		}
-		user, err := decodeUser(params["user"])
+		user, err := decodeUser(params["object"])
 		if err != nil {
 			return nil, err
 		}
@@ -129,7 +129,7 @@ func OnLogin(fn func(*User) error) {
 		if !ok {
 			return nil, fmt.Errorf("invalid request body")
 		}
-		user, err := decodeUser(params["user"])
+		user, err := decodeUser(params["object"])
 		if err != nil {
 			return nil, err
 		}
