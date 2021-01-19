@@ -54,7 +54,7 @@ func defineClassHook(class, hook string, fn func(*ClassHookRequest) (interface{}
 		"internal":  false,
 		"hook":      true,
 	}
-	functions[name].call = func(r *Request) (interface{}, error) {
+	functions[name].call = func(r *FunctionRequest) (interface{}, error) {
 		if r.Params != nil {
 			req := new(ClassHookRequest)
 			params, ok := r.Params.(map[string]interface{})
@@ -118,7 +118,7 @@ func AfterDelete(class string, fn func(*ClassHookRequest) error) {
 
 // OnVerified will be called when user was online
 func OnVerified(verifyType string, fn func(*User) error) {
-	Define(fmt.Sprint("__on_verified_", verifyType), func(r *Request) (interface{}, error) {
+	Define(fmt.Sprint("__on_verified_", verifyType), func(r *FunctionRequest) (interface{}, error) {
 		params, ok := r.Params.(map[string]interface{})
 		if !ok {
 			return nil, fmt.Errorf("invalid request body")
@@ -134,7 +134,7 @@ func OnVerified(verifyType string, fn func(*User) error) {
 
 // OnLogin will be called when user logged in
 func OnLogin(fn func(*User) error) {
-	Define("__on_login__User", func(r *Request) (interface{}, error) {
+	Define("__on_login__User", func(r *FunctionRequest) (interface{}, error) {
 		params, ok := r.Params.(map[string]interface{})
 		if !ok {
 			return nil, fmt.Errorf("invalid request body")
@@ -149,7 +149,7 @@ func OnLogin(fn func(*User) error) {
 }
 
 func defineRealtimeHook(name string, fn func(*RealtimeHookRequest) (interface{}, error)) {
-	Define(name, func(r *Request) (interface{}, error) {
+	Define(name, func(r *FunctionRequest) (interface{}, error) {
 		params, ok := r.Params.(map[string]interface{})
 		if !ok {
 			return nil, fmt.Errorf("invalid request body")

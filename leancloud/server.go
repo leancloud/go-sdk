@@ -166,7 +166,7 @@ func classHookHandler(w http.ResponseWriter, r *http.Request, class, hook string
 	w.Write(respJSON)
 }
 
-func executeTimeout(r *Request, name string, timeout time.Duration) (interface{}, error) {
+func executeTimeout(r *FunctionRequest, name string, timeout time.Duration) (interface{}, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
@@ -203,8 +203,8 @@ func unmarshalBody(r *http.Request) (interface{}, error) {
 	return body, nil
 }
 
-func constructRequest(r *http.Request, name string, rpc bool) (*Request, error) {
-	request := new(Request)
+func constructRequest(r *http.Request, name string, rpc bool) (*FunctionRequest, error) {
+	request := new(FunctionRequest)
 	request.Meta = map[string]string{
 		"remoteAddr": r.RemoteAddr,
 	}

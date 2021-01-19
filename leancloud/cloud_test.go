@@ -7,31 +7,31 @@ import (
 )
 
 func init() {
-	Define("hello", func(r *Request) (interface{}, error) {
+	Define("hello", func(r *FunctionRequest) (interface{}, error) {
 		return map[string]string{
 			"Hello": "World",
 		}, nil
 	})
 
-	Define("hello_with_option_internal", func(r *Request) (interface{}, error) {
+	Define("hello_with_option_internal", func(r *FunctionRequest) (interface{}, error) {
 		return map[string]string{
 			"Hello": "World",
 		}, nil
 	}, WithInternal(), WithoutFetchUser())
 
-	Define("hello_with_option_fetch_user", func(r *Request) (interface{}, error) {
+	Define("hello_with_option_fetch_user", func(r *FunctionRequest) (interface{}, error) {
 		return map[string]string{
 			"sessionToken": r.SessionToken,
 		}, nil
 	})
 
-	Define("hello_with_option_not_fetch_user", func(r *Request) (interface{}, error) {
+	Define("hello_with_option_not_fetch_user", func(r *FunctionRequest) (interface{}, error) {
 		return map[string]interface{}{
 			"sessionToken": r.SessionToken,
 		}, nil
 	}, WithoutFetchUser())
 
-	Define("hello_with_object", func(r *Request) (interface{}, error) {
+	Define("hello_with_object", func(r *FunctionRequest) (interface{}, error) {
 		return r.CurrentUser, nil
 	})
 }

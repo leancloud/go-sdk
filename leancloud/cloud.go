@@ -8,8 +8,8 @@ import (
 	"github.com/levigross/grequests"
 )
 
-// Request contains request information of Cloud Function
-type Request struct {
+// FunctionRequest contains request information of Cloud Function
+type FunctionRequest struct {
 	Params       interface{}
 	CurrentUser  *User
 	SessionToken string
@@ -97,7 +97,7 @@ func WithSessionToken(token string) RunOption {
 }
 
 type functionType struct {
-	call         func(*Request) (interface{}, error)
+	call         func(*FunctionRequest) (interface{}, error)
 	defineOption map[string]interface{}
 }
 
@@ -116,7 +116,7 @@ func init() {
 }
 
 // Define declares an Cloud Function with name & options of definition
-func Define(name string, fn func(*Request) (interface{}, error), defineOptions ...DefineOption) {
+func Define(name string, fn func(*FunctionRequest) (interface{}, error), defineOptions ...DefineOption) {
 	if functions[name] != nil {
 		panic(fmt.Errorf("%s alreay defined", name))
 	}
@@ -185,7 +185,7 @@ func Run(name string, object interface{}, runOptions ...RunOption) (interface{},
 		return nil, fmt.Errorf("no such cloud function %s", name)
 	}
 
-	request := Request{
+	request := FunctionRequest{
 		Params: object,
 		Meta: map[string]string{
 			"remoteAddr": "",
@@ -270,7 +270,7 @@ func RPC(name string, object interface{}, ret interface{}, runOptions ...RunOpti
 		return fmt.Errorf("no such cloud function %s", name)
 	}
 
-	request := Request{
+	request := FunctionRequest{
 		Params: object,
 		Meta: map[string]string{
 			"remoteAddr": "",
