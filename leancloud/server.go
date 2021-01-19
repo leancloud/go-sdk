@@ -11,8 +11,6 @@ import (
 )
 
 const cloudFunctionTimeout = time.Second * 15
-const beforeHookTimeout = time.Second * 10
-const generalHookTimeout = time.Second * 3
 
 type metadataResponse struct {
 	Result []string `json:"result"`
@@ -37,14 +35,8 @@ func Handler(handler http.Handler) http.Handler {
 			} else {
 				if uri[3] != "" {
 					if len(uri) == 5 {
-						hookHandler(w, r, uri[3], uri[4])
+						classHookHandler(w, r, uri[3], uri[4])
 					} else {
-						if functions[realtimeHookmap[uri[3]]] != nil {
-							if !hookAuthenticate(r.Header.Get("X-LC-Hook-Key")) {
-								errorResponse(w, r, fmt.Errorf("Hook key check failed, request from %s", r.RemoteAddr))
-								return
-							}
-						}
 						functionHandler(w, r, uri[3], false)
 					}
 				} else {
@@ -101,7 +93,13 @@ func functionHandler(w http.ResponseWriter, r *http.Request, name string, rpc bo
 		errorResponse(w, r, fmt.Errorf("no such cloud function %s", name))
 		return
 	}
-	if functions[name].defineOption["internal"] == true {
+
+	if functions[name].defineOption["hook"] == true && !hookAuthenticate(r.Header.Get("X-LC-Hook-Key")) {
+		errorResponse(w, r, fmt.Errorf("Hook key check failed, request from %s", r.RemoteAddr))
+		return
+	}
+
+	if functions[name].defineOption["internal"] == true && !strings.HasSuffix(r.Header.Get("X-LC-Key"), ",master") {
 		errorResponse(w, r, fmt.Errorf("Internal cloud function, request from %s", r.RemoteAddr))
 		return
 	}
@@ -129,18 +127,13 @@ func functionHandler(w http.ResponseWriter, r *http.Request, name string, rpc bo
 	w.Write(respJSON)
 }
 
-func hookHandler(w http.ResponseWriter, r *http.Request, class, hook string) {
+func classHookHandler(w http.ResponseWriter, r *http.Request, class, hook string) {
 	if !hookAuthenticate(r.Header.Get("X-LC-Hook-Key")) {
 		errorResponse(w, r, fmt.Errorf("Hook key check failed, request from %s", r.RemoteAddr))
 		return
 	}
 
-	var name string
-	if storageHookmap[hook] != "" {
-		name = fmt.Sprint(storageHookmap[hook], class)
-	} else {
-		name = realtimeHookmap[hook]
-	}
+	name := fmt.Sprint(classHookmap[hook], class)
 
 	request, err := constructRequest(r, name, false)
 	if err != nil {
@@ -148,12 +141,7 @@ func hookHandler(w http.ResponseWriter, r *http.Request, class, hook string) {
 		return
 	}
 
-	var ret interface{}
-	if strings.HasPrefix(hook, "before") {
-		ret, err = executeTimeout(request, name, beforeHookTimeout)
-	} else {
-		ret, err = executeTimeout(request, name, generalHookTimeout)
-	}
+	ret, err := executeTimeout(request, name, cloudFunctionTimeout)
 
 	if err != nil {
 		errorResponse(w, r, err)
@@ -163,8 +151,6 @@ func hookHandler(w http.ResponseWriter, r *http.Request, class, hook string) {
 	var resp map[string]interface{}
 	if hook == "beforeSave" {
 		resp = encodeObject(ret, false, false)
-	} else if strings.HasPrefix(hook, "onIM") {
-		resp = ret.(map[string]interface{})
 	} else {
 		resp = map[string]interface{}{
 			"result": "ok",

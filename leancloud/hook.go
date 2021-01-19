@@ -5,7 +5,20 @@ import (
 	"os"
 )
 
-var storageHookmap = map[string]string{
+// ClassHookRequest contains object and user passed by Class hook calling
+type ClassHookRequest struct {
+	Object *Object
+	User   *User
+	Meta   map[string]string
+}
+
+// RealtimeHookRequest contains parameters passed by RTM hook calling
+type RealtimeHookRequest struct {
+	Params map[string]interface{}
+	Meta   map[string]string
+}
+
+var classHookmap = map[string]string{
 	"beforeSave":   "__before_save_for_",
 	"afterSave":    "__after_save_for_",
 	"beforeUpdate": "__before_update_for_",
@@ -16,23 +29,6 @@ var storageHookmap = map[string]string{
 	"onLogin":      "__on_login_",
 }
 
-var realtimeHookmap = map[string]string{
-	"onIMMessageReceived":     "_messageReceived",
-	"onIMReceiversOffline":    "_receiversOffline",
-	"onIMMessageSent":         "_messageSent",
-	"onIMMessageUpdate":       "_messageUpdate",
-	"onIMConversationStart":   "_conversationStart",
-	"onIMConversationStarted": "_conversationStarted",
-	"onIMConversationAdd":     "_conversationAdd",
-	"onIMConversationAdded":   "_conversationAdded",
-	"onIMConversationRemove":  "_conversationRemove",
-	"onIMConversationRemoved": "_conversationRemoved",
-	"onIMConversationUpdate":  "_conversationUpdate",
-	"onIMClientOnline":        "_clientOnline",
-	"onIMClientOffline":       "_clientOffline",
-	"onIMClientSign":          "_rtmClientSign",
-}
-
 func hookAuthenticate(key string) bool {
 	if key != os.Getenv("LEANCLOUD_APP_HOOK_KEY") {
 		return false
@@ -41,7 +37,7 @@ func hookAuthenticate(key string) bool {
 	return true
 }
 
-func defineHook(class, hook string, fn func(*Object, *User) (interface{}, error)) {
+func defineClassHook(class, hook string, fn func(*ClassHookRequest) (interface{}, error)) {
 	name := fmt.Sprint(hook, class)
 	if functions[name] != nil {
 		panic(fmt.Errorf("LeanEngine: %s of %s already defined", hook, class))
@@ -51,9 +47,11 @@ func defineHook(class, hook string, fn func(*Object, *User) (interface{}, error)
 	functions[name].defineOption = map[string]interface{}{
 		"fetchUser": true,
 		"internal":  false,
+		"hook":      true,
 	}
 	functions[name].call = func(r *Request) (interface{}, error) {
 		if r.Params != nil {
+			req := new(ClassHookRequest)
 			params, ok := r.Params.(map[string]interface{})
 			if !ok {
 				return nil, fmt.Errorf("invalid request body")
@@ -62,14 +60,15 @@ func defineHook(class, hook string, fn func(*Object, *User) (interface{}, error)
 			if err != nil {
 				return nil, err
 			}
+			req.Object = object
 			if params["user"] != nil {
 				user, err := decodeUser(params["user"])
 				if err != nil {
 					return nil, err
 				}
-				return fn(object, user)
+				req.User = user
 			}
-			return fn(object, nil)
+			return fn(req)
 		}
 
 		return nil, nil
@@ -77,33 +76,39 @@ func defineHook(class, hook string, fn func(*Object, *User) (interface{}, error)
 }
 
 // BeforeSave will be called before saving an Object
-func BeforeSave(class string, fn func(*Object, *User) (interface{}, error)) {
-	defineHook(class, "__before_save_for_", fn)
+func BeforeSave(class string, fn func(*ClassHookRequest) (interface{}, error)) {
+	defineClassHook(class, "__before_save_for_", fn)
 }
 
 // AfterSave will be called after Object saved
-func AfterSave(class string, fn func(*Object, *User) (interface{}, error)) {
-	defineHook(class, "__after_save_for_", fn)
+func AfterSave(class string, fn func(*ClassHookRequest) error) {
+	defineClassHook(class, "__after_save_for_", func(r *ClassHookRequest) (interface{}, error) {
+		return nil, fn(r)
+	})
 }
 
 // BeforeUpdate will be called before updating an Object
-func BeforeUpdate(class string, fn func(*Object, *User) (interface{}, error)) {
-	defineHook(class, "__before_update_for_", fn)
+func BeforeUpdate(class string, fn func(*ClassHookRequest) (interface{}, error)) {
+	defineClassHook(class, "__before_update_for_", fn)
 }
 
 // AfterUpdate will be called after Object updated
-func AfterUpdate(class string, fn func(*Object, *User) (interface{}, error)) {
-	defineHook(class, "__after_update_for_", fn)
+func AfterUpdate(class string, fn func(*ClassHookRequest) error) {
+	defineClassHook(class, "__after_update_for_", func(r *ClassHookRequest) (interface{}, error) {
+		return nil, fn(r)
+	})
 }
 
 // BeforeDelete will be called before deleting an Object
-func BeforeDelete(class string, fn func(*Object, *User) (interface{}, error)) {
-	defineHook(class, "__before_delete_for_", fn)
+func BeforeDelete(class string, fn func(*ClassHookRequest) (interface{}, error)) {
+	defineClassHook(class, "__before_delete_for_", fn)
 }
 
 // AfterDelete will be called after Object deleted
-func AfterDelete(class string, fn func(*Object, *User) (interface{}, error)) {
-	defineHook(class, "__after_delete_for_", fn)
+func AfterDelete(class string, fn func(*ClassHookRequest) error) {
+	defineClassHook(class, "__after_delete_for_", func(r *ClassHookRequest) (interface{}, error) {
+		return nil, fn(r)
+	})
 }
 
 // OnVerified will be called when user was online
@@ -138,145 +143,81 @@ func OnLogin(fn func(*User) error) {
 	})
 }
 
-func OnIMMessageReceived(fn func(map[string]interface{}) (interface{}, error)) {
-	Define(realtimeHookmap["onIMMessageReceived"], func(r *Request) (interface{}, error) {
+func defineRealtimeHook(name string, fn func(*RealtimeHookRequest) (interface{}, error)) {
+	Define(name, func(r *Request) (interface{}, error) {
 		params, ok := r.Params.(map[string]interface{})
 		if !ok {
 			return nil, fmt.Errorf("invalid request body")
 		}
+		req := RealtimeHookRequest{
+			Params: params,
+			Meta:   r.Meta,
+		}
+		return fn(&req)
+	})
+	functions[name].defineOption["hook"] = true
+}
 
-		return fn(params)
+func OnIMMessageReceived(fn func(*RealtimeHookRequest) (interface{}, error)) {
+	defineRealtimeHook("_messageReceived", fn)
+}
+
+func OnIMReceiversOffline(fn func(*RealtimeHookRequest) (interface{}, error)) {
+	defineRealtimeHook("_receiverOffline", fn)
+}
+
+func OnIMMessageSent(fn func(*RealtimeHookRequest) error) {
+	defineRealtimeHook("_messageSent", func(r *RealtimeHookRequest) (interface{}, error) {
+		return nil, fn(r)
 	})
 }
 
-func OnIMReceiversOffline(fn func(map[string]interface{}) (interface{}, error)) {
-	Define(realtimeHookmap["onIMMessageReceiversOffline"], func(r *Request) (interface{}, error) {
-		params, ok := r.Params.(map[string]interface{})
-		if !ok {
-			return nil, fmt.Errorf("invalid request body")
-		}
+func OnIMMessageUpdate(fn func(*RealtimeHookRequest) (interface{}, error)) {
+	defineRealtimeHook("_messageUpdate", fn)
+}
 
-		return fn(params)
+func OnImConversationStart(fn func(*RealtimeHookRequest) (interface{}, error)) {
+	defineRealtimeHook("_conversationStart", fn)
+}
+
+func OnImConversationStarted(fn func(*RealtimeHookRequest) error) {
+	defineRealtimeHook("_conversationStarted", func(r *RealtimeHookRequest) (interface{}, error) {
+		return nil, fn(r)
 	})
 }
 
-func OnIMMessageSent(fn func(map[string]interface{}) (interface{}, error)) {
-	Define(realtimeHookmap["onIMMessageSent"], func(r *Request) (interface{}, error) {
-		params, ok := r.Params.(map[string]interface{})
-		if !ok {
-			return nil, fmt.Errorf("invalid request body")
-		}
+func OnIMConversationAdd(fn func(*RealtimeHookRequest) (interface{}, error)) {
+	defineRealtimeHook("_conversationStarted", fn)
+}
 
-		return fn(params)
+func OnIMConversationRemove(fn func(*RealtimeHookRequest) (interface{}, error)) {
+	defineRealtimeHook("_conversationRemove", fn)
+}
+
+func OnIMConversationAdded(fn func(*RealtimeHookRequest) error) {
+	defineRealtimeHook("_conversationAdded", func(r *RealtimeHookRequest) (interface{}, error) {
+		return nil, fn(r)
 	})
 }
 
-func OnIMMessageUpdate(fn func(map[string]interface{}) (interface{}, error)) {
-	Define(realtimeHookmap["onIMMessageUpdated"], func(r *Request) (interface{}, error) {
-		params, ok := r.Params.(map[string]interface{})
-		if !ok {
-			return nil, fmt.Errorf("invalid request body")
-		}
-
-		return fn(params)
+func OnIMConversationRemoved(fn func(*RealtimeHookRequest) error) {
+	defineRealtimeHook("_conversationRemoved", func(r *RealtimeHookRequest) (interface{}, error) {
+		return nil, fn(r)
 	})
 }
 
-func OnImConversationStart(fn func(map[string]interface{}) (interface{}, error)) {
-	Define(realtimeHookmap["onIMConversationStart"], func(r *Request) (interface{}, error) {
-		params, ok := r.Params.(map[string]interface{})
-		if !ok {
-			return nil, fmt.Errorf("invalid request body")
-		}
+func OnIMConversationUpdate(fn func(*RealtimeHookRequest) (interface{}, error)) {
+	defineRealtimeHook("_conversationUpdate", fn)
+}
 
-		return fn(params)
+func OnIMClientOnline(fn func(*RealtimeHookRequest) error) {
+	defineRealtimeHook("_clientOnline", func(r *RealtimeHookRequest) (interface{}, error) {
+		return nil, fn(r)
 	})
 }
 
-func OnImConversationStarted(fn func(map[string]interface{}) (interface{}, error)) {
-	Define(realtimeHookmap["onIMConversationStarted"], func(r *Request) (interface{}, error) {
-		params, ok := r.Params.(map[string]interface{})
-		if !ok {
-			return nil, fmt.Errorf("invalid request body")
-		}
-
-		return fn(params)
-	})
-}
-
-func OnIMConversationAdd(fn func(map[string]interface{}) (interface{}, error)) {
-	Define(realtimeHookmap["onIMConversationAdd"], func(r *Request) (interface{}, error) {
-		params, ok := r.Params.(map[string]interface{})
-		if !ok {
-			return nil, fmt.Errorf("invalid request body")
-		}
-
-		return fn(params)
-	})
-}
-
-func OnIMConversationRemove(fn func(map[string]interface{}) (interface{}, error)) {
-	Define(realtimeHookmap["onIMConversationRemove"], func(r *Request) (interface{}, error) {
-		params, ok := r.Params.(map[string]interface{})
-		if !ok {
-			return nil, fmt.Errorf("invalid request body")
-		}
-
-		return fn(params)
-	})
-}
-
-func OnIMConversationAdded(fn func(map[string]interface{}) (interface{}, error)) {
-	Define(realtimeHookmap["onIMConversationAdded"], func(r *Request) (interface{}, error) {
-		params, ok := r.Params.(map[string]interface{})
-		if !ok {
-			return nil, fmt.Errorf("invalid request body")
-		}
-
-		return fn(params)
-	})
-}
-
-func OnIMConversationRemoved(fn func(map[string]interface{}) (interface{}, error)) {
-	Define(realtimeHookmap["onIMConversationRemoved"], func(r *Request) (interface{}, error) {
-		params, ok := r.Params.(map[string]interface{})
-		if !ok {
-			return nil, fmt.Errorf("invalid request body")
-		}
-
-		return fn(params)
-	})
-}
-
-func OnIMConversationUpdate(fn func(map[string]interface{}) (interface{}, error)) {
-	Define(realtimeHookmap["onIMConversationUpdated"], func(r *Request) (interface{}, error) {
-		params, ok := r.Params.(map[string]interface{})
-		if !ok {
-			return nil, fmt.Errorf("invalid request body")
-		}
-
-		return fn(params)
-	})
-}
-
-func OnIMClientOnline(fn func(map[string]interface{}) (interface{}, error)) {
-	Define(realtimeHookmap["onIMClientOnline"], func(r *Request) (interface{}, error) {
-		params, ok := r.Params.(map[string]interface{})
-		if !ok {
-			return nil, fmt.Errorf("invalid request body")
-		}
-
-		return fn(params)
-	})
-}
-
-func OnIMClientOffline(fn func(map[string]interface{}) (interface{}, error)) {
-	Define(realtimeHookmap["onIMClientOffline"], func(r *Request) (interface{}, error) {
-		params, ok := r.Params.(map[string]interface{})
-		if !ok {
-			return nil, fmt.Errorf("invalid request body")
-		}
-
-		return fn(params)
+func OnIMClientOffline(fn func(*RealtimeHookRequest) error) {
+	defineRealtimeHook("_clientOffline", func(r *RealtimeHookRequest) (interface{}, error) {
+		return nil, fn(r)
 	})
 }
