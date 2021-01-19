@@ -210,7 +210,7 @@ func Run(name string, object interface{}, runOptions ...RunOption) (interface{},
 }
 
 // RPC executes an Cloud Function with serialization/deserialization Object if possible
-func RPC(name string, object interface{}, ret interface{}, runOptions ...RunOption) (interface{}, error) {
+func RPC(name string, object interface{}, ret interface{}, runOptions ...RunOption) error {
 	options := make(map[string]interface{})
 	sessionToken := ""
 	var currentUser *User
@@ -220,7 +220,7 @@ func RPC(name string, object interface{}, ret interface{}, runOptions ...RunOpti
 	}
 
 	if options["sessionToken"] != nil && options["user"] != nil {
-		return nil, fmt.Errorf("unable to set both of sessionToken & User")
+		return fmt.Errorf("unable to set both of sessionToken & User")
 	}
 
 	if options["sessionToken"] != nil {
@@ -246,28 +246,28 @@ func RPC(name string, object interface{}, ret interface{}, runOptions ...RunOpti
 		}
 
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		respJSON := new(functionResponse)
 		if err := json.Unmarshal(resp.Bytes(), respJSON); err != nil {
-			return nil, err
+			return err
 		}
 
 		res, err := decode(respJSON.Result)
 		if err != nil {
-			return res, nil
+			return nil
 		}
 
 		if err := bind(reflect.Indirect(reflect.ValueOf(res)), reflect.Indirect(reflect.ValueOf(ret))); err != nil {
-			return res, nil
+			return nil
 		}
 
-		return nil, nil
+		return nil
 	}
 
 	if functions[name] == nil {
-		return nil, fmt.Errorf("no such cloud function %s", name)
+		return fmt.Errorf("no such cloud function %s", name)
 	}
 
 	request := Request{
@@ -281,7 +281,7 @@ func RPC(name string, object interface{}, ret interface{}, runOptions ...RunOpti
 		request.SessionToken = sessionToken
 		user, err := client.Users.Become(sessionToken)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		request.CurrentUser = user
 	}
@@ -293,14 +293,14 @@ func RPC(name string, object interface{}, ret interface{}, runOptions ...RunOpti
 
 	res, err := functions[name].call(&request)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	if err := bind(reflect.Indirect(reflect.ValueOf(res)), reflect.Indirect(reflect.ValueOf(ret))); err != nil {
-		return res, nil
+		return err
 	}
 
-	return nil, nil
+	return nil
 }
 
 func (ferr *functionError) Error() string {

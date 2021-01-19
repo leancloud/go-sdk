@@ -196,13 +196,11 @@ func TestRPC(t *testing.T) {
 		}
 
 		retUser := new(User)
-		ret, err := RPC("hello_with_object", nil, retUser, WithUser(user))
+		err := RPC("hello_with_object", nil, retUser, WithUser(user))
 		if err != nil {
 			t.Fatal(err)
 		}
-		if ret != nil {
-			t.Fatal(fmt.Errorf("should clone object to user types"))
-		}
+
 		if retUser.SessionToken != user.SessionToken {
 			t.Fatal(fmt.Errorf("dismatch sessionToken"))
 		}
@@ -215,14 +213,11 @@ func TestRPC(t *testing.T) {
 		}
 
 		retUser := new(User)
-		ret, err := RPC("hello_with_object", nil, retUser, WithUser(user), WithRemote())
+		err := RPC("hello_with_object", nil, retUser, WithUser(user), WithRemote())
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		if ret != nil {
-			t.Fatal(fmt.Errorf("should clone object to user types"))
-		}
 		if retUser.ID != user.ID {
 			t.Fatal(fmt.Errorf("dismatch sessionToken"))
 		}
