@@ -22,11 +22,6 @@ func (object *Object) Clone(dst interface{}) error {
 	return bind(reflect.Indirect(reflect.ValueOf(object)), reflect.Indirect(reflect.ValueOf(dst)))
 }
 
-// UpdatedKeys return keys which would be updated
-func (object *Object) UpdatedKeys() []string {
-	return object.fields["_updatedKeys"].([]string)
-}
-
 // Raw returns raw data of Object in form of map
 func (object *Object) Raw() map[string]interface{} {
 	return object.fields

@@ -12,6 +12,11 @@ type ClassHookRequest struct {
 	Meta   map[string]string
 }
 
+// UpdatedKeys return keys which would be updated, only valid in beforeUpdate hook
+func (r *ClassHookRequest) UpdatedKeys() []string {
+	return r.Object.fields["_updatedKeys"].([]string)
+}
+
 // RealtimeHookRequest contains parameters passed by RTM hook calling
 type RealtimeHookRequest struct {
 	Params map[string]interface{}
