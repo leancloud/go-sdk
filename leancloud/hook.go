@@ -117,7 +117,7 @@ func AfterDelete(class string, fn func(*ClassHookRequest) error) {
 }
 
 // OnVerified will be called when user was online
-func OnVerified(verifyType string, fn func(*User) error) {
+func OnVerified(verifyType string, fn func(*ClassHookRequest) error) {
 	Define(fmt.Sprint("__on_verified_", verifyType), func(r *FunctionRequest) (interface{}, error) {
 		params, ok := r.Params.(map[string]interface{})
 		if !ok {
@@ -127,13 +127,16 @@ func OnVerified(verifyType string, fn func(*User) error) {
 		if err != nil {
 			return nil, err
 		}
-
-		return nil, fn(user)
+		req := ClassHookRequest{
+			User: user,
+			Meta: r.Meta,
+		}
+		return nil, fn(&req)
 	})
 }
 
 // OnLogin will be called when user logged in
-func OnLogin(fn func(*User) error) {
+func OnLogin(fn func(*ClassHookRequest) error) {
 	Define("__on_login__User", func(r *FunctionRequest) (interface{}, error) {
 		params, ok := r.Params.(map[string]interface{})
 		if !ok {
@@ -143,8 +146,11 @@ func OnLogin(fn func(*User) error) {
 		if err != nil {
 			return nil, err
 		}
-
-		return nil, fn(user)
+		req := ClassHookRequest{
+			User: user,
+			Meta: r.Meta,
+		}
+		return nil, fn(&req)
 	})
 }
 
@@ -181,11 +187,11 @@ func OnIMMessageUpdate(fn func(*RealtimeHookRequest) (interface{}, error)) {
 	defineRealtimeHook("_messageUpdate", fn)
 }
 
-func OnImConversationStart(fn func(*RealtimeHookRequest) (interface{}, error)) {
+func OnIMConversationStart(fn func(*RealtimeHookRequest) (interface{}, error)) {
 	defineRealtimeHook("_conversationStart", fn)
 }
 
-func OnImConversationStarted(fn func(*RealtimeHookRequest) error) {
+func OnIMConversationStarted(fn func(*RealtimeHookRequest) error) {
 	defineRealtimeHook("_conversationStarted", func(r *RealtimeHookRequest) (interface{}, error) {
 		return nil, fn(r)
 	})

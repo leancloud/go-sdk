@@ -210,7 +210,7 @@ func Run(name string, object interface{}, runOptions ...RunOption) (interface{},
 }
 
 // RPC executes an Cloud Function with serialization/deserialization Object if possible
-func RPC(name string, object interface{}, ret interface{}, runOptions ...RunOption) error {
+func RPC(name string, params interface{}, results interface{}, runOptions ...RunOption) error {
 	options := make(map[string]interface{})
 	sessionToken := ""
 	var currentUser *User
@@ -236,7 +236,7 @@ func RPC(name string, object interface{}, ret interface{}, runOptions ...RunOpti
 		var resp *grequests.Response
 		path := fmt.Sprint("/1.1/call/", name)
 		reqOption := client.getRequestOptions()
-		reqOption.JSON = encode(object, true)
+		reqOption.JSON = encode(params, true)
 		if sessionToken != "" {
 			resp, err = client.request(ServiceAPI, methodPost, path, reqOption, UseSessionToken(sessionToken))
 		} else if currentUser != nil {
@@ -259,7 +259,7 @@ func RPC(name string, object interface{}, ret interface{}, runOptions ...RunOpti
 			return nil
 		}
 
-		if err := bind(reflect.Indirect(reflect.ValueOf(res)), reflect.Indirect(reflect.ValueOf(ret))); err != nil {
+		if err := bind(reflect.Indirect(reflect.ValueOf(res)), reflect.Indirect(reflect.ValueOf(results))); err != nil {
 			return nil
 		}
 
@@ -271,7 +271,7 @@ func RPC(name string, object interface{}, ret interface{}, runOptions ...RunOpti
 	}
 
 	request := FunctionRequest{
-		Params: object,
+		Params: params,
 		Meta: map[string]string{
 			"remoteAddr": "",
 		},
@@ -296,7 +296,7 @@ func RPC(name string, object interface{}, ret interface{}, runOptions ...RunOpti
 		return err
 	}
 
-	if err := bind(reflect.Indirect(reflect.ValueOf(res)), reflect.Indirect(reflect.ValueOf(ret))); err != nil {
+	if err := bind(reflect.Indirect(reflect.ValueOf(res)), reflect.Indirect(reflect.ValueOf(results))); err != nil {
 		return err
 	}
 

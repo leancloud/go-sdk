@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
+	"runtime"
 	"strings"
 	"time"
 )
@@ -66,6 +68,11 @@ func corsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func metadataHandler(w http.ResponseWriter, r *http.Request) {
+	if validateMasterKey(r) {
+		errorResponse(w, r, fmt.Errorf("Master Key check failed, request from %s", r.RemoteAddr))
+		return
+	}
+
 	meta, err := generateMetadata()
 	if err != nil {
 		errorResponse(w, r, err)
@@ -77,7 +84,7 @@ func metadataHandler(w http.ResponseWriter, r *http.Request) {
 
 func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
 	resp, err := json.Marshal(map[string]string{
-		"runtime": "go-1.14",
+		"runtime": runtime.Version(),
 		"version": "0.1.0",
 	})
 	if err != nil {
@@ -94,14 +101,16 @@ func functionHandler(w http.ResponseWriter, r *http.Request, name string, rpc bo
 		return
 	}
 
-	if functions[name].defineOption["hook"] == true && !hookAuthenticate(r.Header.Get("X-LC-Hook-Key")) {
+	if functions[name].defineOption["hook"] == true && validateHookKey(r) {
 		errorResponse(w, r, fmt.Errorf("Hook key check failed, request from %s", r.RemoteAddr))
 		return
 	}
 
-	if functions[name].defineOption["internal"] == true && !strings.HasSuffix(r.Header.Get("X-LC-Key"), ",master") {
-		errorResponse(w, r, fmt.Errorf("Internal cloud function, request from %s", r.RemoteAddr))
-		return
+	if functions[name].defineOption["internal"] == true {
+		if !validateMasterKey(r) || !validateHookKey(r) {
+			errorResponse(w, r, fmt.Errorf("Internal cloud function, request from %s", r.RemoteAddr))
+			return
+		}
 	}
 
 	request, err := constructRequest(r, name, rpc)
@@ -128,7 +137,7 @@ func functionHandler(w http.ResponseWriter, r *http.Request, name string, rpc bo
 }
 
 func classHookHandler(w http.ResponseWriter, r *http.Request, class, hook string) {
-	if !hookAuthenticate(r.Header.Get("X-LC-Hook-Key")) {
+	if !validateHookKey(r) {
 		errorResponse(w, r, fmt.Errorf("Hook key check failed, request from %s", r.RemoteAddr))
 		return
 	}
@@ -263,4 +272,24 @@ func generateMetadata() ([]byte, error) {
 		meta.Result = append(meta.Result, k)
 	}
 	return json.Marshal(meta)
+}
+
+func validateMasterKey(r *http.Request) bool {
+	if os.Getenv("LEANCLOUD_APP_ID") != r.Header.Get("X-LC-Id") {
+		return false
+	}
+	if strings.TrimSuffix(r.Header.Get("X-LC-Key"), ",master") != os.Getenv("LEANCLOUD_APP_MASTER_KEY") {
+		return false
+	}
+	return true
+}
+
+func validateHookKey(r *http.Request) bool {
+	if os.Getenv("LEANCLOUD_APP_ID") != r.Header.Get("X-LC-Id") {
+		return false
+	}
+	if os.Getenv("LEANCLOUD_APP_HOOK_KEY") != r.Header.Get("X-LC-Hook-Key") {
+		return false
+	}
+	return true
 }
