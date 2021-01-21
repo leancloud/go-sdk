@@ -7,9 +7,15 @@ import (
 )
 
 func TestNewClient(t *testing.T) {
-	appID, appKey, masterKey := os.Getenv("LEANCLOUD_APP_ID"), os.Getenv("LEANCLOUD_APP_KEY"), os.Getenv("LEANCLOUD_APP_MASTER_KEY")
+	appID, appKey, masterKey, serverURL := os.Getenv("LEANCLOUD_APP_ID"), os.Getenv("LEANCLOUD_APP_KEY"), os.Getenv("LEANCLOUD_APP_MASTER_KEY"), os.Getenv("LEANCLOUD_API_SERVER")
+	options := &ClientInitOptions{
+		AppID:     appID,
+		AppKey:    appKey,
+		MasterKey: masterKey,
+		ServerURL: serverURL,
+	}
 	t.Run("Production", func(t *testing.T) {
-		client := NewClient(appID, appKey, masterKey)
+		client := NewClient(options)
 		if client == nil {
 			t.Fatal(errors.New("unable to create a client"))
 		}
@@ -28,7 +34,7 @@ func TestNewClient(t *testing.T) {
 		if err := os.Setenv("LEANCLOUD_DEBUG", "true"); err != nil {
 			t.Fatal("unable to set debugging flag")
 		}
-		client := NewClient(appID, appKey, masterKey)
+		client := NewClient(options)
 		if client == nil {
 			t.Fatal(errors.New("unable to create a client"))
 		}
@@ -48,7 +54,7 @@ func TestNewClient(t *testing.T) {
 }
 
 func TestNewEnvClient(t *testing.T) {
-	appID, appKey, masterKey := os.Getenv("LEANCLOUD_APP_ID"), os.Getenv("LEANCLOUD_APP_KEY"), os.Getenv("LEANCLOUD_APP_MASTER_KEY")
+	appID, appKey, masterKey, serverURL := os.Getenv("LEANCLOUD_APP_ID"), os.Getenv("LEANCLOUD_APP_KEY"), os.Getenv("LEANCLOUD_APP_MASTER_KEY"), os.Getenv("LEANCLOUD_API_SERVER")
 	t.Run("Production", func(t *testing.T) {
 		client := NewEnvClient()
 		if client == nil {
@@ -62,6 +68,9 @@ func TestNewEnvClient(t *testing.T) {
 		}
 		if client.masterKey != masterKey {
 			t.Fatal(errors.New("LEANCLOUD_APP_MASTER_KEY unmatch"))
+		}
+		if client.serverURL != serverURL {
+			t.Fatal(errors.New("LEANCLOUD_API_SERVER unmatch"))
 		}
 	})
 
