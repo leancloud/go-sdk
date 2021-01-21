@@ -86,7 +86,7 @@ func metadataHandler(w http.ResponseWriter, r *http.Request) {
 func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
 	resp, err := json.Marshal(map[string]string{
 		"runtime": runtime.Version(),
-		"version": "0.1.0",
+		"version": Version,
 	})
 	if err != nil {
 		errorResponse(w, r, err)
