@@ -3,8 +3,8 @@ package leancloud
 import (
 	"fmt"
 	"net/http"
-	"os"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/levigross/grequests"
@@ -12,6 +12,11 @@ import (
 
 type requestMethod string
 
+var defaultServerURL = map[string]string{
+	"gzGzoHsz": ".lc-cn-n1-shared.com",
+	"9Nh9j0Va": ".lc-cn-e1-shared.com",
+	"MdYXbMMI": ".api.lncldglobal.com",
+}
 var requestCount int
 
 const (
@@ -62,14 +67,13 @@ func (err *ServerResponseError) Error() string {
 	return fmt.Sprintf("%d %s [%s (%d)]", err.Code, err.Err, err.URL, err.StatusCode)
 }
 
-func (client *Client) getServerURL(service ServiceModule) string {
-	envURL, foundEnv := os.LookupEnv("LEANCLOUD_API_SERVER")
-
-	if foundEnv {
-		return envURL
+func (client *Client) getServerURL() string {
+	if client.serverURL != "" {
+		return client.serverURL
 	}
 
-	return GetServiceURL(client.region, client.appID, service)
+	urlSlice := strings.Split(client.appID, "-")
+	return fmt.Sprint("https://", (urlSlice[0])[:7], defaultServerURL[urlSlice[1]])
 }
 
 func (client *Client) getRequestOptions() *grequests.RequestOptions {
@@ -82,7 +86,7 @@ func (client *Client) getRequestOptions() *grequests.RequestOptions {
 	}
 }
 
-func (client *Client) request(service ServiceModule, method requestMethod, path string, options *grequests.RequestOptions, authOptions ...AuthOption) (*grequests.Response, error) {
+func (client *Client) request(method requestMethod, path string, options *grequests.RequestOptions, authOptions ...AuthOption) (*grequests.Response, error) {
 	if options == nil {
 		options = client.getRequestOptions()
 	}
@@ -91,7 +95,7 @@ func (client *Client) request(service ServiceModule, method requestMethod, path 
 		authOption.apply(client, options)
 	}
 
-	URL := fmt.Sprint(client.getServerURL(service), path)
+	URL := fmt.Sprint(client.getServerURL(), path)
 
 	requestID := requestCount
 	requestCount++

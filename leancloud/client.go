@@ -8,7 +8,7 @@ import (
 const Version = "0.1.0"
 
 type Client struct {
-	region        Region
+	serverURL     string
 	appID         string
 	appKey        string
 	masterKey     string
@@ -18,10 +18,13 @@ type Client struct {
 	Roles         Roles
 }
 
+func (client *Client) SetServerURL(url string) {
+	client.serverURL = url
+}
+
 // NewClient constructs a client from parameters
-func NewClient(region, appID, appKey, masterKey string) *Client {
+func NewClient(appID, appKey, masterKey string) *Client {
 	client := &Client{
-		region:    NewRegionFromString(region),
 		appID:     appID,
 		appKey:    appKey,
 		masterKey: masterKey,
@@ -41,10 +44,9 @@ func NewClient(region, appID, appKey, masterKey string) *Client {
 
 // NewEnvClient constructs a client from environment variables
 func NewEnvClient() *Client {
-	return NewClient(os.Getenv("LEANCLOUD_REGION"),
-		os.Getenv("LEANCLOUD_APP_ID"),
-		os.Getenv("LEANCLOUD_APP_KEY"),
-		os.Getenv("LEANCLOUD_APP_MASTER_KEY"))
+	client := NewClient(os.Getenv("LEANCLOUD_APP_ID"), os.Getenv("LEANCLOUD_APP_KEY"), os.Getenv("LEANCLOUD_APP_MASTER_KEY"))
+	client.SetServerURL(os.Getenv("LEANCLOUD_API_SERVER"))
+	return client
 }
 
 // Class constrcuts a reference of Class

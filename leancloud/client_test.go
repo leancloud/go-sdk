@@ -7,14 +7,11 @@ import (
 )
 
 func TestNewClient(t *testing.T) {
-	region, appID, appKey, masterKey := os.Getenv("LEANCLOUD_REGION"), os.Getenv("LEANCLOUD_APP_ID"), os.Getenv("LEANCLOUD_APP_KEY"), os.Getenv("LEANCLOUD_APP_MASTER_KEY")
+	appID, appKey, masterKey := os.Getenv("LEANCLOUD_APP_ID"), os.Getenv("LEANCLOUD_APP_KEY"), os.Getenv("LEANCLOUD_APP_MASTER_KEY")
 	t.Run("Production", func(t *testing.T) {
-		client := NewClient(region, appID, appKey, masterKey)
+		client := NewClient(appID, appKey, masterKey)
 		if client == nil {
 			t.Fatal(errors.New("unable to create a client"))
-		}
-		if client.region != Region(region) {
-			t.Fatal(errors.New("LEANCLOUD_REGION unmatch"))
 		}
 		if client.appID != appID {
 			t.Fatal(errors.New("LEANCLOUD_APP_ID unmatch"))
@@ -31,12 +28,9 @@ func TestNewClient(t *testing.T) {
 		if err := os.Setenv("LEANCLOUD_DEBUG", "true"); err != nil {
 			t.Fatal("unable to set debugging flag")
 		}
-		client := NewClient(region, appID, appKey, masterKey)
+		client := NewClient(appID, appKey, masterKey)
 		if client == nil {
 			t.Fatal(errors.New("unable to create a client"))
-		}
-		if client.region != Region(region) {
-			t.Fatal(errors.New("LEANCLOUD_REGION unmatch"))
 		}
 		if client.appID != appID {
 			t.Fatal(errors.New("LEANCLOUD_APP_ID unmatch"))
@@ -54,14 +48,11 @@ func TestNewClient(t *testing.T) {
 }
 
 func TestNewEnvClient(t *testing.T) {
-	region, appID, appKey, masterKey := os.Getenv("LEANCLOUD_REGION"), os.Getenv("LEANCLOUD_APP_ID"), os.Getenv("LEANCLOUD_APP_KEY"), os.Getenv("LEANCLOUD_APP_MASTER_KEY")
+	appID, appKey, masterKey := os.Getenv("LEANCLOUD_APP_ID"), os.Getenv("LEANCLOUD_APP_KEY"), os.Getenv("LEANCLOUD_APP_MASTER_KEY")
 	t.Run("Production", func(t *testing.T) {
 		client := NewEnvClient()
 		if client == nil {
 			t.Fatal(errors.New("unable to create a client"))
-		}
-		if client.region != Region(region) {
-			t.Fatal(errors.New("LEANCLOUD_REGION unmatch"))
 		}
 		if client.appID != appID {
 			t.Fatal(errors.New("LEANCLOUD_APP_ID unmatch"))
@@ -81,9 +72,6 @@ func TestNewEnvClient(t *testing.T) {
 		client := NewEnvClient()
 		if client == nil {
 			t.Fatal(errors.New("unable to create a client"))
-		}
-		if client.region != Region(region) {
-			t.Fatal(errors.New("LEANCLOUD_REGION unmatch"))
 		}
 		if client.appID != appID {
 			t.Fatal(errors.New("LEANCLOUD_APP_ID unmatch"))
