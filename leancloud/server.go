@@ -102,16 +102,30 @@ func functionHandler(w http.ResponseWriter, r *http.Request, name string, rpc bo
 		return
 	}
 
-	if functions[name].defineOption["hook"] == true && validateHookKey(r) {
-		errorResponse(w, r, fmt.Errorf("Hook key check failed, request from %s", r.RemoteAddr))
-		return
+	if functions[name].defineOption["hook"] == true {
+		if !validateHookKey(r) {
+			errorResponse(w, r, fmt.Errorf("Hook key check failed, request from %s", r.RemoteAddr))
+			return
+		}
 	}
 
 	if functions[name].defineOption["internal"] == true {
-		if validateMasterKey(r) || validateHookKey(r) {
-			master, pass := validateSignature(r)
-			if !master || !pass {
-				errorResponse(w, r, fmt.Errorf("Internal cloud function, request from %s", r.RemoteAddr))
+		if !validateMasterKey(r) {
+			if !validateHookKey(r) {
+				master, pass := validateSignature(r)
+				if !master || !pass {
+					errorResponse(w, r, fmt.Errorf("Internal cloud function, request from %s", r.RemoteAddr))
+					return
+				}
+			}
+		}
+	}
+
+	if !validateAppKey(r) {
+		if !validateMasterKey(r) {
+			_, pass := validateSignature(r)
+			if !pass {
+				errorResponse(w, r, fmt.Errorf("App key check failed, request from %s", r.RemoteAddr))
 				return
 			}
 		}
@@ -276,6 +290,16 @@ func generateMetadata() ([]byte, error) {
 		meta.Result = append(meta.Result, k)
 	}
 	return json.Marshal(meta)
+}
+
+func validateAppKey(r *http.Request) bool {
+	if os.Getenv("LEANCLOUD_APP_ID") != r.Header.Get("X-LC-Id") {
+		return false
+	}
+	if os.Getenv("LEANCLOUD_APP_KEY") != r.Header.Get("X-LC-Key") {
+		return false
+	}
+	return true
 }
 
 func validateMasterKey(r *http.Request) bool {
