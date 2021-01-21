@@ -5,11 +5,11 @@ Golang SDK for LeanCloud Storage and LeanEngine.
 import "github.com/leancloud/go-sdk/leancloud"
 ```
 
-## 示例项目
+## Examples
 
-- [云引擎项目模板](https://github.com/leancloud/golang-getting-started)
+- [LeanEngine Getting Started](https://github.com/leancloud/golang-getting-started)
 
-## 文档
+## Documentation
 
 - [Go SDK 安装指南](https://leancloud.cn/docs/sdk_setup-go.html)
-- [API 参考文档](https://pkg.go.dev/github.com/leancloud/go-sdk/leancloud)
+- [API Reference](https://pkg.go.dev/github.com/leancloud/go-sdk/leancloud)
