@@ -2,6 +2,7 @@ package leancloud
 
 import (
 	"context"
+	"crypto/md5"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -107,9 +108,12 @@ func functionHandler(w http.ResponseWriter, r *http.Request, name string, rpc bo
 	}
 
 	if functions[name].defineOption["internal"] == true {
-		if !validateMasterKey(r) || !validateHookKey(r) {
-			errorResponse(w, r, fmt.Errorf("Internal cloud function, request from %s", r.RemoteAddr))
-			return
+		if validateMasterKey(r) || validateHookKey(r) {
+			master, pass := validateSignature(r)
+			if !master || !pass {
+				errorResponse(w, r, fmt.Errorf("Internal cloud function, request from %s", r.RemoteAddr))
+				return
+			}
 		}
 	}
 
@@ -292,4 +296,27 @@ func validateHookKey(r *http.Request) bool {
 		return false
 	}
 	return true
+}
+
+func validateSignature(r *http.Request) (bool, bool) {
+	var master, pass bool
+	if os.Getenv("LEANCLOUD_APP_ID") != r.Header.Get("X-LC-Id") {
+		return master, pass
+	}
+	sign := r.Header.Get("X-LC-Sign")
+	if sign == "" {
+		return master, pass
+	}
+	signSlice := strings.Split(sign, ",")
+	var hash [16]byte
+	if len(signSlice) == 3 && signSlice[2] == "master" {
+		hash = md5.Sum([]byte(fmt.Sprint(signSlice[1], os.Getenv("LEANCLOUD_APP_MASTER_KEY"))))
+		master = true
+	} else {
+		hash = md5.Sum([]byte(fmt.Sprint(signSlice[1], os.Getenv("LEANCLOUD_APP_KEY"))))
+	}
+	if signSlice[0] == fmt.Sprintf("%x", hash) {
+		pass = true
+	}
+	return master, pass
 }
