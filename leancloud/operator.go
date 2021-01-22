@@ -41,9 +41,6 @@ func OpRemove(objects interface{}) Op {
 func OpDelete() Op {
 	return Op{
 		name: "Delete",
-		objects: map[string]bool{
-			"delete": true,
-		},
 	}
 }
 

@@ -353,8 +353,10 @@ func encodeOp(op *Op) map[string]interface{} {
 	switch op.name {
 	case "Increment", "Decrement":
 		ret["amount"] = op.objects
-	case "Add", "AddUnique", "Remove", "Delete":
+	case "Add", "AddUnique", "Remove":
 		ret["objects"] = op.objects
+	case "Delete":
+
 	case "BitAnd", "BitOr", "BitXor":
 		ret["value"] = op.objects
 	default:
@@ -581,7 +583,7 @@ func decode(fields interface{}) (interface{}, error) {
 		}
 	} else {
 		if mapFields["__op"] != nil {
-
+			return decodeOp(mapFields)
 		}
 		return decodeMap(fields)
 	}
@@ -845,9 +847,11 @@ func decodeOp(fields map[string]interface{}) (*Op, error) {
 	case "Increment", "Decrement":
 		op.name = fields["__op"].(string)
 		op.objects = fields["amount"]
-	case "Add", "AddUnique", "Remove", "Delete":
+	case "Add", "AddUnique", "Remove":
 		op.name = fields["__op"].(string)
 		op.objects = fields["amount"]
+	case "Delete":
+		op.name = "Delete"
 	case "BitAnd", "BitOr", "BitXor":
 		op.name = fields["__op"].(string)
 		op.objects = fields["value"]
