@@ -10,16 +10,16 @@ import (
 	"github.com/levigross/grequests"
 )
 
-type RequestMethod string
+type requestMethod string
 
 var requestCount int
 
 const (
-	MethodGet    RequestMethod = "GET"
-	MethodPost   RequestMethod = "POST"
-	MethodPut    RequestMethod = "PUT"
-	MethodPatch  RequestMethod = "PATCH"
-	MethodDelete RequestMethod = "DELETE"
+	methodGet    requestMethod = "GET"
+	methodPost   requestMethod = "POST"
+	methodPut    requestMethod = "PUT"
+	methodPatch  requestMethod = "PATCH"
+	methodDelete requestMethod = "DELETE"
 )
 
 type objectResponse map[string]interface{}
@@ -82,7 +82,7 @@ func (client *Client) getRequestOptions() *grequests.RequestOptions {
 	}
 }
 
-func (client *Client) request(service ServiceModule, method RequestMethod, path string, options *grequests.RequestOptions, authOptions ...AuthOption) (*grequests.Response, error) {
+func (client *Client) request(service ServiceModule, method requestMethod, path string, options *grequests.RequestOptions, authOptions ...AuthOption) (*grequests.Response, error) {
 	if options == nil {
 		options = client.getRequestOptions()
 	}
@@ -133,17 +133,17 @@ func (client *Client) request(service ServiceModule, method RequestMethod, path 
 	return resp, err
 }
 
-func getRequestAgentByMethod(method RequestMethod) func(string, *grequests.RequestOptions) (*grequests.Response, error) {
+func getRequestAgentByMethod(method requestMethod) func(string, *grequests.RequestOptions) (*grequests.Response, error) {
 	switch method {
-	case MethodGet:
+	case methodGet:
 		return grequests.Get
-	case MethodPost:
+	case methodPost:
 		return grequests.Post
-	case MethodPut:
+	case methodPut:
 		return grequests.Put
-	case MethodPatch:
+	case methodPatch:
 		return grequests.Patch
-	case MethodDelete:
+	case methodDelete:
 		return grequests.Delete
 	default:
 		panic(fmt.Sprint("invalid method: ", method))

@@ -40,7 +40,6 @@ func TestObjectCreate(t *testing.T) {
 			if ref.class == "" || ref.ID == "" {
 				t.FailNow()
 			}
-			t.Log(ref)
 		}
 	})
 
@@ -60,7 +59,6 @@ func TestObjectCreate(t *testing.T) {
 			if ref.class == "" || ref.ID == "" {
 				t.FailNow()
 			}
-			t.Log(ref)
 		}
 	})
 }
@@ -76,7 +74,6 @@ func TestObjectGet(t *testing.T) {
 		if err != nil {
 			t.Fatal()
 		}
-		t.Log(jake)
 
 		meeting := Meeting{
 			Title:        "Team Meeting",
@@ -93,14 +90,11 @@ func TestObjectGet(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		t.Log(meeting)
 
 		newMeeting := new(Meeting)
 		if err := client.Class("Meeting").ID(meeting.ID).Get(newMeeting); err != nil {
 			t.Fatal(err)
 		}
-
-		t.Log(newMeeting)
 	})
 
 	t.Run("Bare", func(t *testing.T) {
@@ -122,8 +116,6 @@ func TestObjectGet(t *testing.T) {
 		if err := client.Class("Meeting").ID(ref.ID).Get(object); err != nil {
 			t.Fatal(err)
 		}
-
-		t.Log(object)
 	})
 }
 
@@ -149,8 +141,6 @@ func TestObjectSet(t *testing.T) {
 	if err := client.Object(meeting).Get(newMeeting); err != nil {
 		t.Fatal(err)
 	}
-
-	t.Log(newMeeting)
 }
 
 func TestObjectUpdate(t *testing.T) {
@@ -183,8 +173,6 @@ func TestObjectUpdate(t *testing.T) {
 		if err := client.Object(meeting).Get(newMeeting); err != nil {
 			t.Fatal(err)
 		}
-
-		t.Log(newMeeting)
 	})
 
 	t.Run("Map", func(t *testing.T) {
@@ -215,8 +203,6 @@ func TestObjectUpdate(t *testing.T) {
 		if err := client.Class("Meeting").ID(ref.ID).Get(newMeeting); err != nil {
 			t.Fatal(err)
 		}
-
-		t.Log(newMeeting)
 	})
 }
 
@@ -234,12 +220,14 @@ func TestObjectDestroy(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := client.Object(meeting).Destroy(); err != nil {
+	if err := client.Object(meeting).Destroy(UseMasterKey(true)); err != nil {
 		t.Fatal(err)
 	}
 
 	newMeeting := new(Meeting)
 	if err := client.Object(meeting).Get(newMeeting); err == nil {
-		t.FailNow()
+		if newMeeting.ID != "" {
+			t.FailNow()
+		}
 	}
 }

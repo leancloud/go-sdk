@@ -265,7 +265,7 @@ func objectQuery(query interface{}, objects interface{}, count bool, first bool,
 
 	options.Params = params
 
-	resp, err := client.request(ServiceAPI, MethodGet, path, options, authOptions...)
+	resp, err := client.request(ServiceAPI, methodGet, path, options, authOptions...)
 	if err != nil {
 		return nil, err
 	}

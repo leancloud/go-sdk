@@ -7,6 +7,7 @@ type ACL struct {
 	content map[string]map[string]bool
 }
 
+// NewACL constructs a new ACL
 func NewACL() *ACL {
 	acl := new(ACL)
 	acl.content = make(map[string]map[string]bool)

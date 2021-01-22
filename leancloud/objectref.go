@@ -112,7 +112,7 @@ func objectCreate(class interface{}, object interface{}, authOptions ...AuthOpti
 		break
 	}
 
-	resp, err := c.request(ServiceAPI, MethodPost, path, options, authOptions...)
+	resp, err := c.request(ServiceAPI, methodPost, path, options, authOptions...)
 	if err != nil {
 		return nil, err
 	}
@@ -186,7 +186,7 @@ func objectGet(ref interface{}, object interface{}, authOptions ...AuthOption) e
 		c = v.c
 	}
 
-	resp, err := c.request(ServiceAPI, MethodGet, path, c.getRequestOptions(), authOptions...)
+	resp, err := c.request(ServiceAPI, methodGet, path, c.getRequestOptions(), authOptions...)
 	if err != nil {
 		return err
 	}
@@ -217,14 +217,14 @@ func objectGet(ref interface{}, object interface{}, authOptions ...AuthOption) e
 			return err
 		}
 		decodedUser.ref = v
-		if reflect.TypeOf(reflect.Indirect(reflect.ValueOf(object))) == reflect.TypeOf(User{}) {
-			object = decodedUser
+		if reflect.Indirect(reflect.ValueOf(object)).Type() == reflect.TypeOf(User{}) {
+			reflect.Indirect(reflect.ValueOf(object)).Set(reflect.ValueOf(*decodedUser))
 		} else if meta := extractUserMeta(reflect.Indirect(reflect.ValueOf(object)).Interface()); meta != nil {
 			if err := bind(reflect.ValueOf(decodedUser.fields), reflect.Indirect(reflect.ValueOf(object))); err != nil {
 				return err
 			}
+			reflect.ValueOf(object).Elem().FieldByName("User").Set(reflect.Indirect(reflect.ValueOf(decodedUser)))
 		}
-		reflect.ValueOf(object).Elem().FieldByName("User").Set(reflect.Indirect(reflect.ValueOf(decodedUser)))
 	case *FileRef:
 		decodedFile, err := decodeFile(respJSON)
 		if err != nil {
@@ -255,7 +255,7 @@ func objectSet(ref interface{}, key string, value interface{}, authOptions ...Au
 	options := c.getRequestOptions()
 	options.JSON = encode(map[string]interface{}{key: value}, true)
 
-	_, err := c.request(ServiceAPI, MethodPut, path, options, authOptions...)
+	_, err := c.request(ServiceAPI, methodPut, path, options, authOptions...)
 	if err != nil {
 		return err
 	}
@@ -297,7 +297,7 @@ func objectUpdate(ref interface{}, diff interface{}, authOptions ...AuthOption) 
 		break
 	}
 
-	_, err := c.request(ServiceAPI, MethodPut, path, options, authOptions...)
+	_, err := c.request(ServiceAPI, methodPut, path, options, authOptions...)
 	if err != nil {
 		return err
 	}
@@ -321,7 +321,7 @@ func objectDestroy(ref interface{}, authOptions ...AuthOption) error {
 		c = v.c
 	}
 
-	resp, err := c.request(ServiceAPI, MethodDelete, path, c.getRequestOptions(), authOptions...)
+	resp, err := c.request(ServiceAPI, methodDelete, path, c.getRequestOptions(), authOptions...)
 	if err != nil {
 		return err
 	}

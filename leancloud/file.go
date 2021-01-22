@@ -50,7 +50,7 @@ func (file *File) fetchToken(client *Client, authOptions ...AuthOption) (string,
 	options := client.getRequestOptions()
 	options.JSON = reqJSON
 
-	resp, err := client.request(ServiceAPI, MethodPost, path, options, authOptions...)
+	resp, err := client.request(ServiceAPI, methodPost, path, options, authOptions...)
 	if err != nil {
 		return "", "", err
 	}
@@ -121,7 +121,7 @@ func (file *File) fileCallback(result bool, token string, client *Client, authOp
 		"token":  token,
 	}
 
-	_, err := client.request(ServiceAPI, MethodPost, path, options, authOptions...)
+	_, err := client.request(ServiceAPI, methodPost, path, options, authOptions...)
 	if err != nil {
 		return err
 	}

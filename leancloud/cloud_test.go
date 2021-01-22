@@ -6,29 +6,39 @@ import (
 	"testing"
 )
 
-func TestRun(t *testing.T) {
-	resp, err := Run("hello", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
+func init() {
+	Define("hello", func(r *FunctionRequest) (interface{}, error) {
+		return map[string]string{
+			"Hello": "World",
+		}, nil
+	})
 
-	respString, ok := resp.(string)
-	if !ok {
-		t.Fatal("unexpected response format")
-	}
+	Define("hello_with_option_internal", func(r *FunctionRequest) (interface{}, error) {
+		return map[string]string{
+			"Hello": "World",
+		}, nil
+	}, WithInternal(), WithoutFetchUser())
 
-	if respString != "Hello world!" {
-		t.Fatal("unexpected response format")
-	}
+	Define("hello_with_option_fetch_user", func(r *FunctionRequest) (interface{}, error) {
+		return map[string]string{
+			"sessionToken": r.SessionToken,
+		}, nil
+	})
+
+	Define("hello_with_option_not_fetch_user", func(r *FunctionRequest) (interface{}, error) {
+		return map[string]interface{}{
+			"sessionToken": r.SessionToken,
+		}, nil
+	}, WithoutFetchUser())
+
+	Define("hello_with_object", func(r *FunctionRequest) (interface{}, error) {
+		return r.CurrentUser, nil
+	})
 }
 
-func TestRunWithOptions(t *testing.T) {
+func TestRun(t *testing.T) {
 	t.Run("local", func(t *testing.T) {
-		resp, err := RunWithOption("hello", nil, &RunOption{
-			Remote:       false,
-			User:         nil,
-			SessionToken: "",
-		})
+		resp, err := Run("hello", nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -38,7 +48,7 @@ func TestRunWithOptions(t *testing.T) {
 			t.Fatal(fmt.Errorf("unmatch response"))
 		}
 
-		if respMap["hello"] != "world" {
+		if respMap["Hello"] != "World" {
 			t.Fatal(fmt.Errorf("unmatch response"))
 		}
 
@@ -46,9 +56,7 @@ func TestRunWithOptions(t *testing.T) {
 
 	t.Run("hello_with_option_internal", func(t *testing.T) {
 		t.Run("remote", func(t *testing.T) {
-			_, err := RunWithOption("hello_with_option_internal", nil, &RunOption{
-				Remote: true,
-			})
+			_, err := Run("hello_with_option_internal", nil, WithRemote())
 
 			if err != nil {
 				if !strings.Contains(err.Error(), "401 Internal cloud function") {
@@ -58,9 +66,7 @@ func TestRunWithOptions(t *testing.T) {
 		})
 
 		t.Run("local", func(t *testing.T) {
-			resp, err := RunWithOption("hello_with_option_internal", nil, &RunOption{
-				Remote: false,
-			})
+			resp, err := Run("hello_with_option_internal", nil)
 
 			if err != nil {
 				t.Fatal(err)
@@ -71,73 +77,63 @@ func TestRunWithOptions(t *testing.T) {
 				t.Fatal(fmt.Errorf("unmatch response"))
 			}
 
-			if respMap["hello"] != "world" {
+			if respMap["Hello"] != "World" {
 				t.Fatal(fmt.Errorf("unmatch response"))
 			}
 		})
 	})
 
 	t.Run("hello_with_option_fetch_user", func(t *testing.T) {
-		/*
-			user, err := client.User("5fa504d0f98fd535ebe8b3f0").Get(UseMasterKey(true))
+		user := new(User)
+		if err := client.Users.ID("5fa504d0f98fd535ebe8b3f0").Get(user, UseMasterKey(true)); err != nil {
+			t.Fatal(err)
+		}
+
+		t.Run("remote", func(t *testing.T) {
+			resp, err := Run("hello_with_option_fetch_user", nil, WithRemote(), WithSessionToken(user.SessionToken))
+
 			if err != nil {
 				t.Fatal(err)
 			}
 
-			t.Run("remote", func(t *testing.T) {
-				resp, err := RunWithOption("hello_with_option_fetch_user", nil, &RunOption{
-					Remote:       true,
-					SessionToken: user.SessionToken(),
-				})
+			respMap, ok := resp.(map[string]interface{})
+			if !ok {
+				t.Fatal("unexpected response format")
+			}
 
-				if err != nil {
-					t.Fatal(err)
-				}
+			sessionToken, ok := respMap["sessionToken"].(string)
 
-				respMap, ok := resp.(map[string]interface{})
-				if !ok {
-					t.Fatal("unexpected response format")
-				}
+			if !ok {
+				t.Fatal("unexpected response format")
+			}
 
-				sessionToken, ok := respMap["sessionToken"].(string)
+			if sessionToken != user.SessionToken {
+				t.Fatal("unexpected response format")
+			}
 
-				if !ok {
-					t.Fatal("unexpected response format")
-				}
+		})
 
-				if sessionToken != user.SessionToken() {
-					t.Fatal("unexpected response format")
-				}
+		t.Run("local", func(t *testing.T) {
+			resp, err := Run("hello_with_option_fetch_user", nil, WithSessionToken(user.SessionToken))
 
-			})
+			if err != nil {
+				t.Fatal(err)
+			}
 
-			t.Run("local", func(t *testing.T) {
-				resp, err := RunWithOption("hello_with_option_fetch_user", nil, &RunOption{
-					Remote:       false,
-					SessionToken: user.SessionToken(),
-				})
+			respMap, ok := resp.(map[string]string)
+			if !ok {
+				t.Fatal("unexpected response format")
+			}
 
-				if err != nil {
-					t.Fatal(err)
-				}
-
-				respMap, ok := resp.(map[string]string)
-				if !ok {
-					t.Fatal("unexpected response format")
-				}
-
-				if respMap["sessionToken"] != user.SessionToken() {
-					t.Fatal("unexpected response format")
-				}
-			})
-		*/
+			if respMap["sessionToken"] != user.SessionToken {
+				t.Fatal("unexpected response format")
+			}
+		})
 	})
 
 	t.Run("don't fetch user", func(t *testing.T) {
 		t.Run("remote", func(t *testing.T) {
-			resp, err := RunWithOption("hello_with_option_not_fetch_user", nil, &RunOption{
-				Remote: true,
-			})
+			resp, err := Run("hello_with_option_not_fetch_user", nil, WithRemote())
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -153,9 +149,7 @@ func TestRunWithOptions(t *testing.T) {
 		})
 
 		t.Run("local", func(t *testing.T) {
-			resp, err := RunWithOption("hello_with_option_not_fetch_user", nil, &RunOption{
-				Remote: true,
-			})
+			resp, err := Run("hello_with_option_not_fetch_user", nil)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -173,9 +167,7 @@ func TestRunWithOptions(t *testing.T) {
 
 	t.Run("not_found", func(t *testing.T) {
 		t.Run("remote", func(t *testing.T) {
-			_, err := RunWithOption("not_found", nil, &RunOption{
-				Remote: true,
-			})
+			_, err := Run("not_found", nil, WithRemote())
 
 			if err != nil {
 				if !strings.Contains(err.Error(), "No such cloud function") {
@@ -185,9 +177,7 @@ func TestRunWithOptions(t *testing.T) {
 		})
 
 		t.Run("local", func(t *testing.T) {
-			_, err := RunWithOption("not_found", nil, &RunOption{
-				Remote: false,
-			})
+			_, err := Run("not_found", nil)
 
 			if err != nil {
 				if !strings.Contains(err.Error(), "no such cloud function") {
@@ -195,5 +185,41 @@ func TestRunWithOptions(t *testing.T) {
 				}
 			}
 		})
+	})
+}
+
+func TestRPC(t *testing.T) {
+	t.Run("local", func(t *testing.T) {
+		user := new(User)
+		if err := client.Users.ID("5fa504d0f98fd535ebe8b3f0").Get(user, UseMasterKey(true)); err != nil {
+			t.Fatal(err)
+		}
+
+		retUser := new(User)
+		err := RPC("hello_with_object", nil, retUser, WithUser(user))
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if retUser.SessionToken != user.SessionToken {
+			t.Fatal(fmt.Errorf("dismatch sessionToken"))
+		}
+	})
+
+	t.Run("remote", func(t *testing.T) {
+		user := new(User)
+		if err := client.Users.ID("5fa504d0f98fd535ebe8b3f0").Get(user, UseMasterKey(true)); err != nil {
+			t.Fatal(err)
+		}
+
+		retUser := new(User)
+		err := RPC("hello_with_object", nil, retUser, WithUser(user), WithRemote())
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if retUser.ID != user.ID {
+			t.Fatal(fmt.Errorf("dismatch sessionToken"))
+		}
 	})
 }
