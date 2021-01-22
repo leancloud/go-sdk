@@ -20,7 +20,7 @@ type Client struct {
 	Roles         Roles
 }
 
-type ClientInitOptions struct {
+type ClientOptions struct {
 	AppID     string
 	AppKey    string
 	MasterKey string
@@ -28,7 +28,7 @@ type ClientInitOptions struct {
 }
 
 // NewClient constructs a client from parameters
-func NewClient(options *ClientInitOptions) *Client {
+func NewClient(options *ClientOptions) *Client {
 	client := &Client{
 		appID:     options.AppID,
 		appKey:    options.AppKey,
@@ -36,13 +36,9 @@ func NewClient(options *ClientInitOptions) *Client {
 		serverURL: options.ServerURL,
 	}
 
-	if strings.HasSuffix(options.AppID, "gzGzoHsz") || strings.HasSuffix(options.AppID, "9Nh9j0Va") {
+	if !strings.HasSuffix(options.AppID, "MdYXbMMI") {
 		if client.serverURL == "" {
-			panic(fmt.Errorf("please set API's serverURL for China North or China East"))
-		}
-	} else if !strings.HasSuffix(options.AppID, "MdYXbMMI") {
-		if client.serverURL == "" {
-			panic(fmt.Errorf("please set API's serverURL for legacy App"))
+			panic(fmt.Errorf("please set API's serverURL for China region or legacy app"))
 		}
 	}
 
@@ -60,7 +56,7 @@ func NewClient(options *ClientInitOptions) *Client {
 
 // NewEnvClient constructs a client from environment variables
 func NewEnvClient() *Client {
-	options := &ClientInitOptions{
+	options := &ClientOptions{
 		AppID:     os.Getenv("LEANCLOUD_APP_ID"),
 		AppKey:    os.Getenv("LEANCLOUD_APP_KEY"),
 		MasterKey: os.Getenv("LEANCLOUD_APP_MASTER_KEY"),

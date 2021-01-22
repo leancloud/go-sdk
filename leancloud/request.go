@@ -72,6 +72,9 @@ func (client *Client) getServerURL() string {
 	}
 
 	urlSlice := strings.Split(client.appID, "-")
+	if urlSlice[1] == "" {
+		panic(fmt.Errorf("bad appID: %s", client.appID))
+	}
 	return fmt.Sprint("https://", strings.ToLower((urlSlice[0])[:8]), defaultServerURL[urlSlice[1]])
 }
 
