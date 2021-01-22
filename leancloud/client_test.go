@@ -8,7 +8,7 @@ import (
 
 func TestNewClient(t *testing.T) {
 	appID, appKey, masterKey, serverURL := os.Getenv("LEANCLOUD_APP_ID"), os.Getenv("LEANCLOUD_APP_KEY"), os.Getenv("LEANCLOUD_APP_MASTER_KEY"), os.Getenv("LEANCLOUD_API_SERVER")
-	options := &ClientInitOptions{
+	options := &ClientOptions{
 		AppID:     appID,
 		AppKey:    appKey,
 		MasterKey: masterKey,
