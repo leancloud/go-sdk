@@ -86,6 +86,8 @@ func extractUserMeta(user interface{}) *User {
 }
 func encode(object interface{}, ignoreZero bool) interface{} {
 	switch o := object.(type) {
+	case Op:
+		return encodeOp(&o)
 	case GeoPoint:
 		return encodeGeoPoint(&o)
 	case time.Time:
@@ -96,6 +98,8 @@ func encode(object interface{}, ignoreZero bool) interface{} {
 		return encodeRelation(&o)
 	case ACL:
 		return encodeACL(&o)
+	case *Op:
+		return encodeOp(o)
 	case *GeoPoint:
 		return encodeGeoPoint(o)
 	case *time.Time:
@@ -341,6 +345,21 @@ func encodeACL(acl *ACL) map[string]interface{} {
 
 func encodeAuthData(data *AuthData) interface{} {
 	return data.data
+}
+
+func encodeOp(op *Op) map[string]interface{} {
+	ret := make(map[string]interface{})
+	ret["__op"] = op.name
+	switch op.name {
+	case "Increment", "Decrement":
+		ret["amount"] = op.objects
+	case "Add", "AddUnique", "Remove", "Delete", "BitAnd", "BitOr", "BitXor":
+		ret["objects"] = op.objects
+	default:
+		return nil
+	}
+
+	return ret
 }
 
 func encodeRelation(relation *Relation) map[string]interface{} {
