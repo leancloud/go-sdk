@@ -353,8 +353,10 @@ func encodeOp(op *Op) map[string]interface{} {
 	switch op.name {
 	case "Increment", "Decrement":
 		ret["amount"] = op.objects
-	case "Add", "AddUnique", "Remove", "Delete", "BitAnd", "BitOr", "BitXor":
+	case "Add", "AddUnique", "Remove", "Delete":
 		ret["objects"] = op.objects
+	case "BitAnd", "BitOr", "BitXor":
+		ret["value"] = op.objects
 	default:
 		return nil
 	}
@@ -578,6 +580,9 @@ func decode(fields interface{}) (interface{}, error) {
 			return fields, nil
 		}
 	} else {
+		if mapFields["__op"] != nil {
+
+		}
 		return decodeMap(fields)
 	}
 }
@@ -832,6 +837,25 @@ func decodeFile(fields map[string]interface{}) (*File, error) {
 
 func decodeACL(fields map[string]map[string]bool) (*ACL, error) {
 	return nil, nil
+}
+
+func decodeOp(fields map[string]interface{}) (*Op, error) {
+	op := new(Op)
+	switch fields["__op"].(string) {
+	case "Increment", "Decrement":
+		op.name = fields["__op"].(string)
+		op.objects = fields["amount"]
+	case "Add", "AddUnique", "Remove", "Delete":
+		op.name = fields["__op"].(string)
+		op.objects = fields["amount"]
+	case "BitAnd", "BitOr", "BitXor":
+		op.name = fields["__op"].(string)
+		op.objects = fields["value"]
+	default:
+		return nil, nil
+	}
+
+	return op, nil
 }
 
 func parseTag(tag string) (name string, option string) {
