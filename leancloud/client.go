@@ -40,6 +40,10 @@ func NewClient(options *ClientInitOptions) *Client {
 		if client.serverURL == "" {
 			panic(fmt.Errorf("please set API's serverURL for China North or China East"))
 		}
+	} else if !strings.HasSuffix(options.AppID, "MdYXbMMI") {
+		if client.serverURL == "" {
+			panic(fmt.Errorf("please set API's serverURL for legacy App"))
+		}
 	}
 
 	_, debugEnabled := os.LookupEnv("LEANCLOUD_DEBUG")
