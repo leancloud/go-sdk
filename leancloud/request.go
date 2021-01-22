@@ -12,10 +12,6 @@ import (
 
 type requestMethod string
 
-var defaultServerURL = map[string]string{
-	"MdYXbMMI": ".api.lncldglobal.com",
-}
-
 var requestCount int
 
 const (
@@ -71,11 +67,7 @@ func (client *Client) getServerURL() string {
 		return client.serverURL
 	}
 
-	urlSlice := strings.Split(client.appID, "-")
-	if urlSlice[1] == "" {
-		panic(fmt.Errorf("bad appID: %s", client.appID))
-	}
-	return fmt.Sprint("https://", strings.ToLower((urlSlice[0])[:8]), defaultServerURL[urlSlice[1]])
+	return fmt.Sprint("https://", strings.ToLower(client.appID[:8]), ".api.lncldglobal.com")
 }
 
 func (client *Client) getRequestOptions() *grequests.RequestOptions {
