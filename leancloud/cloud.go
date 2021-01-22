@@ -163,11 +163,11 @@ func Run(name string, object interface{}, runOptions ...RunOption) (interface{},
 		reqOption := client.getRequestOptions()
 		reqOption.JSON = object
 		if sessionToken != "" {
-			resp, err = client.request(ServiceAPI, methodPost, path, reqOption, UseSessionToken(sessionToken))
+			resp, err = client.request(methodPost, path, reqOption, UseSessionToken(sessionToken))
 		} else if currentUser != nil {
-			resp, err = client.request(ServiceAPI, methodPost, path, reqOption, UseUser(currentUser))
+			resp, err = client.request(methodPost, path, reqOption, UseUser(currentUser))
 		} else {
-			resp, err = client.request(ServiceAPI, methodPost, path, reqOption)
+			resp, err = client.request(methodPost, path, reqOption)
 		}
 		if err != nil {
 			return nil, err
@@ -238,11 +238,11 @@ func RPC(name string, params interface{}, results interface{}, runOptions ...Run
 		reqOption := client.getRequestOptions()
 		reqOption.JSON = encode(params, true)
 		if sessionToken != "" {
-			resp, err = client.request(ServiceAPI, methodPost, path, reqOption, UseSessionToken(sessionToken))
+			resp, err = client.request(methodPost, path, reqOption, UseSessionToken(sessionToken))
 		} else if currentUser != nil {
-			resp, err = client.request(ServiceAPI, methodPost, path, reqOption, UseUser(currentUser))
+			resp, err = client.request(methodPost, path, reqOption, UseUser(currentUser))
 		} else {
-			resp, err = client.request(ServiceAPI, methodPost, path, reqOption)
+			resp, err = client.request(methodPost, path, reqOption)
 		}
 
 		if err != nil {

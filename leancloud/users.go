@@ -23,7 +23,7 @@ func (ref *Users) LogIn(username, password string) (*User, error) {
 		"password": password,
 	}
 
-	resp, err := ref.c.request(ServiceAPI, methodPost, path, options)
+	resp, err := ref.c.request(methodPost, path, options)
 	if err != nil {
 		return nil, err
 	}
@@ -44,7 +44,7 @@ func (ref *Users) LogInByMobilePhoneNumber(number, smsCode string) (*User, error
 		"smsCode":           smsCode,
 	}
 
-	resp, err := ref.c.request(ServiceAPI, methodPost, path, options)
+	resp, err := ref.c.request(methodPost, path, options)
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +82,7 @@ func (ref *Users) SignUpByMobilePhone(number, smsCode string) (*User, error) {
 		"smsCode":           smsCode,
 	}
 
-	resp, err := ref.c.request(ServiceAPI, methodPost, path, options)
+	resp, err := ref.c.request(methodPost, path, options)
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +108,7 @@ func (ref *Users) ResetPasswordBySMSCode(number, smsCode, password string, authO
 		"mobilePhoneNumber": number,
 	}
 
-	_, err := ref.c.request(ServiceAPI, methodPost, fmt.Sprint(path, smsCode), options, authOptions...)
+	_, err := ref.c.request(methodPost, fmt.Sprint(path, smsCode), options, authOptions...)
 	if err != nil {
 		return err
 	}
@@ -117,7 +117,7 @@ func (ref *Users) ResetPasswordBySMSCode(number, smsCode, password string, authO
 }
 
 func (ref *Users) Become(sessionToken string) (*User, error) {
-	resp, err := ref.c.request(ServiceAPI, methodGet, "/1.1/users/me", ref.c.getRequestOptions(), UseSessionToken(sessionToken))
+	resp, err := ref.c.request(methodGet, "/1.1/users/me", ref.c.getRequestOptions(), UseSessionToken(sessionToken))
 	if err != nil {
 		return nil, err
 	}
@@ -137,7 +137,7 @@ func (ref *Users) RequestEmailVerify(email string, authOptions ...AuthOption) er
 		"email": email,
 	}
 
-	_, err := ref.c.request(ServiceAPI, methodPost, path, options, authOptions...)
+	_, err := ref.c.request(methodPost, path, options, authOptions...)
 	if err != nil {
 		return err
 	}
@@ -152,7 +152,7 @@ func (ref *Users) RequestMobilePhoneVerify(number string, authOptions ...AuthOpt
 		"mobilePhoneNumber": number,
 	}
 
-	resp, err := ref.c.request(ServiceAPI, methodPost, path, options, authOptions...)
+	resp, err := ref.c.request(methodPost, path, options, authOptions...)
 	if err != nil {
 		return err
 	}
@@ -171,7 +171,7 @@ func (ref *Users) RequestPasswordReset(email string, authOptions ...AuthOption) 
 		"email": email,
 	}
 
-	resp, err := ref.c.request(ServiceAPI, methodPost, path, options, authOptions...)
+	resp, err := ref.c.request(methodPost, path, options, authOptions...)
 	if err != nil {
 		return err
 	}
@@ -190,7 +190,7 @@ func (ref *Users) RequestPasswordResetBySMSCode(number string, authOptions ...Au
 		"mobilePhoneNumber": number,
 	}
 
-	resp, err := ref.c.request(ServiceAPI, methodPost, path, options, authOptions...)
+	resp, err := ref.c.request(methodPost, path, options, authOptions...)
 	if err != nil {
 		return err
 	}
@@ -209,7 +209,7 @@ func (ref *Users) RequestLoginSMSCode(number string, authOptions ...AuthOption) 
 		"mobilePhoneNumber": number,
 	}
 
-	resp, err := ref.c.request(ServiceAPI, methodPost, path, options, authOptions...)
+	resp, err := ref.c.request(methodPost, path, options, authOptions...)
 	if err != nil {
 		return err
 	}

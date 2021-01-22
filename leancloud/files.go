@@ -94,7 +94,7 @@ func (ref *Files) UploadFromURL(file *File, authOptions ...AuthOption) error {
 	options := ref.c.getRequestOptions()
 	options.JSON = encodeFile(file, false)
 
-	resp, err := ref.c.request(ServiceAPI, methodPost, path, options, authOptions...)
+	resp, err := ref.c.request(methodPost, path, options, authOptions...)
 	if err != nil {
 		return err
 	}

@@ -40,7 +40,12 @@ func TestMetadataResponse(t *testing.T) {
 
 func TestHandler(t *testing.T) {
 	t.Run("function call", func(t *testing.T) {
-		resp, err := grequests.Get(cloudEndpoint+"/1.1/functions/hello", nil)
+		resp, err := grequests.Get(cloudEndpoint+"/1.1/functions/hello", &grequests.RequestOptions{
+			Headers: map[string]string{
+				"X-LC-Id":  os.Getenv("LEANCLOUD_APP_ID"),
+				"X-LC-Key": os.Getenv("LEANCLOUD_APP_KEY"),
+			},
+		})
 		if err != nil {
 			t.Fatal(err)
 		}
