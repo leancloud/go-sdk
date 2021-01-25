@@ -59,7 +59,14 @@ func (ref *UserRef) Update(diff interface{}, authOptions ...AuthOption) error {
 }
 
 func (ref *UserRef) UpdateWithQuery(diff interface{}, query *UserQuery, authOptions ...AuthOption) error {
-	// TODO
+	if ref == nil || ref.ID == "" || ref.class == "" {
+		return nil
+	}
+
+	if err := objectUpdateWithQuery(ref, diff, query, authOptions...); err != nil {
+		return err
+	}
+
 	return nil
 }
 

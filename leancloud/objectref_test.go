@@ -206,6 +206,37 @@ func TestObjectUpdate(t *testing.T) {
 	})
 }
 
+func TestObjectUpdateWithQuery(t *testing.T) {
+	meeting := Meeting{
+		Title:      "Team Meeting",
+		Number:     1,
+		Progress:   13.5,
+		Date:       time.Now(),
+		Attachment: []byte("There is nothing attachable."),
+		Location:   &GeoPoint{1, 2},
+	}
+
+	if _, err := client.Class("Meeting").Create(&meeting); err != nil {
+		t.Fatal(err)
+	}
+
+	diff := &Meeting{
+		Title:    "Another Team Meeting",
+		Number:   2,
+		Progress: 14.5,
+		Date:     time.Now(),
+	}
+
+	if err := client.Object(meeting).UpdateWithQuery(diff, client.Class("Meeting").NewQuery().EqualTo("progress", 13.5)); err != nil {
+		t.Fatal(err)
+	}
+
+	newMeeting := new(Meeting)
+	if err := client.Object(meeting).Get(newMeeting); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestObjectDestroy(t *testing.T) {
 	meeting := Meeting{
 		Title:      "Team Meeting",

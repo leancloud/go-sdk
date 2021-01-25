@@ -86,6 +86,8 @@ func extractUserMeta(user interface{}) *User {
 }
 func encode(object interface{}, ignoreZero bool) interface{} {
 	switch o := object.(type) {
+	case Op:
+		return encodeOp(&o)
 	case GeoPoint:
 		return encodeGeoPoint(&o)
 	case time.Time:
@@ -96,6 +98,8 @@ func encode(object interface{}, ignoreZero bool) interface{} {
 		return encodeRelation(&o)
 	case ACL:
 		return encodeACL(&o)
+	case *Op:
+		return encodeOp(o)
 	case *GeoPoint:
 		return encodeGeoPoint(o)
 	case *time.Time:
@@ -343,6 +347,25 @@ func encodeAuthData(data *AuthData) interface{} {
 	return data.data
 }
 
+func encodeOp(op *Op) map[string]interface{} {
+	ret := make(map[string]interface{})
+	ret["__op"] = op.name
+	switch op.name {
+	case "Increment", "Decrement":
+		ret["amount"] = op.objects
+	case "Add", "AddUnique", "Remove":
+		ret["objects"] = op.objects
+	case "Delete":
+
+	case "BitAnd", "BitOr", "BitXor":
+		ret["value"] = op.objects
+	default:
+		return nil
+	}
+
+	return ret
+}
+
 func encodeRelation(relation *Relation) map[string]interface{} {
 	return nil
 }
@@ -559,6 +582,9 @@ func decode(fields interface{}) (interface{}, error) {
 			return fields, nil
 		}
 	} else {
+		if mapFields["__op"] != nil {
+			return decodeOp(mapFields)
+		}
 		return decodeMap(fields)
 	}
 }
@@ -813,6 +839,27 @@ func decodeFile(fields map[string]interface{}) (*File, error) {
 
 func decodeACL(fields map[string]map[string]bool) (*ACL, error) {
 	return nil, nil
+}
+
+func decodeOp(fields map[string]interface{}) (*Op, error) {
+	op := new(Op)
+	switch fields["__op"].(string) {
+	case "Increment", "Decrement":
+		op.name = fields["__op"].(string)
+		op.objects = fields["amount"]
+	case "Add", "AddUnique", "Remove":
+		op.name = fields["__op"].(string)
+		op.objects = fields["amount"]
+	case "Delete":
+		op.name = "Delete"
+	case "BitAnd", "BitOr", "BitXor":
+		op.name = fields["__op"].(string)
+		op.objects = fields["value"]
+	default:
+		return nil, nil
+	}
+
+	return op, nil
 }
 
 func parseTag(tag string) (name string, option string) {

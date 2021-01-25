@@ -1,66 +1,76 @@
 package leancloud
 
-type Operator interface {
-	MarshalJSON() ([]byte, error)
+type Op struct {
+	name    string
+	objects interface{}
 }
 
-type op struct {
-	Name    string      `json:"__op"`
-	Amount  *int        `json:"amount,omitempty"`
-	Objects interface{} `json:",omitempty"`
+func OpIncrement(amount interface{}) Op {
+	return Op{
+		name:    "Increment",
+		objects: amount,
+	}
 }
 
-func (op op) MarshalJSON() ([]byte, error) {
+func OpDecrement(amount interface{}) Op {
+	return Op{
+		name:    "Decrement",
+		objects: amount,
+	}
+}
+func OpAdd(objects interface{}) Op {
+	return Op{
+		name:    "Add",
+		objects: objects,
+	}
+}
+
+func OpAddUnique(objects interface{}) Op {
+	return Op{
+		name:    "AddUnique",
+		objects: objects,
+	}
+}
+func OpRemove(objects interface{}) Op {
+	return Op{
+		name:    "Remove",
+		objects: objects,
+	}
+}
+
+func OpDelete() Op {
+	return Op{
+		name: "Delete",
+	}
+}
+
+func OpAddRelation(objects interface{}) Op {
 	// TODO
-	return nil, nil
+	return Op{}
 }
 
-func OpIncrement(amount int) Operator {
-	return op{
-		Name:   "Increment",
-		Amount: &amount,
+func OpRemoveRelation(objects interface{}) Op {
+	// TODO
+	return Op{}
+}
+
+func OpBitAnd(value interface{}) Op {
+	return Op{
+		name:    "BitAnd",
+		objects: value,
 	}
 }
 
-func OpAdd(objects interface{}) Operator {
-	return op{
-		Name:    "Add",
-		Objects: objects,
+func OpBitOr(value interface{}) Op {
+	return Op{
+		name:    "BitAnd",
+		objects: value,
 	}
 }
 
-func OpRemove(objects interface{}) Operator {
-	return op{
-		Name:    "Remove",
-		Objects: objects,
+func OpBitXor(value interface{}) Op {
+	return Op{
+		name:    "BitAnd",
+		objects: value,
 	}
-}
-
-func OpDelete() Operator {
-	return op{
-		Name: "Delete",
-		Objects: map[string]bool{
-			"delete": true,
-		},
-	}
-}
-
-func OpAddRelation(objects interface{}) Operator {
-	return op{}
-}
-
-func OpRemoveRelation(objects interface{}) Operator {
-	return op{}
-}
-
-func OpBitAnd() Operator {
-	return op{}
-}
-
-func OpBitOr() Operator {
-	return op{}
-}
-
-func OpBitXor() Operator {
-	return op{}
 }

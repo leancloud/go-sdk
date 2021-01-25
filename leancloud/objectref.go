@@ -61,8 +61,14 @@ func (ref *ObjectRef) Update(diff interface{}, authOptions ...AuthOption) error 
 	return nil
 }
 
-func (ref *ObjectRef) UpdateWithQuery(data map[string]interface{}, query *Query, authOptions ...AuthOption) error {
-	// TODO
+func (ref *ObjectRef) UpdateWithQuery(diff interface{}, query *Query, authOptions ...AuthOption) error {
+	if ref == nil || ref.ID == "" || ref.class == "" {
+		return nil
+	}
+
+	if err := objectUpdateWithQuery(ref, diff, query, authOptions...); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -298,6 +304,54 @@ func objectUpdate(ref interface{}, diff interface{}, authOptions ...AuthOption) 
 	}
 
 	_, err := c.request(methodPut, path, options, authOptions...)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func objectUpdateWithQuery(ref interface{}, diff interface{}, query interface{}, authOptions ...AuthOption) error {
+	path := "/1.1/"
+	var c *Client
+	var options *grequests.RequestOptions
+
+	switch v := ref.(type) {
+	case *ObjectRef:
+		path = fmt.Sprint(path, "classes/", v.class, "/", v.ID)
+		c = v.c
+		options = c.getRequestOptions()
+		switch reflect.Indirect(reflect.ValueOf(diff)).Kind() {
+		case reflect.Map:
+			options.JSON = encodeMap(diff, true)
+		case reflect.Struct:
+			options.JSON = encodeObject(diff, false, true)
+		default:
+			return fmt.Errorf("object should be strcut or map")
+		}
+		break
+	case *UserRef:
+		path = fmt.Sprint(path, "users/", v.ID)
+		c = v.c
+		options = c.getRequestOptions()
+		switch reflect.ValueOf(diff).Kind() {
+		case reflect.Map:
+			options.JSON = encodeMap(diff, true)
+		case reflect.Struct:
+			options.JSON = encodeUser(diff, false, true)
+		default:
+			return fmt.Errorf("object should be struct or map")
+		}
+		break
+	}
+
+	params, err := wrapParams(query, false, false)
+	if err != nil {
+		return err
+	}
+	options.Params = params
+
+	_, err = c.request(methodPut, path, options, authOptions...)
 	if err != nil {
 		return err
 	}
