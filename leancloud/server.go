@@ -295,8 +295,14 @@ func generateMetadata() ([]byte, error) {
 func validateAppKey(r *http.Request) bool {
 	if os.Getenv("LEANCLOUD_APP_ID") != r.Header.Get("X-LC-Id") {
 		return false
+	} else if os.Getenv("LEANCLOUD_APP_ID") != r.Header.Get("x-avoscloud-application-id") {
+		return false
+	} else if os.Getenv("LEANCLOUD_APP_ID") != r.Header.Get("x-uluru-application-id") {
+		return false
 	}
 	if os.Getenv("LEANCLOUD_APP_KEY") != r.Header.Get("X-LC-Key") {
+		return false
+	} else if os.Getenv("LEANCLOUD_APP_ID") != r.Header.Get("x-avoscloud-application-key") {
 		return false
 	}
 	return true
@@ -305,15 +311,23 @@ func validateAppKey(r *http.Request) bool {
 func validateMasterKey(r *http.Request) bool {
 	if os.Getenv("LEANCLOUD_APP_ID") != r.Header.Get("X-LC-Id") {
 		return false
+	} else if os.Getenv("LEANCLOUD_APP_ID") != r.Header.Get("x-avoscloud-application-id") {
+		return false
+	} else if os.Getenv("LEANCLOUD_APP_ID") != r.Header.Get("x-uluru-application-id") {
+		return false
 	}
 	if strings.TrimSuffix(r.Header.Get("X-LC-Key"), ",master") != os.Getenv("LEANCLOUD_APP_MASTER_KEY") {
+		return false
+	} else if r.Header.Get("x-avoscloud-master-key") != os.Getenv("LEANCLOUD_APP_MASTER_KEY") {
+		return false
+	} else if r.Header.Get("x-uluru-master-key") != os.Getenv("LEANCLOUD_APP_MASTER_KEY") {
 		return false
 	}
 	return true
 }
 
 func validateHookKey(r *http.Request) bool {
-	if os.Getenv("LEANCLOUD_APP_ID") != r.Header.Get("X-LC-Id") {
+	if os.Getenv("LEANCLOUD_APP_ID") != r.Header.Get("X-LC-Id") || os.Getenv("LEANCLOUD_APP_ID") != r.Header.Get("x-avoscloud-application-id") {
 		return false
 	}
 	if os.Getenv("LEANCLOUD_APP_HOOK_KEY") != r.Header.Get("X-LC-Hook-Key") {
@@ -326,8 +340,19 @@ func validateSignature(r *http.Request) (bool, bool) {
 	var master, pass bool
 	if os.Getenv("LEANCLOUD_APP_ID") != r.Header.Get("X-LC-Id") {
 		return master, pass
+	} else if os.Getenv("LEANCLOUD_APP_ID") != r.Header.Get("x-avoscloud-application-id") {
+		return master, pass
+	} else if os.Getenv("LEANCLOUD_APP_ID") != r.Header.Get("x-uluru-application-id") {
+		return master, pass
 	}
-	sign := r.Header.Get("X-LC-Sign")
+
+	var sign string
+	if r.Header.Get("X-LC-Sign") != "" {
+		sign = r.Header.Get("X-LC-Sign")
+	} else if r.Header.Get("x-avoscloud-request-sign") != "" {
+		sign = r.Header.Get("x-avoscloud-request-sign")
+	}
+
 	if sign == "" {
 		return master, pass
 	}
