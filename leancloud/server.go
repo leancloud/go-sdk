@@ -69,7 +69,7 @@ func corsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func metadataHandler(w http.ResponseWriter, r *http.Request) {
-	if validateMasterKey(r) {
+	if !validateMasterKey(r) {
 		errorResponse(w, r, fmt.Errorf("Master Key check failed, request from %s", r.RemoteAddr))
 		return
 	}
@@ -292,44 +292,71 @@ func generateMetadata() ([]byte, error) {
 	return json.Marshal(meta)
 }
 
+func validateAppID(r *http.Request) bool {
+	if r.Header.Get("X-LC-Id") != "" {
+		if os.Getenv("LEANCLOUD_APP_ID") != r.Header.Get("X-LC-Id") {
+			return false
+		}
+	} else if r.Header.Get("x-avoscloud-application-id") != "" {
+		if os.Getenv("LEANCLOUD_APP_ID") != r.Header.Get("x-avoscloud-application-id") {
+			return false
+		}
+	} else if r.Header.Get("x-uluru-application-id") != "" {
+		if os.Getenv("LEANCLOUD_APP_ID") != r.Header.Get("x-uluru-application-id") {
+			return false
+		}
+	}
+
+	return true
+}
+
 func validateAppKey(r *http.Request) bool {
-	if os.Getenv("LEANCLOUD_APP_ID") != r.Header.Get("X-LC-Id") {
-		return false
-	} else if os.Getenv("LEANCLOUD_APP_ID") != r.Header.Get("x-avoscloud-application-id") {
-		return false
-	} else if os.Getenv("LEANCLOUD_APP_ID") != r.Header.Get("x-uluru-application-id") {
+	if !validateAppID(r) {
 		return false
 	}
-	if os.Getenv("LEANCLOUD_APP_KEY") != r.Header.Get("X-LC-Key") {
-		return false
-	} else if os.Getenv("LEANCLOUD_APP_ID") != r.Header.Get("x-avoscloud-application-key") {
-		return false
+
+	if r.Header.Get("X-LC-Key") != "" {
+		if os.Getenv("LEANCLOUD_APP_KEY") != r.Header.Get("X-LC-Key") {
+			return false
+		}
+	} else if r.Header.Get("x-avoscloud-application-key") != "" {
+		if os.Getenv("LEANCLOUD_APP_ID") != r.Header.Get("x-avoscloud-application-key") {
+			return false
+		}
+	} else if r.Header.Get("x-uluru-application-key") != "" {
+		if os.Getenv("LEANCLOUD_APP_ID") != r.Header.Get("x-uluru-application-key") {
+			return false
+		}
 	}
 	return true
 }
 
 func validateMasterKey(r *http.Request) bool {
-	if os.Getenv("LEANCLOUD_APP_ID") != r.Header.Get("X-LC-Id") {
-		return false
-	} else if os.Getenv("LEANCLOUD_APP_ID") != r.Header.Get("x-avoscloud-application-id") {
-		return false
-	} else if os.Getenv("LEANCLOUD_APP_ID") != r.Header.Get("x-uluru-application-id") {
+	if !validateAppID(r) {
 		return false
 	}
-	if strings.TrimSuffix(r.Header.Get("X-LC-Key"), ",master") != os.Getenv("LEANCLOUD_APP_MASTER_KEY") {
-		return false
-	} else if r.Header.Get("x-avoscloud-master-key") != os.Getenv("LEANCLOUD_APP_MASTER_KEY") {
-		return false
-	} else if r.Header.Get("x-uluru-master-key") != os.Getenv("LEANCLOUD_APP_MASTER_KEY") {
-		return false
+
+	if r.Header.Get("X-LC-Key") != "" {
+		if strings.TrimSuffix(r.Header.Get("X-LC-Key"), ",master") != os.Getenv("LEANCLOUD_APP_MASTER_KEY") {
+			return false
+		}
+	} else if r.Header.Get("x-avoscloud-master-key") != "" {
+		if r.Header.Get("x-avoscloud-master-key") != os.Getenv("LEANCLOUD_APP_MASTER_KEY") {
+			return false
+		}
+	} else if r.Header.Get("x-uluru-master-key") != "" {
+		if r.Header.Get("x-uluru-master-key") != os.Getenv("LEANCLOUD_APP_MASTER_KEY") {
+			return false
+		}
 	}
 	return true
 }
 
 func validateHookKey(r *http.Request) bool {
-	if os.Getenv("LEANCLOUD_APP_ID") != r.Header.Get("X-LC-Id") || os.Getenv("LEANCLOUD_APP_ID") != r.Header.Get("x-avoscloud-application-id") {
+	if !validateAppID(r) {
 		return false
 	}
+
 	if os.Getenv("LEANCLOUD_APP_HOOK_KEY") != r.Header.Get("X-LC-Hook-Key") {
 		return false
 	}
@@ -338,11 +365,7 @@ func validateHookKey(r *http.Request) bool {
 
 func validateSignature(r *http.Request) (bool, bool) {
 	var master, pass bool
-	if os.Getenv("LEANCLOUD_APP_ID") != r.Header.Get("X-LC-Id") {
-		return master, pass
-	} else if os.Getenv("LEANCLOUD_APP_ID") != r.Header.Get("x-avoscloud-application-id") {
-		return master, pass
-	} else if os.Getenv("LEANCLOUD_APP_ID") != r.Header.Get("x-uluru-application-id") {
+	if !validateAppID(r) {
 		return master, pass
 	}
 
