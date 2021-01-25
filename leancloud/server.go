@@ -235,7 +235,15 @@ func constructRequest(r *http.Request, name string, rpc bool) (*FunctionRequest,
 	request.Meta = map[string]string{
 		"remoteAddr": r.RemoteAddr,
 	}
-	sessionToken := r.Header.Get("X-LC-Session")
+	var sessionToken string
+	if r.Header.Get("X-LC-Session") != "" {
+		sessionToken = r.Header.Get("X-LC-Session")
+	} else if r.Header.Get("x-uluru-session-token") != "" {
+		sessionToken = r.Header.Get("x-uluru-session-token")
+	} else if r.Header.Get("x-avoscloud-session-token") != "" {
+		sessionToken = r.Header.Get("x-avoscloud-session-token")
+	}
+
 	if functions[name].defineOption["fetchUser"] == true && sessionToken != "" {
 		user, err := client.Users.Become(sessionToken)
 		if err != nil {
