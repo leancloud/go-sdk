@@ -70,13 +70,13 @@ func corsHandler(w http.ResponseWriter, r *http.Request) {
 
 func metadataHandler(w http.ResponseWriter, r *http.Request) {
 	if !validateMasterKey(r) {
-		errorResponse(w, r, fmt.Errorf("Master Key check failed, request from %s", r.RemoteAddr))
+		validationError(w, r, fmt.Errorf("Master Key check failed, request from %s", r.RemoteAddr))
 		return
 	}
 
 	meta, err := generateMetadata()
 	if err != nil {
-		errorResponse(w, r, err)
+		internalError(w, r, err)
 		return
 	}
 	w.Header().Add("Content-Type", "application/json; charset=UTF-8")
@@ -89,7 +89,7 @@ func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
 		"version": Version,
 	})
 	if err != nil {
-		errorResponse(w, r, err)
+		internalError(w, r, err)
 		return
 	}
 	w.Header().Add("Content-Type", "application/json; charset=UTF-8")
@@ -98,13 +98,14 @@ func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
 
 func functionHandler(w http.ResponseWriter, r *http.Request, name string, rpc bool) {
 	if functions[name] == nil {
-		errorResponse(w, r, fmt.Errorf("no such cloud function %s", name))
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte(fmt.Sprintf("No such cloud function %s", name)))
 		return
 	}
 
 	if functions[name].defineOption["hook"] == true {
 		if !validateHookKey(r) {
-			errorResponse(w, r, fmt.Errorf("Hook key check failed, request from %s", r.RemoteAddr))
+			validationError(w, r, fmt.Errorf("Hook key check failed, request from %s", r.RemoteAddr))
 			return
 		}
 	}
@@ -114,7 +115,7 @@ func functionHandler(w http.ResponseWriter, r *http.Request, name string, rpc bo
 			if !validateHookKey(r) {
 				master, pass := validateSignature(r)
 				if !master || !pass {
-					errorResponse(w, r, fmt.Errorf("Internal cloud function, request from %s", r.RemoteAddr))
+					validationError(w, r, fmt.Errorf("Internal cloud function, request from %s", r.RemoteAddr))
 					return
 				}
 			}
@@ -125,7 +126,7 @@ func functionHandler(w http.ResponseWriter, r *http.Request, name string, rpc bo
 		if !validateMasterKey(r) {
 			_, pass := validateSignature(r)
 			if !pass {
-				errorResponse(w, r, fmt.Errorf("App key check failed, request from %s", r.RemoteAddr))
+				validationError(w, r, fmt.Errorf("App key check failed, request from %s", r.RemoteAddr))
 				return
 			}
 		}
@@ -133,13 +134,13 @@ func functionHandler(w http.ResponseWriter, r *http.Request, name string, rpc bo
 
 	request, err := constructRequest(r, name, rpc)
 	if err != nil {
-		errorResponse(w, r, err)
+		internalError(w, r, err)
 		return
 	}
 
 	ret, err := executeTimeout(request, name, cloudFunctionTimeout)
 	if err != nil {
-		errorResponse(w, r, err)
+		cloudError(w, r, err)
 		return
 	}
 	var resp functionResponse
@@ -156,7 +157,7 @@ func functionHandler(w http.ResponseWriter, r *http.Request, name string, rpc bo
 
 func classHookHandler(w http.ResponseWriter, r *http.Request, class, hook string) {
 	if !validateHookKey(r) {
-		errorResponse(w, r, fmt.Errorf("Hook key check failed, request from %s", r.RemoteAddr))
+		validationError(w, r, fmt.Errorf("Hook key check failed, request from %s", r.RemoteAddr))
 		return
 	}
 
@@ -164,14 +165,14 @@ func classHookHandler(w http.ResponseWriter, r *http.Request, class, hook string
 
 	request, err := constructRequest(r, name, false)
 	if err != nil {
-		errorResponse(w, r, err)
+		internalError(w, r, err)
 		return
 	}
 
 	ret, err := executeTimeout(request, name, cloudFunctionTimeout)
 
 	if err != nil {
-		errorResponse(w, r, err)
+		cloudError(w, r, err)
 		return
 	}
 
@@ -186,7 +187,7 @@ func classHookHandler(w http.ResponseWriter, r *http.Request, class, hook string
 
 	respJSON, err := json.Marshal(resp)
 	if err != nil {
-		errorResponse(w, r, err)
+		internalError(w, r, err)
 		return
 	}
 	w.Header().Add("Contetn-Type", "application/json; charset=UTF-8")
@@ -201,6 +202,16 @@ func executeTimeout(r *FunctionRequest, name string, timeout time.Duration) (int
 	var err error
 	ch := make(chan bool, 0)
 	go func() {
+		defer func() {
+			if ierr := recover(); ierr != nil {
+				err = CloudError{
+					Code:    1,
+					Message: fmt.Sprint(ierr),
+					panic:   true,
+				}
+				ch <- true
+			}
+		}()
 		ret, err = functions[name].call(r)
 		ch <- true
 	}()
@@ -275,18 +286,6 @@ func constructRequest(r *http.Request, name string, rpc bool) (*FunctionRequest,
 	}
 
 	return request, nil
-}
-
-func errorResponse(w http.ResponseWriter, r *http.Request, err error) {
-	w.Header().Add("Contetn-Type", "application/json; charset=UTF-8")
-	switch err.(type) {
-	case *functionError:
-		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(err.Error()))
-	default:
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(err.Error()))
-	}
 }
 
 func generateMetadata() ([]byte, error) {

@@ -101,11 +101,6 @@ type functionType struct {
 	defineOption map[string]interface{}
 }
 
-type functionError struct {
-	Code    int    `json:"code"`
-	Message string `json:"message"`
-}
-
 var client *Client
 
 var functions map[string]*functionType
@@ -301,27 +296,4 @@ func RPC(name string, params interface{}, results interface{}, runOptions ...Run
 	}
 
 	return nil
-}
-
-func (ferr *functionError) Error() string {
-	errString, err := json.Marshal(ferr)
-	if err != nil {
-		return fmt.Sprint(err)
-	}
-
-	return string(errString)
-}
-
-func ErrorWithCode(code int, message string) *functionError {
-	return &functionError{
-		Code:    code,
-		Message: message,
-	}
-}
-
-func Error(message string) *functionError {
-	return &functionError{
-		Code:    1,
-		Message: message,
-	}
 }
