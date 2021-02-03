@@ -27,7 +27,7 @@ func cloudError(w http.ResponseWriter, r *http.Request, err error, statusCode in
 			w.Write([]byte(fmt.Sprintf("%s: %s\n", err.Error(), cloudErr.Error())))
 			return
 		}
-		if cloudErr.panic || stacktrace {
+		if stacktrace {
 			debug.PrintStack()
 		}
 

@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"runtime"
+	"runtime/debug"
 	"strings"
 	"time"
 )
@@ -208,6 +209,7 @@ func executeTimeout(r *FunctionRequest, name string, timeout time.Duration) (int
 					Message: fmt.Sprint(ierr),
 					panic:   true,
 				}
+				debug.PrintStack()
 				ch <- true
 			}
 		}()
