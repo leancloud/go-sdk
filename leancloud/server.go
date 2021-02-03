@@ -98,8 +98,7 @@ func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
 
 func functionHandler(w http.ResponseWriter, r *http.Request, name string, rpc bool) {
 	if functions[name] == nil {
-		w.WriteHeader(http.StatusNotFound)
-		w.Write([]byte(fmt.Sprintf("No such cloud function %s", name)))
+		cloudError(w, r, fmt.Errorf("No such cloud function %s", name), http.StatusNotFound, false)
 		return
 	}
 
