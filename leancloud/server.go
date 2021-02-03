@@ -328,11 +328,11 @@ func validateAppKey(r *http.Request) bool {
 			return false
 		}
 	} else if r.Header.Get("x-avoscloud-application-key") != "" {
-		if os.Getenv("LEANCLOUD_APP_ID") != r.Header.Get("x-avoscloud-application-key") {
+		if os.Getenv("LEANCLOUD_APP_KEY") != r.Header.Get("x-avoscloud-application-key") {
 			return false
 		}
 	} else if r.Header.Get("x-uluru-application-key") != "" {
-		if os.Getenv("LEANCLOUD_APP_ID") != r.Header.Get("x-uluru-application-key") {
+		if os.Getenv("LEANCLOUD_APP_KEY") != r.Header.Get("x-uluru-application-key") {
 			return false
 		}
 	}
