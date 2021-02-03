@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 	"runtime/debug"
 )
 
@@ -19,7 +18,7 @@ func (err CloudError) Error() string {
 	return fmt.Sprintf("CloudError: code: %d, Message: %s\n", err.Code, err.Message)
 }
 
-func cloudError(w http.ResponseWriter, r *http.Request, err error) {
+func cloudError(w http.ResponseWriter, r *http.Request, err error, statusCode int, stacktrace bool) {
 	w.Header().Add("Contetn-Type", "application/json; charset=UTF-8")
 	if cloudErr, ok := err.(CloudError); ok {
 		cloudErrJSON, err := json.Marshal(cloudErr)
@@ -28,12 +27,16 @@ func cloudError(w http.ResponseWriter, r *http.Request, err error) {
 			w.Write([]byte(fmt.Sprintf("%s: %s\n", err.Error(), cloudErr.Error())))
 			return
 		}
+		if cloudErr.panic || stacktrace {
+			debug.PrintStack()
+		}
+
 		if cloudErr.panic {
 			w.WriteHeader(http.StatusInternalServerError)
-			debug.PrintStack()
 		} else {
-			w.WriteHeader(http.StatusBadRequest)
+			w.WriteHeader(statusCode)
 		}
+
 		w.Write(cloudErrJSON)
 		return
 	}
@@ -41,17 +44,5 @@ func cloudError(w http.ResponseWriter, r *http.Request, err error) {
 	cloudError(w, r, CloudError{
 		Code:    1,
 		Message: err.Error(),
-	})
-}
-
-func validationError(w http.ResponseWriter, r *http.Request, err error) {
-	w.WriteHeader(http.StatusUnauthorized)
-	w.Write([]byte(err.Error()))
-}
-
-func internalError(w http.ResponseWriter, r *http.Request, err error) {
-	fmt.Fprintln(os.Stderr, err)
-	debug.PrintStack()
-	w.WriteHeader(http.StatusInternalServerError)
-	w.Write([]byte(err.Error()))
+	}, statusCode, stacktrace)
 }
