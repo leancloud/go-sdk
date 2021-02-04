@@ -71,13 +71,22 @@ func corsHandler(w http.ResponseWriter, r *http.Request) {
 
 func metadataHandler(w http.ResponseWriter, r *http.Request) {
 	if !validateMasterKey(r) {
-		cloudError(w, r, fmt.Errorf("Master Key check failed, request from %s", r.RemoteAddr), http.StatusUnauthorized, false)
+		writeCloudError(w, r, CloudError{
+			Code:       http.StatusUnauthorized,
+			Message:    fmt.Sprintf("Master Key check failed, request from %s", r.RemoteAddr),
+			statusCode: http.StatusUnauthorized,
+		})
 		return
 	}
 
 	meta, err := generateMetadata()
 	if err != nil {
-		cloudError(w, r, err, http.StatusInternalServerError, true)
+		writeCloudError(w, r, CloudError{
+			Code:       1,
+			Message:    err.Error(),
+			statusCode: http.StatusInternalServerError,
+			callStack:  debug.Stack(),
+		})
 		return
 	}
 	w.Header().Add("Content-Type", "application/json; charset=UTF-8")
@@ -90,7 +99,12 @@ func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
 		"version": Version,
 	})
 	if err != nil {
-		cloudError(w, r, err, http.StatusInternalServerError, true)
+		writeCloudError(w, r, CloudError{
+			Code:       1,
+			Message:    err.Error(),
+			statusCode: http.StatusInternalServerError,
+			callStack:  debug.Stack(),
+		})
 		return
 	}
 	w.Header().Add("Content-Type", "application/json; charset=UTF-8")
@@ -99,13 +113,21 @@ func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
 
 func functionHandler(w http.ResponseWriter, r *http.Request, name string, rpc bool) {
 	if functions[name] == nil {
-		cloudError(w, r, fmt.Errorf("No such cloud function %s", name), http.StatusNotFound, false)
+		writeCloudError(w, r, CloudError{
+			Code:       1,
+			Message:    fmt.Sprintf("No such cloud function %s", name),
+			statusCode: http.StatusNotFound,
+		})
 		return
 	}
 
 	if functions[name].defineOption["hook"] == true {
 		if !validateHookKey(r) {
-			cloudError(w, r, fmt.Errorf("Hook key check failed, request from %s", r.RemoteAddr), http.StatusUnauthorized, false)
+			writeCloudError(w, r, CloudError{
+				Code:       http.StatusUnauthorized,
+				Message:    fmt.Sprintf("Hook key check failed, request from %s", r.RemoteAddr),
+				statusCode: http.StatusUnauthorized,
+			})
 			return
 		}
 	}
@@ -115,7 +137,11 @@ func functionHandler(w http.ResponseWriter, r *http.Request, name string, rpc bo
 			if !validateHookKey(r) {
 				master, pass := validateSignature(r)
 				if !master || !pass {
-					cloudError(w, r, fmt.Errorf("Internal cloud function, request from %s", r.RemoteAddr), http.StatusUnauthorized, false)
+					writeCloudError(w, r, CloudError{
+						Code:       http.StatusUnauthorized,
+						Message:    fmt.Sprintf("Internal cloud function, request from %s", r.RemoteAddr),
+						statusCode: http.StatusUnauthorized,
+					})
 					return
 				}
 			}
@@ -126,7 +152,11 @@ func functionHandler(w http.ResponseWriter, r *http.Request, name string, rpc bo
 		if !validateMasterKey(r) {
 			_, pass := validateSignature(r)
 			if !pass {
-				cloudError(w, r, fmt.Errorf("App key check failed, request from %s", r.RemoteAddr), http.StatusUnauthorized, false)
+				writeCloudError(w, r, CloudError{
+					Code:       http.StatusUnauthorized,
+					Message:    fmt.Sprintf("App key check failed, request from %s", r.RemoteAddr),
+					statusCode: http.StatusUnauthorized,
+				})
 				return
 			}
 		}
@@ -134,13 +164,18 @@ func functionHandler(w http.ResponseWriter, r *http.Request, name string, rpc bo
 
 	request, err := constructRequest(r, name, rpc)
 	if err != nil {
-		cloudError(w, r, err, http.StatusInternalServerError, true)
+		writeCloudError(w, r, CloudError{
+			Code:       1,
+			Message:    err.Error(),
+			statusCode: http.StatusInternalServerError,
+			callStack:  debug.Stack(),
+		})
 		return
 	}
 
 	ret, err := executeTimeout(request, name, cloudFunctionTimeout)
 	if err != nil {
-		cloudError(w, r, err, http.StatusBadRequest, false)
+		writeCloudError(w, r, err)
 		return
 	}
 	var resp functionResponse
@@ -151,13 +186,27 @@ func functionHandler(w http.ResponseWriter, r *http.Request, name string, rpc bo
 	}
 
 	respJSON, err := json.Marshal(resp)
+	if err != nil {
+		writeCloudError(w, r, CloudError{
+			Code:       1,
+			Message:    err.Error(),
+			statusCode: http.StatusInternalServerError,
+			callStack:  debug.Stack(),
+		})
+		return
+	}
+
 	w.Header().Add("Contetn-Type", "application/json; charset=UTF-8")
 	w.Write(respJSON)
 }
 
 func classHookHandler(w http.ResponseWriter, r *http.Request, class, hook string) {
 	if !validateHookKey(r) {
-		cloudError(w, r, fmt.Errorf("Hook key check failed, request from %s", r.RemoteAddr), http.StatusUnauthorized, false)
+		writeCloudError(w, r, CloudError{
+			Code:       http.StatusUnauthorized,
+			Message:    fmt.Sprintf("Hook key check failed, request from %s", r.RemoteAddr),
+			statusCode: http.StatusUnauthorized,
+		})
 		return
 	}
 
@@ -165,14 +214,19 @@ func classHookHandler(w http.ResponseWriter, r *http.Request, class, hook string
 
 	request, err := constructRequest(r, name, false)
 	if err != nil {
-		cloudError(w, r, err, http.StatusInternalServerError, true)
+		writeCloudError(w, r, CloudError{
+			Code:       1,
+			Message:    err.Error(),
+			statusCode: http.StatusInternalServerError,
+			callStack:  debug.Stack(),
+		})
 		return
 	}
 
 	ret, err := executeTimeout(request, name, cloudFunctionTimeout)
 
 	if err != nil {
-		cloudError(w, r, err, http.StatusBadRequest, false)
+		writeCloudError(w, r, err)
 		return
 	}
 
@@ -187,9 +241,15 @@ func classHookHandler(w http.ResponseWriter, r *http.Request, class, hook string
 
 	respJSON, err := json.Marshal(resp)
 	if err != nil {
-		cloudError(w, r, err, http.StatusInternalServerError, true)
+		writeCloudError(w, r, CloudError{
+			Code:       1,
+			Message:    err.Error(),
+			statusCode: http.StatusInternalServerError,
+			callStack:  debug.Stack(),
+		})
 		return
 	}
+
 	w.Header().Add("Contetn-Type", "application/json; charset=UTF-8")
 	w.Write(respJSON)
 }
@@ -205,9 +265,10 @@ func executeTimeout(r *FunctionRequest, name string, timeout time.Duration) (int
 		defer func() {
 			if ierr := recover(); ierr != nil {
 				err = CloudError{
-					Code:    1,
-					Message: fmt.Sprint(ierr),
-					panic:   true,
+					Code:       1,
+					Message:    fmt.Sprint(ierr),
+					statusCode: http.StatusInternalServerError,
+					callStack:  debug.Stack(),
 				}
 				debug.PrintStack()
 				ch <- true
