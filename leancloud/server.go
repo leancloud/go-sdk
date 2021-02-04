@@ -270,7 +270,6 @@ func executeTimeout(r *FunctionRequest, name string, timeout time.Duration) (int
 					statusCode: http.StatusInternalServerError,
 					callStack:  debug.Stack(),
 				}
-				debug.PrintStack()
 				ch <- true
 			}
 		}()
@@ -282,7 +281,12 @@ func executeTimeout(r *FunctionRequest, name string, timeout time.Duration) (int
 	case <-ch:
 		return ret, err
 	case <-ctx.Done():
-		return nil, fmt.Errorf("LeanEngine: /1.1/functions/%s : function timeout (15000ms)", name)
+		return nil, CloudError{
+			Code:       124,
+			Message:    fmt.Sprintf("LeanEngine: /1.1/functions/%s : function timeout (15000ms)", name),
+			statusCode: http.StatusServiceUnavailable,
+			callStack:  debug.Stack(),
+		}
 	}
 }
 
