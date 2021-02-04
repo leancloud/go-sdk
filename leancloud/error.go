@@ -21,7 +21,6 @@ func (err CloudError) Error() string {
 }
 
 func writeCloudError(w http.ResponseWriter, r *http.Request, err error) {
-	w.Header().Add("Contetn-Type", "application/json; charset=UTF-8")
 	cloudErr, ok := err.(CloudError)
 	if !ok {
 		writeCloudError(w, r, CloudError{
@@ -45,6 +44,7 @@ func writeCloudError(w http.ResponseWriter, r *http.Request, err error) {
 		fmt.Fprintln(os.Stderr, builder.String())
 	}
 
+	w.Header().Add("Contetn-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(cloudErr.statusCode)
 	w.Write(cloudErrJSON)
 }
