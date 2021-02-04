@@ -25,8 +25,9 @@ func writeCloudError(w http.ResponseWriter, r *http.Request, err error) {
 	cloudErr, ok := err.(CloudError)
 	if !ok {
 		writeCloudError(w, r, CloudError{
-			Code:    1,
-			Message: err.Error(),
+			Code:       1,
+			Message:    err.Error(),
+			statusCode: http.StatusBadRequest,
 		})
 		return
 	}
