@@ -28,6 +28,7 @@ func writeCloudError(w http.ResponseWriter, r *http.Request, err error) {
 			Code:    1,
 			Message: err.Error(),
 		})
+		return
 	}
 
 	cloudErrJSON, err := json.Marshal(cloudErr)
@@ -45,6 +46,4 @@ func writeCloudError(w http.ResponseWriter, r *http.Request, err error) {
 
 	w.WriteHeader(cloudErr.statusCode)
 	w.Write(cloudErrJSON)
-	return
-
 }

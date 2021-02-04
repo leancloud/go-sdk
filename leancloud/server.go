@@ -285,7 +285,6 @@ func executeTimeout(r *FunctionRequest, name string, timeout time.Duration) (int
 			Code:       124,
 			Message:    fmt.Sprintf("LeanEngine: /1.1/functions/%s : function timeout (15000ms)", name),
 			statusCode: http.StatusServiceUnavailable,
-			callStack:  debug.Stack(),
 		}
 	}
 }
