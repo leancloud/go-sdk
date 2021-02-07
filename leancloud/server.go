@@ -60,7 +60,9 @@ func Handler(handler http.Handler) http.Handler {
 }
 
 func corsHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Add("Access-Control-Allow-Origin", r.Header.Get("origin"))
+	if r.Header.Get("origin") != "" {
+		w.Header().Add("Access-Control-Allow-Origin", r.Header.Get("origin"))
+	}
 
 	if r.Method == "OPTIONS" {
 		w.Header().Add("Access-Control-Max-Age", "86400")
