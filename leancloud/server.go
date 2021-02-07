@@ -379,6 +379,8 @@ func validateAppID(r *http.Request) bool {
 		if os.Getenv("LEANCLOUD_APP_ID") != r.Header.Get("x-uluru-application-id") {
 			return false
 		}
+	} else {
+		return false
 	}
 
 	return true
@@ -401,7 +403,10 @@ func validateAppKey(r *http.Request) bool {
 		if os.Getenv("LEANCLOUD_APP_KEY") != r.Header.Get("x-uluru-application-key") {
 			return false
 		}
+	} else {
+		return false
 	}
+
 	return true
 }
 
@@ -422,7 +427,10 @@ func validateMasterKey(r *http.Request) bool {
 		if r.Header.Get("x-uluru-master-key") != os.Getenv("LEANCLOUD_APP_MASTER_KEY") {
 			return false
 		}
+	} else {
+		return false
 	}
+
 	return true
 }
 
@@ -434,6 +442,7 @@ func validateHookKey(r *http.Request) bool {
 	if os.Getenv("LEANCLOUD_APP_HOOK_KEY") != r.Header.Get("X-LC-Hook-Key") {
 		return false
 	}
+
 	return true
 }
 
