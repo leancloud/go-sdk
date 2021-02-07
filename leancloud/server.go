@@ -74,7 +74,7 @@ func metadataHandler(w http.ResponseWriter, r *http.Request) {
 		writeCloudError(w, r, CloudError{
 			Code:       http.StatusUnauthorized,
 			Message:    fmt.Sprintf("Master Key check failed, request from %s", r.RemoteAddr),
-			statusCode: http.StatusUnauthorized,
+			StatusCode: http.StatusUnauthorized,
 		})
 		return
 	}
@@ -84,7 +84,7 @@ func metadataHandler(w http.ResponseWriter, r *http.Request) {
 		writeCloudError(w, r, CloudError{
 			Code:       1,
 			Message:    err.Error(),
-			statusCode: http.StatusInternalServerError,
+			StatusCode: http.StatusInternalServerError,
 			callStack:  debug.Stack(),
 		})
 		return
@@ -102,7 +102,7 @@ func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
 		writeCloudError(w, r, CloudError{
 			Code:       1,
 			Message:    err.Error(),
-			statusCode: http.StatusInternalServerError,
+			StatusCode: http.StatusInternalServerError,
 			callStack:  debug.Stack(),
 		})
 		return
@@ -116,7 +116,7 @@ func functionHandler(w http.ResponseWriter, r *http.Request, name string, rpc bo
 		writeCloudError(w, r, CloudError{
 			Code:       1,
 			Message:    fmt.Sprintf("No such cloud function %s", name),
-			statusCode: http.StatusNotFound,
+			StatusCode: http.StatusNotFound,
 		})
 		return
 	}
@@ -126,7 +126,7 @@ func functionHandler(w http.ResponseWriter, r *http.Request, name string, rpc bo
 			writeCloudError(w, r, CloudError{
 				Code:       http.StatusUnauthorized,
 				Message:    fmt.Sprintf("Hook key check failed, request from %s", r.RemoteAddr),
-				statusCode: http.StatusUnauthorized,
+				StatusCode: http.StatusUnauthorized,
 			})
 			return
 		}
@@ -140,7 +140,7 @@ func functionHandler(w http.ResponseWriter, r *http.Request, name string, rpc bo
 					writeCloudError(w, r, CloudError{
 						Code:       http.StatusUnauthorized,
 						Message:    fmt.Sprintf("Internal cloud function, request from %s", r.RemoteAddr),
-						statusCode: http.StatusUnauthorized,
+						StatusCode: http.StatusUnauthorized,
 					})
 					return
 				}
@@ -155,7 +155,7 @@ func functionHandler(w http.ResponseWriter, r *http.Request, name string, rpc bo
 				writeCloudError(w, r, CloudError{
 					Code:       http.StatusUnauthorized,
 					Message:    fmt.Sprintf("App key check failed, request from %s", r.RemoteAddr),
-					statusCode: http.StatusUnauthorized,
+					StatusCode: http.StatusUnauthorized,
 				})
 				return
 			}
@@ -167,7 +167,7 @@ func functionHandler(w http.ResponseWriter, r *http.Request, name string, rpc bo
 		writeCloudError(w, r, CloudError{
 			Code:       1,
 			Message:    err.Error(),
-			statusCode: http.StatusInternalServerError,
+			StatusCode: http.StatusInternalServerError,
 			callStack:  debug.Stack(),
 		})
 		return
@@ -190,7 +190,7 @@ func functionHandler(w http.ResponseWriter, r *http.Request, name string, rpc bo
 		writeCloudError(w, r, CloudError{
 			Code:       1,
 			Message:    err.Error(),
-			statusCode: http.StatusInternalServerError,
+			StatusCode: http.StatusInternalServerError,
 			callStack:  debug.Stack(),
 		})
 		return
@@ -205,7 +205,7 @@ func classHookHandler(w http.ResponseWriter, r *http.Request, class, hook string
 		writeCloudError(w, r, CloudError{
 			Code:       http.StatusUnauthorized,
 			Message:    fmt.Sprintf("Hook key check failed, request from %s", r.RemoteAddr),
-			statusCode: http.StatusUnauthorized,
+			StatusCode: http.StatusUnauthorized,
 		})
 		return
 	}
@@ -217,7 +217,7 @@ func classHookHandler(w http.ResponseWriter, r *http.Request, class, hook string
 		writeCloudError(w, r, CloudError{
 			Code:       1,
 			Message:    err.Error(),
-			statusCode: http.StatusInternalServerError,
+			StatusCode: http.StatusInternalServerError,
 			callStack:  debug.Stack(),
 		})
 		return
@@ -244,7 +244,7 @@ func classHookHandler(w http.ResponseWriter, r *http.Request, class, hook string
 		writeCloudError(w, r, CloudError{
 			Code:       1,
 			Message:    err.Error(),
-			statusCode: http.StatusInternalServerError,
+			StatusCode: http.StatusInternalServerError,
 			callStack:  debug.Stack(),
 		})
 		return
@@ -267,7 +267,7 @@ func executeTimeout(r *FunctionRequest, name string, timeout time.Duration) (int
 				err = CloudError{
 					Code:       1,
 					Message:    fmt.Sprint(ierr),
-					statusCode: http.StatusInternalServerError,
+					StatusCode: http.StatusInternalServerError,
 					callStack:  debug.Stack(),
 				}
 				ch <- true
@@ -284,7 +284,7 @@ func executeTimeout(r *FunctionRequest, name string, timeout time.Duration) (int
 		return nil, CloudError{
 			Code:       124,
 			Message:    fmt.Sprintf("LeanEngine: /1.1/functions/%s : function timeout (15000ms)", name),
-			statusCode: http.StatusServiceUnavailable,
+			StatusCode: http.StatusServiceUnavailable,
 		}
 	}
 }

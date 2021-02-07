@@ -12,7 +12,7 @@ import (
 type CloudError struct {
 	Code       int    `json:"code"`
 	Message    string `json:"message"`
-	statusCode int
+	StatusCode int    `json:"-"`
 	callStack  []byte
 }
 
@@ -26,7 +26,7 @@ func writeCloudError(w http.ResponseWriter, r *http.Request, err error) {
 		writeCloudError(w, r, CloudError{
 			Code:       1,
 			Message:    err.Error(),
-			statusCode: http.StatusBadRequest,
+			StatusCode: http.StatusBadRequest,
 		})
 		return
 	}
@@ -44,7 +44,10 @@ func writeCloudError(w http.ResponseWriter, r *http.Request, err error) {
 		fmt.Fprintln(os.Stderr, builder.String())
 	}
 
+	if cloudErr.StatusCode == 0 {
+		cloudErr.StatusCode = http.StatusBadRequest
+	}
 	w.Header().Add("Contetn-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(cloudErr.statusCode)
+	w.WriteHeader(cloudErr.StatusCode)
 	w.Write(cloudErrJSON)
 }
