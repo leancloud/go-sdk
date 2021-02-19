@@ -47,7 +47,6 @@ func writeCloudError(w http.ResponseWriter, r *http.Request, err error) {
 	if cloudErr.StatusCode == 0 {
 		cloudErr.StatusCode = http.StatusBadRequest
 	}
-	w.Header().Add("Contetn-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(cloudErr.StatusCode)
 	w.Write(cloudErrJSON)
 }

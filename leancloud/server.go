@@ -91,7 +91,7 @@ func metadataHandler(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	w.Header().Add("Content-Type", "application/json; charset=UTF-8")
+
 	w.Write(meta)
 }
 
@@ -109,7 +109,7 @@ func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
-	w.Header().Add("Content-Type", "application/json; charset=UTF-8")
+
 	w.Write(resp)
 }
 
@@ -198,7 +198,6 @@ func functionHandler(w http.ResponseWriter, r *http.Request, name string, rpc bo
 		return
 	}
 
-	w.Header().Add("Contetn-Type", "application/json; charset=UTF-8")
 	w.Write(respJSON)
 }
 
@@ -252,7 +251,6 @@ func classHookHandler(w http.ResponseWriter, r *http.Request, class, hook string
 		return
 	}
 
-	w.Header().Add("Contetn-Type", "application/json; charset=UTF-8")
 	w.Write(respJSON)
 }
 
