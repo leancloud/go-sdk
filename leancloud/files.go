@@ -27,7 +27,10 @@ func (ref *Files) Upload(file *File, reader io.ReadSeeker, authOptions ...AuthOp
 		return fmt.Errorf("unexpected error when fetch owner: %v", err)
 	}
 
-	file.Size = size
+	if file.Size == 0 {
+		file.Size = size
+	}
+
 	if reflect.ValueOf(file.Meatadata).IsNil() {
 		file.Meatadata = make(map[string]interface{})
 	}
@@ -126,22 +129,25 @@ func (ref *Files) UploadFromURL(file *File, authOptions ...AuthOption) error {
 // UploadFromFile transfer the file given by path to cloud storage and create an object in _File class
 //
 // After uploading it will return an File object
-func (ref *Files) UploadFromFile(path string, authOptions ...AuthOption) (*File, error) {
-	_, name := filepath.Split(path)
-	mime := mime.TypeByExtension(filepath.Ext(path))
-	f, err := os.Open(path)
-	if err != nil {
-		return nil, fmt.Errorf("unexpected error when open %s: %v", path, err)
+func (ref *Files) UploadFromFile(file *File, path string, authOptions ...AuthOption) error {
+	if file.Name == "" {
+		_, name := filepath.Split(path)
+		file.Name = name
 	}
 
-	file := &File{
-		Name: name,
-		MIME: mime,
+	if file.MIME == "" {
+		mime := mime.TypeByExtension(filepath.Ext(path))
+		file.MIME = mime
+	}
+
+	f, err := os.Open(path)
+	if err != nil {
+		return fmt.Errorf("unexpected error when open %s: %v", path, err)
 	}
 
 	if err := ref.c.Files.Upload(file, f, authOptions...); err != nil {
-		return nil, err
+		return err
 	}
 
-	return file, nil
+	return nil
 }
