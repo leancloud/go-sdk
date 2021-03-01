@@ -137,6 +137,9 @@ func (ref *Files) UploadFromFile(file *File, path string, authOptions ...AuthOpt
 
 	if file.MIME == "" {
 		mime := mime.TypeByExtension(filepath.Ext(path))
+		if mime == "" {
+			mime = "application/octet-stream"
+		}
 		file.MIME = mime
 	}
 
