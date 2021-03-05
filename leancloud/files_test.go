@@ -139,7 +139,7 @@ func TestFilesUploadFromFile(t *testing.T) {
 		},
 	}
 
-	if err := c.Files.UploadFromFile(file, filename); err != nil {
+	if err := c.Files.UploadFromLocalFile(file, filename); err != nil {
 		t.Fatal(err)
 	}
 

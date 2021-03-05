@@ -129,7 +129,7 @@ func (ref *Files) UploadFromURL(file *File, authOptions ...AuthOption) error {
 // UploadFromFile transfer the file given by path to cloud storage and create an object in _File class
 //
 // After uploading it will return an File object
-func (ref *Files) UploadFromFile(file *File, path string, authOptions ...AuthOption) error {
+func (ref *Files) UploadFromLocalFile(file *File, path string, authOptions ...AuthOption) error {
 	if file.Name == "" {
 		_, name := filepath.Split(path)
 		file.Name = name
