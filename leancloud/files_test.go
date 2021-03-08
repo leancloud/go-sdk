@@ -13,8 +13,13 @@ import (
 
 var c *Client
 
+var testUsername string
+var testPassword string
+
 func init() {
 	c = NewEnvClient()
+	testUsername = os.Getenv("TEST_USERNAME")
+	testPassword = os.Getenv("TEST_PASSWORD")
 }
 
 func generateTempFile(pattern string) (string, error) {
@@ -96,7 +101,7 @@ func TestFilesUploadWithOwner(t *testing.T) {
 		MIME: mime.TypeByExtension(filepath.Ext(name)),
 	}
 
-	user, err := client.Users.LogIn("soasurs", "123456")
+	user, err := client.Users.LogIn(testUsername, testPassword)
 	if err != nil {
 		t.Fatal(err)
 	}
