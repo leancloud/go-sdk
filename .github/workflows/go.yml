@@ -1,0 +1,27 @@
+name: Go
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+
+  testing:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.15
+
+    - name: Test
+      run: go test -v ./...
+      env:
+        LEANCLOUD_REGION: us-w1
+        LEANCLOUD_APP_ID: ShYpcmyUphz1iPDan8vWHToT-MdYXbMMI
+        LEANCLOUD_API_SERVER: https://shypcmyu.api.lncldglobal.com
+        TEST_USER_ID: 6045e1abd0ba635b64a16152
