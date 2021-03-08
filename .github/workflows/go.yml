@@ -23,5 +23,9 @@ jobs:
       env:
         LEANCLOUD_REGION: us-w1
         LEANCLOUD_APP_ID: ShYpcmyUphz1iPDan8vWHToT-MdYXbMMI
+        LEANCLOUD_APP_KEY: ${{ secrets.LEANCLOUD_APP_KEY }}
+        LEANCLOUD_APP_MASTER_KEY: ${{ secrets.LEANCLOUD_APP_MASTER_KEY }}
         LEANCLOUD_API_SERVER: https://shypcmyu.api.lncldglobal.com
         TEST_USER_ID: 6045e1abd0ba635b64a16152
+        TEST_USERNAME: ${{ secrets.TEST_USERNAME }}
+        TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
