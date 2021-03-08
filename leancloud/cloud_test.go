@@ -2,11 +2,15 @@ package leancloud
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"testing"
 )
 
+var testUserID string
+
 func init() {
+	testUserID = os.Getenv("TEST_USER_ID")
 	Define("hello", func(r *FunctionRequest) (interface{}, error) {
 		return map[string]string{
 			"Hello": "World",
@@ -85,7 +89,7 @@ func TestRun(t *testing.T) {
 
 	t.Run("hello_with_option_fetch_user", func(t *testing.T) {
 		user := new(User)
-		if err := client.Users.ID("5fa504d0f98fd535ebe8b3f0").Get(user, UseMasterKey(true)); err != nil {
+		if err := client.Users.ID(testUserID).Get(user, UseMasterKey(true)); err != nil {
 			t.Fatal(err)
 		}
 
@@ -191,7 +195,7 @@ func TestRun(t *testing.T) {
 func TestRPC(t *testing.T) {
 	t.Run("local", func(t *testing.T) {
 		user := new(User)
-		if err := client.Users.ID("5fa504d0f98fd535ebe8b3f0").Get(user, UseMasterKey(true)); err != nil {
+		if err := client.Users.ID(testUserID).Get(user, UseMasterKey(true)); err != nil {
 			t.Fatal(err)
 		}
 
@@ -208,7 +212,7 @@ func TestRPC(t *testing.T) {
 
 	t.Run("remote", func(t *testing.T) {
 		user := new(User)
-		if err := client.Users.ID("5fa504d0f98fd535ebe8b3f0").Get(user, UseMasterKey(true)); err != nil {
+		if err := client.Users.ID(testUserID).Get(user, UseMasterKey(true)); err != nil {
 			t.Fatal(err)
 		}
 

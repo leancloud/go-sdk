@@ -68,7 +68,7 @@ func TestHandler(t *testing.T) {
 
 	t.Run("function call with sessionToken", func(t *testing.T) {
 		user := new(User)
-		if err := client.Users.ID("5f86a88f27075b72775de082").Get(user, UseMasterKey(true)); err != nil {
+		if err := client.Users.ID(testUserID).Get(user, UseMasterKey(true)); err != nil {
 			t.Fatal(err)
 		}
 
