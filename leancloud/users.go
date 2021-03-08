@@ -57,12 +57,33 @@ func (ref *Users) LogInByMobilePhoneNumber(number, smsCode string) (*User, error
 	return decodeUser(respJSON)
 }
 
+func (ref *Users) LogInByEmail(email, password string) (*User, error) {
+	path := "/1.1/login"
+	options := ref.c.getRequestOptions()
+	options.JSON = map[string]string{
+		"email":    email,
+		"password": password,
+	}
+
+	resp, err := ref.c.request(methodPost, path, options)
+	if err != nil {
+		return nil, err
+	}
+
+	respJSON := make(map[string]interface{})
+	if err := json.Unmarshal(resp.Bytes(), &respJSON); err != nil {
+		return nil, err
+	}
+
+	return decodeUser(respJSON)
+}
+
 func (ref *Users) SignUp(username, password string) (*User, error) {
-	reqJSON := map[string]string{
+	body := map[string]string{
 		"username": username,
 		"password": password,
 	}
-	decodedUser, err := objectCreate(ref, reqJSON)
+	decodedUser, err := objectCreate(ref, body)
 	if err != nil {
 		return nil, err
 	}
@@ -98,6 +119,24 @@ func (ref *Users) SignUpByMobilePhone(number, smsCode string) (*User, error) {
 	}
 
 	return decodedUser, nil
+}
+
+func (ref *Users) SignUpByEmail(email, password string) (*User, error) {
+	body := map[string]string{
+		"email":    email,
+		"password": password,
+	}
+	decodedUser, err := objectCreate(ref, body)
+	if err != nil {
+		return nil, err
+	}
+
+	user, ok := decodedUser.(*User)
+	if !ok {
+		return nil, fmt.Errorf("unexpected error when parse User from response: want type *User but %v", reflect.TypeOf(decodedUser))
+	}
+
+	return user, nil
 }
 
 func (ref *Users) ResetPasswordBySMSCode(number, smsCode, password string, authOptions ...AuthOption) error {
