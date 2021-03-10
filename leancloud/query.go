@@ -257,7 +257,7 @@ func objectQuery(query interface{}, objects interface{}, count bool, first bool,
 		} else if v.class.Name == "_File" {
 			path = fmt.Sprint(path, "classes/files")
 		} else if v.class.Name == "_Role" {
-			path = fmt.Sprint(path, "roles/")
+			path = fmt.Sprint(path, "roles")
 		} else {
 			path = fmt.Sprint(path, "classes/", v.class.Name)
 		}
