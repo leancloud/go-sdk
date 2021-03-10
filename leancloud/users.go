@@ -11,8 +11,15 @@ type Users struct {
 	c *Client
 }
 
-func (ref *Users) NewUserQuery() *UserQuery {
-	return &UserQuery{}
+func (ref *Users) NewQuery() *Query {
+	return &Query{
+		class: &Class{
+			Name: "_User",
+			c:    ref.c,
+		},
+		c:     ref.c,
+		where: make(map[string]interface{}),
+	}
 }
 
 func (ref *Users) LogIn(username, password string) (*User, error) {
