@@ -252,15 +252,17 @@ func objectQuery(query interface{}, objects interface{}, count bool, first bool,
 
 	switch v := query.(type) {
 	case *Query:
-		path = fmt.Sprint(path, "classes/", v.class.Name)
+		if v.class.Name == "_User" {
+			path = fmt.Sprint(path, "users")
+		} else if v.class.Name == "_File" {
+			path = fmt.Sprint(path, "classes/files")
+		} else if v.class.Name == "_Role" {
+			path = fmt.Sprint(path, "roles")
+		} else {
+			path = fmt.Sprint(path, "classes/", v.class.Name)
+		}
 		options = v.c.getRequestOptions()
 		client = v.c
-		break
-	case *UserQuery:
-		path = fmt.Sprint(path, "users/")
-		options = v.c.getRequestOptions()
-		client = v.c
-		break
 	}
 
 	options.Params = params
@@ -296,21 +298,6 @@ func objectQuery(query interface{}, objects interface{}, count bool, first bool,
 				return nil, err
 			}
 		}
-	case *UserQuery:
-		decodedUsers, err := decodeArray(results)
-		if err != nil {
-			return nil, err
-		}
-
-		if !first {
-			if err := bind(reflect.ValueOf(decodedUsers), reflect.ValueOf(objects).Elem()); err != nil {
-				return nil, err
-			}
-		} else {
-			if err := bind(reflect.ValueOf(decodedUsers).Index(0), reflect.ValueOf(objects).Elem()); err != nil {
-				return nil, err
-			}
-		}
 	}
 
 	return nil, nil
@@ -330,14 +317,6 @@ func wrapParams(query interface{}, count, first bool) (map[string]string, error)
 		include = strings.Join(v.include, ",")
 		keys = strings.Join(v.keys, ",")
 		skip, limit = v.skip, v.limit
-		break
-	case *UserQuery:
-		where = v.where
-		order = strings.Join(v.order, ",")
-		include = strings.Join(v.include, ",")
-		keys = strings.Join(v.keys, ",")
-		skip, limit = v.skip, v.limit
-		break
 	}
 
 	whereString, err := json.Marshal(where)

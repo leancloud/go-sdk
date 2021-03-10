@@ -15,6 +15,17 @@ type Files struct {
 	c *Client
 }
 
+func (ref *Files) NewQuery() *Query {
+	return &Query{
+		class: &Class{
+			Name: "_File",
+			c:    ref.c,
+		},
+		c:     ref.c,
+		where: make(map[string]interface{}),
+	}
+}
+
 // Upload transfer the file to cloud storage and create an File object in _File class
 func (ref *Files) Upload(file *File, reader io.ReadSeeker, authOptions ...AuthOption) error {
 	size, err := getSeekerSize(reader)

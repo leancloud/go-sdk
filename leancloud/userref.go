@@ -58,7 +58,7 @@ func (ref *UserRef) Update(diff interface{}, authOptions ...AuthOption) error {
 	return nil
 }
 
-func (ref *UserRef) UpdateWithQuery(diff interface{}, query *UserQuery, authOptions ...AuthOption) error {
+func (ref *UserRef) UpdateWithQuery(diff interface{}, query *Query, authOptions ...AuthOption) error {
 	if ref == nil || ref.ID == "" || ref.class == "" {
 		return nil
 	}
