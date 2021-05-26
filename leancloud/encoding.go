@@ -543,7 +543,7 @@ func decode(fields interface{}) (interface{}, error) {
 	if !ok {
 		switch reflect.ValueOf(fields).Kind() {
 		case reflect.Array, reflect.Slice:
-			return decodeArray(fields)
+			return decodeArray(fields, false)
 		case reflect.Interface, reflect.Ptr:
 			return decode(reflect.Indirect(reflect.ValueOf(fields)).Interface())
 		default:
@@ -598,14 +598,14 @@ func decodeObject(fields interface{}) (*Object, error) {
 	var decodedCreatedAt, decodedUpdatedAt time.Time
 	var ok bool
 
-	if decodedFields["objectId"] != nil {
+	if decodedFields["objectId"] != "" {
 		objectID, ok = decodedFields["objectId"].(string)
 		if !ok {
 			return nil, fmt.Errorf("unexpected error when parse objectId: want type string but %v", reflect.TypeOf(decodedFields["objectId"]))
 		}
 	}
 
-	if decodedFields["createdAt"] != nil {
+	if decodedFields["createdAt"] != "" {
 		createdAt, ok = decodedFields["createdAt"].(string)
 		if !ok {
 			return nil, fmt.Errorf("unexpected error when parse createdAt: want type string but %v", reflect.TypeOf(decodedFields["createdAt"]))
@@ -617,7 +617,7 @@ func decodeObject(fields interface{}) (*Object, error) {
 		decodedFields["createdAt"] = decodedCreatedAt
 	}
 
-	if decodedFields["updatedAt"] != nil {
+	if decodedFields["updatedAt"] != "" {
 		updatedAt, ok = decodedFields["updatedAt"].(string)
 		if !ok {
 			if decodedFields["updatedAt"] == nil {
@@ -711,15 +711,23 @@ func decodePointer(pointer interface{}) (*Object, error) {
 	}, nil
 }
 
-func decodeArray(array interface{}) ([]interface{}, error) {
+func decodeArray(array interface{}, topQuery bool) ([]interface{}, error) {
 	var decodedArray []interface{}
 	v := reflect.ValueOf(array)
 	for i := 0; i < v.Len(); i++ {
-		r, err := decode(v.Index(i).Interface())
-		if err != nil {
-			return nil, err
+		if !topQuery {
+			r, err := decode(v.Index(i).Interface())
+			if err != nil {
+				return nil, err
+			}
+			decodedArray = append(decodedArray, r)
+		} else {
+			r, err := decodeObject(v.Index(i).Interface())
+			if err != nil {
+				return nil, err
+			}
+			decodedArray = append(decodedArray, r)
 		}
-		decodedArray = append(decodedArray, r)
 	}
 
 	return decodedArray, nil

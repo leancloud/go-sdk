@@ -276,7 +276,6 @@ func objectQuery(query interface{}, objects interface{}, count bool, first bool,
 	if err := json.Unmarshal(resp.Bytes(), &respJSON); err != nil {
 		return nil, fmt.Errorf("unable to parse response %w", err)
 	}
-
 	if count {
 		return respJSON["count"], nil
 	}
@@ -284,7 +283,7 @@ func objectQuery(query interface{}, objects interface{}, count bool, first bool,
 	results := respJSON["results"].([]interface{})
 	switch query.(type) {
 	case *Query:
-		decodedObjects, err := decodeArray(results)
+		decodedObjects, err := decodeArray(results, true)
 		if err != nil {
 			return nil, err
 		}
