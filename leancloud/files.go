@@ -26,14 +26,14 @@ func (ref *Files) NewQuery() *Query {
 	}
 }
 
-// Upload transfer the file to cloud storage and create an File object in _File class
+// Upload transfer the file to cloud storage and create a File object in _File class
 func (ref *Files) Upload(file *File, reader io.ReadSeeker, authOptions ...AuthOption) error {
 	size, err := getSeekerSize(reader)
 	if err != nil {
 		return fmt.Errorf("unexpected error when get length of file: %v", err)
 	}
 
-	owner, err := file.fetchOwner(authOptions...)
+	owner, err := file.fetchOwner(ref.c, authOptions...)
 	if err != nil {
 		return fmt.Errorf("unexpected error when fetch owner: %v", err)
 	}
@@ -93,7 +93,7 @@ func (ref *Files) UploadFromURL(file *File, authOptions ...AuthOption) error {
 	if reflect.ValueOf(file.Meatadata).IsNil() {
 		file.Meatadata = make(map[string]interface{})
 	}
-	owner, err := file.fetchOwner(authOptions...)
+	owner, err := file.fetchOwner(ref.c, authOptions...)
 	if err != nil {
 		return fmt.Errorf("unexpected error when fetch owner: %v", err)
 	}
@@ -138,8 +138,6 @@ func (ref *Files) UploadFromURL(file *File, authOptions ...AuthOption) error {
 }
 
 // UploadFromFile transfer the file given by path to cloud storage and create an object in _File class
-//
-// After uploading it will return an File object
 func (ref *Files) UploadFromLocalFile(file *File, path string, authOptions ...AuthOption) error {
 	if file.Name == "" {
 		_, name := filepath.Split(path)

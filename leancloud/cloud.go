@@ -107,7 +107,6 @@ var functions map[string]*functionType
 
 func init() {
 	functions = make(map[string]*functionType)
-	client = NewEnvClient()
 }
 
 // Define declares an Cloud Function with name & options of definition
@@ -129,7 +128,7 @@ func Define(name string, fn func(*FunctionRequest) (interface{}, error), defineO
 	functions[name].call = fn
 }
 
-// Run executes an Cloud Function with options
+// Run executes a Cloud Function with options
 func Run(name string, object interface{}, runOptions ...RunOption) (interface{}, error) {
 	options := make(map[string]interface{})
 	sessionToken := ""
@@ -204,7 +203,7 @@ func Run(name string, object interface{}, runOptions ...RunOption) (interface{},
 	return functions[name].call(&request)
 }
 
-// RPC executes an Cloud Function with serialization/deserialization Object if possible
+// RPC executes a Cloud Function with serialization/deserialization Object if possible
 func RPC(name string, params interface{}, results interface{}, runOptions ...RunOption) error {
 	options := make(map[string]interface{})
 	sessionToken := ""

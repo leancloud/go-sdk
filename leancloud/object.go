@@ -6,7 +6,7 @@ import (
 )
 
 // Object contains full data of Object.
-// Also Object could be metadata for custom structure
+// Object could also be metadata for custom structure
 type Object struct {
 	ID         string    `json:"objectId"`
 	CreatedAt  time.Time `json:"createdAt"`

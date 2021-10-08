@@ -42,8 +42,8 @@ func TestHandler(t *testing.T) {
 	t.Run("function call", func(t *testing.T) {
 		resp, err := grequests.Get(cloudEndpoint+"/1.1/functions/hello", &grequests.RequestOptions{
 			Headers: map[string]string{
-				"X-LC-Id":  os.Getenv("LEANCLOUD_APP_ID"),
-				"X-LC-Key": os.Getenv("LEANCLOUD_APP_KEY"),
+				"X-LC-Id":  LeanAppID,
+				"X-LC-Key": LeanAppKey,
 			},
 		})
 		if err != nil {
@@ -68,7 +68,7 @@ func TestHandler(t *testing.T) {
 
 	t.Run("function call with sessionToken", func(t *testing.T) {
 		user := new(User)
-		if err := client.Users.ID(testUserID).Get(user, UseMasterKey(true)); err != nil {
+		if err := testC.Users.ID(testUserID).Get(user, UseMasterKey(true)); err != nil {
 			t.Fatal(err)
 		}
 
@@ -101,7 +101,7 @@ func TestHandler(t *testing.T) {
 		}
 	})
 
-	t.Run("function call shoud not found", func(t *testing.T) {
+	t.Run("function call should not found", func(t *testing.T) {
 		resp, err := grequests.Get(cloudEndpoint+"/1.1/functions/not_found", nil)
 		if err != nil {
 			if resp.StatusCode != http.StatusNotFound {

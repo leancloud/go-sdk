@@ -11,7 +11,7 @@ func TestQueryFind(t *testing.T) {
 		Age:  20,
 	}
 
-	if _, err := client.Class("Staff").Create(&jake); err != nil {
+	if _, err := testC.Class("Staff").Create(&jake); err != nil {
 		t.Fatal(err)
 	}
 
@@ -26,12 +26,12 @@ func TestQueryFind(t *testing.T) {
 		Location:     &GeoPoint{1, 2},
 	}
 
-	if _, err := client.Class("Meeting").Create(&meeting); err != nil {
+	if _, err := testC.Class("Meeting").Create(&meeting); err != nil {
 		t.Fatal(err)
 	}
 
 	ret := make([]Meeting, 10)
-	if err := client.Class("Meeting").NewQuery().EqualTo("title", "Team Meeting").Include("host").Find(&ret); err != nil {
+	if err := testC.Class("Meeting").NewQuery().EqualTo("title", "Team Meeting").Include("host").Find(&ret); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -46,12 +46,12 @@ func TestQueryFirst(t *testing.T) {
 		Location:   &GeoPoint{1, 2},
 	}
 
-	if _, err := client.Class("Meeting").Create(&meeting); err != nil {
+	if _, err := testC.Class("Meeting").Create(&meeting); err != nil {
 		t.Fatal(err)
 	}
 
 	ret := new(Meeting)
-	if err := client.Class("Meeting").NewQuery().EqualTo("title", "Team Meeting").First(ret); err != nil {
+	if err := testC.Class("Meeting").NewQuery().EqualTo("title", "Team Meeting").First(ret); err != nil {
 		t.Fatal(err)
 	}
 
@@ -70,11 +70,11 @@ func TestQueryCount(t *testing.T) {
 		Location:   &GeoPoint{1, 2},
 	}
 
-	if _, err := client.Class("Meeting").Create(&meeting); err != nil {
+	if _, err := testC.Class("Meeting").Create(&meeting); err != nil {
 		t.Fatal(err)
 	}
 
-	if count, err := client.Class("Meeting").NewQuery().EqualTo("title", "Team Meeting").Count(); err != nil {
+	if count, err := testC.Class("Meeting").NewQuery().EqualTo("title", "Team Meeting").Count(); err != nil {
 		t.Fatal(err)
 	} else {
 		if count < 1 {

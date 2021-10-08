@@ -10,6 +10,7 @@ import (
 var testUserID string
 
 func init() {
+	os.Setenv("TEST_USER_ID", "6151e239928f7b64c174c36a")
 	testUserID = os.Getenv("TEST_USER_ID")
 	Define("hello", func(r *FunctionRequest) (interface{}, error) {
 		return map[string]string{
@@ -60,7 +61,7 @@ func TestRun(t *testing.T) {
 
 	t.Run("hello_with_option_internal", func(t *testing.T) {
 		t.Run("remote", func(t *testing.T) {
-			_, err := Run("hello_with_option_internal", nil, WithRemote())
+			_, err := Run("hello", nil, WithRemote())
 
 			if err != nil {
 				if !strings.Contains(err.Error(), "401 Internal cloud function") {
@@ -89,7 +90,7 @@ func TestRun(t *testing.T) {
 
 	t.Run("hello_with_option_fetch_user", func(t *testing.T) {
 		user := new(User)
-		if err := client.Users.ID(testUserID).Get(user, UseMasterKey(true)); err != nil {
+		if err := testC.Users.ID(testUserID).Get(user, UseMasterKey(true)); err != nil {
 			t.Fatal(err)
 		}
 
@@ -137,7 +138,7 @@ func TestRun(t *testing.T) {
 
 	t.Run("don't fetch user", func(t *testing.T) {
 		t.Run("remote", func(t *testing.T) {
-			resp, err := Run("hello_with_option_not_fetch_user", nil, WithRemote())
+			resp, err := Run("hello", nil, WithRemote())
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -195,7 +196,7 @@ func TestRun(t *testing.T) {
 func TestRPC(t *testing.T) {
 	t.Run("local", func(t *testing.T) {
 		user := new(User)
-		if err := client.Users.ID(testUserID).Get(user, UseMasterKey(true)); err != nil {
+		if err := testC.Users.ID(testUserID).Get(user, UseMasterKey(true)); err != nil {
 			t.Fatal(err)
 		}
 
@@ -212,7 +213,7 @@ func TestRPC(t *testing.T) {
 
 	t.Run("remote", func(t *testing.T) {
 		user := new(User)
-		if err := client.Users.ID(testUserID).Get(user, UseMasterKey(true)); err != nil {
+		if err := testC.Users.ID(testUserID).Get(user, UseMasterKey(true)); err != nil {
 			t.Fatal(err)
 		}
 

@@ -29,7 +29,7 @@ type ClientOptions struct {
 
 // NewClient constructs a client from parameters
 func NewClient(options *ClientOptions) *Client {
-	client := &Client{
+	c := &Client{
 		appID:     options.AppID,
 		appKey:    options.AppKey,
 		masterKey: options.MasterKey,
@@ -37,7 +37,7 @@ func NewClient(options *ClientOptions) *Client {
 	}
 
 	if !strings.HasSuffix(options.AppID, "MdYXbMMI") {
-		if client.serverURL == "" {
+		if c.serverURL == "" {
 			panic(fmt.Errorf("please set API's serverURL for China region or legacy app"))
 		}
 	}
@@ -45,13 +45,14 @@ func NewClient(options *ClientOptions) *Client {
 	_, debugEnabled := os.LookupEnv("LEANCLOUD_DEBUG")
 
 	if debugEnabled {
-		client.requestLogger = log.New(os.Stdout, "", log.LstdFlags)
+		c.requestLogger = log.New(os.Stdout, "", log.LstdFlags)
 	}
 
-	client.Users.c = client
-	client.Files.c = client
-	client.Roles.c = client
-	return client
+	c.Users.c = c
+	c.Files.c = c
+	c.Roles.c = c
+	client = c
+	return c
 }
 
 // NewEnvClient constructs a client from environment variables
@@ -66,7 +67,7 @@ func NewEnvClient() *Client {
 	return NewClient(options)
 }
 
-// Class constrcuts a reference of Class
+// Class constructs a reference of Class
 func (client *Client) Class(name string) *Class {
 	return &Class{
 		c:    client,
@@ -74,7 +75,7 @@ func (client *Client) Class(name string) *Class {
 	}
 }
 
-// File construct an new reference to a _File object by given objectId
+// File construct a new reference to a _File object by given objectId
 func (client *Client) File(id string) *FileRef {
 	return &FileRef{
 		c:     client,

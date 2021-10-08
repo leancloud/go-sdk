@@ -11,17 +11,6 @@ import (
 	"github.com/levigross/grequests"
 )
 
-var c *Client
-
-var testUsername string
-var testPassword string
-
-func init() {
-	c = NewEnvClient()
-	testUsername = os.Getenv("TEST_USERNAME")
-	testPassword = os.Getenv("TEST_PASSWORD")
-}
-
 func generateTempFile(pattern string) (string, error) {
 	content := []byte("temporary file's content")
 	tmpfile, err := ioutil.TempFile("", "go-sdk-file-upload-*.txt")
@@ -73,7 +62,7 @@ func TestFilesUpload(t *testing.T) {
 		MIME: mime.TypeByExtension(filepath.Ext(name)),
 	}
 
-	if err := c.Files.Upload(file, fd); err != nil {
+	if err := testC.Files.Upload(file, fd); err != nil {
 		t.Fatal(err)
 	}
 
@@ -101,12 +90,12 @@ func TestFilesUploadWithOwner(t *testing.T) {
 		MIME: mime.TypeByExtension(filepath.Ext(name)),
 	}
 
-	user, err := client.Users.LogIn(testUsername, testPassword)
+	user, err := testC.Users.LogIn(testUsername, testPassword)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if err := c.Files.Upload(file, fd, UseUser(user)); err != nil {
+	if err := testC.Files.Upload(file, fd, UseUser(user)); err != nil {
 		t.Fatal(err)
 	}
 
@@ -121,7 +110,7 @@ func TestFilesUploadFromURL(t *testing.T) {
 		URL:  "https://example.com/assets/go-sdk-file-upload.txt",
 	}
 
-	if err := c.Files.UploadFromURL(file); err != nil {
+	if err := testC.Files.UploadFromURL(file); err != nil {
 		t.Fatal(err)
 	}
 
@@ -144,7 +133,7 @@ func TestFilesUploadFromFile(t *testing.T) {
 		},
 	}
 
-	if err := c.Files.UploadFromLocalFile(file, filename); err != nil {
+	if err := testC.Files.UploadFromLocalFile(file, filename); err != nil {
 		t.Fatal(err)
 	}
 

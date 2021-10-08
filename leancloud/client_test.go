@@ -6,26 +6,42 @@ import (
 	"testing"
 )
 
-func TestNewClient(t *testing.T) {
-	appID, appKey, masterKey, serverURL := os.Getenv("LEANCLOUD_APP_ID"), os.Getenv("LEANCLOUD_APP_KEY"), os.Getenv("LEANCLOUD_APP_MASTER_KEY"), os.Getenv("LEANCLOUD_API_SERVER")
-	options := &ClientOptions{
-		AppID:     appID,
-		AppKey:    appKey,
-		MasterKey: masterKey,
-		ServerURL: serverURL,
+var (
+	LeanAppID     = "yourId"
+	LeanAppKey    = "yourKey"
+	LeanMasterKey = "yourMaster"
+	LeanServerURL = "yourURL"
+	testC         *Client
+	testOption    = &ClientOptions{
+		AppID:     LeanAppID,
+		AppKey:    LeanAppKey,
+		MasterKey: LeanMasterKey,
+		ServerURL: LeanServerURL,
 	}
+	testUsername = "tom"
+	testPassword = "f32@ds*@&dsa"
+)
+
+func init() {
+	testC = NewClient(testOption)
+	os.Setenv("LEANCLOUD_APP_ID", LeanAppID)
+	os.Setenv("LEANCLOUD_APP_KEY", LeanAppKey)
+	os.Setenv("LEANCLOUD_APP_MASTER_KEY", LeanMasterKey)
+	os.Setenv("LEANCLOUD_API_SERVER", LeanServerURL)
+}
+func TestNewClient(t *testing.T) {
 	t.Run("Production", func(t *testing.T) {
-		client := NewClient(options)
+		client := NewClient(testOption)
 		if client == nil {
 			t.Fatal(errors.New("unable to create a client"))
 		}
-		if client.appID != appID {
+		if client.appID != testOption.AppID {
 			t.Fatal(errors.New("LEANCLOUD_APP_ID unmatch"))
 		}
-		if client.appKey != appKey {
+		if client.appKey != testOption.AppKey {
 			t.Fatal(errors.New("LEANCLOUD_APP_KEY unmatch"))
 		}
-		if client.masterKey != masterKey {
+		if client.masterKey != testOption.MasterKey {
 			t.Fatal(errors.New("LEANCLOUD_APP_MASTER_KEY unmatch"))
 		}
 	})
@@ -34,17 +50,17 @@ func TestNewClient(t *testing.T) {
 		if err := os.Setenv("LEANCLOUD_DEBUG", "true"); err != nil {
 			t.Fatal("unable to set debugging flag")
 		}
-		client := NewClient(options)
+		client := NewClient(testOption)
 		if client == nil {
 			t.Fatal(errors.New("unable to create a client"))
 		}
-		if client.appID != appID {
+		if client.appID != testOption.AppID {
 			t.Fatal(errors.New("LEANCLOUD_APP_ID unmatch"))
 		}
-		if client.appKey != appKey {
+		if client.appKey != testOption.AppKey {
 			t.Fatal(errors.New("LEANCLOUD_APP_KEY unmatch"))
 		}
-		if client.masterKey != masterKey {
+		if client.masterKey != testOption.MasterKey {
 			t.Fatal(errors.New("LEANCLOUD_APP_MASTER_KEY unmatch"))
 		}
 		if client.requestLogger == nil {
