@@ -34,7 +34,7 @@ func TestObjectCreate(t *testing.T) {
 			Location:   &GeoPoint{1, 2},
 		}
 
-		if ref, err := testC.Class("Meeting").Create(&meeting); err != nil {
+		if ref, err := client.Class("Meeting").Create(&meeting); err != nil {
 			t.Fatal(err)
 		} else {
 			if ref.class == "" || ref.ID == "" {
@@ -53,7 +53,7 @@ func TestObjectCreate(t *testing.T) {
 			"location":   &GeoPoint{1, 2},
 		}
 
-		if ref, err := testC.Class("Meeting").Create(meeting); err != nil {
+		if ref, err := client.Class("Meeting").Create(meeting); err != nil {
 			t.Fatal(err)
 		} else {
 			if ref.class == "" || ref.ID == "" {
@@ -70,7 +70,7 @@ func TestObjectGet(t *testing.T) {
 			Age:  20,
 		}
 
-		_, err := testC.Class("Staff").Create(&jake)
+		_, err := client.Class("Staff").Create(&jake)
 		if err != nil {
 			t.Fatal()
 		}
@@ -86,13 +86,13 @@ func TestObjectGet(t *testing.T) {
 			Location:     &GeoPoint{1, 2},
 		}
 
-		_, err = testC.Class("Meeting").Create(&meeting)
+		_, err = client.Class("Meeting").Create(&meeting)
 		if err != nil {
 			t.Fatal(err)
 		}
 
 		newMeeting := new(Meeting)
-		if err := testC.Class("Meeting").ID(meeting.ID).Get(newMeeting); err != nil {
+		if err := client.Class("Meeting").ID(meeting.ID).Get(newMeeting); err != nil {
 			t.Fatal(err)
 		}
 	})
@@ -107,13 +107,13 @@ func TestObjectGet(t *testing.T) {
 			"location":   &GeoPoint{1, 2},
 		}
 
-		ref, err := testC.Class("Meeting").Create(meeting)
+		ref, err := client.Class("Meeting").Create(meeting)
 		if err != nil {
 			t.Fatal(err)
 		}
 
 		object := new(Object)
-		if err := testC.Class("Meeting").ID(ref.ID).Get(object); err != nil {
+		if err := client.Class("Meeting").ID(ref.ID).Get(object); err != nil {
 			t.Fatal(err)
 		}
 	})
@@ -129,16 +129,16 @@ func TestObjectSet(t *testing.T) {
 		Location:   &GeoPoint{1, 2},
 	}
 
-	if _, err := testC.Class("Meeting").Create(&meeting); err != nil {
+	if _, err := client.Class("Meeting").Create(&meeting); err != nil {
 		t.Fatal(err)
 	}
 
-	if err := testC.Object(meeting).Set("title", "Another Team Meeting"); err != nil {
+	if err := client.Object(meeting).Set("title", "Another Team Meeting"); err != nil {
 		t.Fatal(err)
 	}
 
 	newMeeting := new(Meeting)
-	if err := testC.Object(meeting).Get(newMeeting); err != nil {
+	if err := client.Object(meeting).Get(newMeeting); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -154,7 +154,7 @@ func TestObjectUpdate(t *testing.T) {
 			Location:   &GeoPoint{1, 2},
 		}
 
-		if _, err := testC.Class("Meeting").Create(&meeting); err != nil {
+		if _, err := client.Class("Meeting").Create(&meeting); err != nil {
 			t.Fatal(err)
 		}
 
@@ -165,12 +165,12 @@ func TestObjectUpdate(t *testing.T) {
 			Date:     time.Now(),
 		}
 
-		if err := testC.Object(meeting).Update(diff); err != nil {
+		if err := client.Object(meeting).Update(diff); err != nil {
 			t.Fatal(err)
 		}
 
 		newMeeting := new(Meeting)
-		if err := testC.Object(meeting).Get(newMeeting); err != nil {
+		if err := client.Object(meeting).Get(newMeeting); err != nil {
 			t.Fatal(err)
 		}
 	})
@@ -185,12 +185,12 @@ func TestObjectUpdate(t *testing.T) {
 			"location":   &GeoPoint{1, 2},
 		}
 
-		ref, err := testC.Class("Meeting").Create(meeting)
+		ref, err := client.Class("Meeting").Create(meeting)
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		if err := testC.Class("Meeting").ID(ref.ID).Update(map[string]interface{}{
+		if err := client.Class("Meeting").ID(ref.ID).Update(map[string]interface{}{
 			"title":    "Another Team Meeting",
 			"number":   2,
 			"progress": 13.5,
@@ -200,7 +200,7 @@ func TestObjectUpdate(t *testing.T) {
 		}
 
 		newMeeting := new(Meeting)
-		if err := testC.Class("Meeting").ID(ref.ID).Get(newMeeting); err != nil {
+		if err := client.Class("Meeting").ID(ref.ID).Get(newMeeting); err != nil {
 			t.Fatal(err)
 		}
 	})
@@ -216,7 +216,7 @@ func TestObjectUpdateWithQuery(t *testing.T) {
 		Location:   &GeoPoint{1, 2},
 	}
 
-	if _, err := testC.Class("Meeting").Create(&meeting); err != nil {
+	if _, err := client.Class("Meeting").Create(&meeting); err != nil {
 		t.Fatal(err)
 	}
 
@@ -227,12 +227,12 @@ func TestObjectUpdateWithQuery(t *testing.T) {
 		Date:     time.Now(),
 	}
 
-	if err := testC.Object(meeting).UpdateWithQuery(diff, testC.Class("Meeting").NewQuery().EqualTo("progress", 13.5)); err != nil {
+	if err := client.Object(meeting).UpdateWithQuery(diff, client.Class("Meeting").NewQuery().EqualTo("progress", 13.5)); err != nil {
 		t.Fatal(err)
 	}
 
 	newMeeting := new(Meeting)
-	if err := testC.Object(meeting).Get(newMeeting); err != nil {
+	if err := client.Object(meeting).Get(newMeeting); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -247,16 +247,16 @@ func TestObjectDestroy(t *testing.T) {
 		Location:   &GeoPoint{1, 2},
 	}
 
-	if _, err := testC.Class("Meeting").Create(&meeting); err != nil {
+	if _, err := client.Class("Meeting").Create(&meeting); err != nil {
 		t.Fatal(err)
 	}
 
-	if err := testC.Object(meeting).Destroy(UseMasterKey(true)); err != nil {
+	if err := client.Object(meeting).Destroy(UseMasterKey(true)); err != nil {
 		t.Fatal(err)
 	}
 
 	newMeeting := new(Meeting)
-	if err := testC.Object(meeting).Get(newMeeting); err == nil {
+	if err := client.Object(meeting).Get(newMeeting); err == nil {
 		if newMeeting.ID != "" {
 			t.FailNow()
 		}

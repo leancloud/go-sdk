@@ -42,8 +42,8 @@ func TestHandler(t *testing.T) {
 	t.Run("function call", func(t *testing.T) {
 		resp, err := grequests.Get(cloudEndpoint+"/1.1/functions/hello", &grequests.RequestOptions{
 			Headers: map[string]string{
-				"X-LC-Id":  LeanAppID,
-				"X-LC-Key": LeanAppKey,
+				"X-LC-Id":  os.Getenv("LEANCLOUD_APP_ID"),
+				"X-LC-Key": os.Getenv("LEANCLOUD_APP_KEY"),
 			},
 		})
 		if err != nil {
@@ -68,7 +68,7 @@ func TestHandler(t *testing.T) {
 
 	t.Run("function call with sessionToken", func(t *testing.T) {
 		user := new(User)
-		if err := testC.Users.ID(testUserID).Get(user, UseMasterKey(true)); err != nil {
+		if err := client.Users.ID(testUserID).Get(user, UseMasterKey(true)); err != nil {
 			t.Fatal(err)
 		}
 
