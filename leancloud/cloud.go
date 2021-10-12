@@ -138,7 +138,7 @@ func Run(name string, object interface{}, runOptions ...RunOption) (interface{},
 		v.apply(&options)
 	}
 
-	if options["sessionToken"] != "" && options["user"] != nil {
+	if options["sessionToken"] != nil && options["user"] != nil {
 		return nil, fmt.Errorf("unable to set both of sessionToken & User")
 	}
 

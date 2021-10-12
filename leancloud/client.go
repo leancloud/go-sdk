@@ -38,7 +38,7 @@ func NewClient(options *ClientOptions) *Client {
 
 	if !strings.HasSuffix(options.AppID, "MdYXbMMI") {
 		if c.serverURL == "" {
-			panic(fmt.Errorf("please set API's serverURL for China region or legacy app"))
+			panic(fmt.Errorf("please set API's serverURL"))
 		}
 	}
 
