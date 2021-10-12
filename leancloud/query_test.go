@@ -82,3 +82,76 @@ func TestQueryCount(t *testing.T) {
 		}
 	}
 }
+
+func TestQueryExists(t *testing.T) {
+	meeting := Meeting{
+		Title:      "Team Meeting",
+		Number:     1,
+		Progress:   12.5,
+		Date:       time.Now(),
+		Attachment: []byte("There is nothing attachable."),
+		Location:   &GeoPoint{1, 2},
+	}
+
+	if _, err := client.Class("Meeting").Create(&meeting); err != nil {
+		t.Fatal(err)
+	}
+
+	if count, err := client.Class("Meeting").NewQuery().Exists("progress").Count(); err != nil {
+		t.Fatal(err)
+	} else {
+		if count < 1 {
+			t.Fatal("unexpected count of results")
+		}
+	}
+}
+
+func TestQueryNotExists(t *testing.T) {
+	meeting := Meeting{
+		Title:      "Team Meeting",
+		Number:     1,
+		Date:       time.Now(),
+		Attachment: []byte("There is nothing attachable."),
+		Location:   &GeoPoint{1, 2},
+	}
+
+	if _, err := client.Class("Meeting").Create(&meeting); err != nil {
+		t.Fatal(err)
+	}
+
+	if count, err := client.Class("Meeting").NewQuery().NotExists("progress").Count(); err != nil {
+		t.Fatal(err)
+	} else {
+		if count < 1 {
+			t.Fatal("unexpected count of results")
+		}
+	}
+}
+
+type room struct {
+	Object
+	Name    string `json:"name"`
+	Meeting interface{}
+}
+
+func TestQueryMatchesQuery(t *testing.T) {
+	res := []room{}
+	innerQuery := client.Class("Meeting").NewQuery().EqualTo("title", "meeting1")
+	client.Class("room").NewQuery().MatchesQuery("meeting", innerQuery).Find(&res)
+	if len(res) < 1 || res[0].Name != "会议室1" {
+		t.Fatal("unexpected count of results or wrong results")
+	}
+}
+func TestQueryNotMatchesQuery(t *testing.T) {
+	res := []room{}
+	innerQuery := client.Class("Meeting").NewQuery().EqualTo("title", "meeting1")
+	client.Class("room").NewQuery().NotMatchesQuery("meeting", innerQuery).Find(&res)
+	if len(res) < 1 {
+		t.Fatal("unexpected count of results")
+	}
+	for _, v := range res {
+		if v.Name == "会议室1" {
+			t.Fatal("wrong results")
+		}
+	}
+}
