@@ -13,14 +13,12 @@ func (client *Client) User(user interface{}) *UserRef {
 			c:     client,
 			class: "users",
 			ID:    meta.ID,
-			token: meta.SessionToken,
 		}
 	}
 	return nil
 }
 
 func (ref *Users) ID(id string) *UserRef {
-	//todo: fetch user by its id?
 	return &UserRef{
 		c:     ref.c,
 		class: "users",
@@ -32,7 +30,6 @@ func (ref *UserRef) Get(user interface{}, authOptions ...AuthOption) error {
 	if ref == nil || ref.ID == "" || ref.class == "" {
 		return nil
 	}
-	ref.addSession(&authOptions)
 	if err := objectGet(ref, user, authOptions...); err != nil {
 		return err
 	}
@@ -44,7 +41,6 @@ func (ref *UserRef) Set(key string, value interface{}, authOptions ...AuthOption
 	if ref == nil || ref.ID == "" || ref.class == "" {
 		return nil
 	}
-	ref.addSession(&authOptions)
 	if err := objectSet(ref, key, value, authOptions...); err != nil {
 		return err
 	}
@@ -56,7 +52,6 @@ func (ref *UserRef) Update(diff interface{}, authOptions ...AuthOption) error {
 	if ref == nil || ref.ID == "" || ref.class == "" {
 		return nil
 	}
-	ref.addSession(&authOptions)
 	if err := objectUpdate(ref, diff, authOptions...); err != nil {
 		return err
 	}
@@ -68,7 +63,6 @@ func (ref *UserRef) UpdateWithQuery(diff interface{}, query *Query, authOptions 
 	if ref == nil || ref.ID == "" || ref.class == "" {
 		return nil
 	}
-	ref.addSession(&authOptions)
 	if err := objectUpdateWithQuery(ref, diff, query, authOptions...); err != nil {
 		return err
 	}
@@ -80,17 +74,9 @@ func (ref *UserRef) Destroy(authOptions ...AuthOption) error {
 	if ref == nil || ref.ID == "" || ref.class == "" {
 		return nil
 	}
-	ref.addSession(&authOptions)
 	if err := objectDestroy(ref, authOptions...); err != nil {
 		return err
 	}
 
 	return nil
-}
-
-func (ref *UserRef) addSession(authOptions *([]AuthOption)) *([]AuthOption) {
-	if ref.token != "" {
-		*authOptions = append(*authOptions, &authOption{sessionToken: ref.token})
-	}
-	return authOptions
 }

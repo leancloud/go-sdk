@@ -107,9 +107,10 @@ var functions map[string]*functionType
 
 func init() {
 	functions = make(map[string]*functionType)
+	client = NewEnvClient()
 }
 
-// Define declares an Cloud Function with name & options of definition
+// Define declares a Cloud Function with name & options of definition
 func Define(name string, fn func(*FunctionRequest) (interface{}, error), defineOptions ...DefineOption) {
 	if functions[name] != nil {
 		panic(fmt.Errorf("%s alreay defined", name))

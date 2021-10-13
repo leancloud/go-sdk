@@ -29,7 +29,7 @@ type ClientOptions struct {
 
 // NewClient constructs a client from parameters
 func NewClient(options *ClientOptions) *Client {
-	c := &Client{
+	client := &Client{
 		appID:     options.AppID,
 		appKey:    options.AppKey,
 		masterKey: options.MasterKey,
@@ -37,7 +37,7 @@ func NewClient(options *ClientOptions) *Client {
 	}
 
 	if !strings.HasSuffix(options.AppID, "MdYXbMMI") {
-		if c.serverURL == "" {
+		if client.serverURL == "" {
 			panic(fmt.Errorf("please set API's serverURL"))
 		}
 	}
@@ -45,14 +45,13 @@ func NewClient(options *ClientOptions) *Client {
 	_, debugEnabled := os.LookupEnv("LEANCLOUD_DEBUG")
 
 	if debugEnabled {
-		c.requestLogger = log.New(os.Stdout, "", log.LstdFlags)
+		client.requestLogger = log.New(os.Stdout, "", log.LstdFlags)
 	}
 
-	c.Users.c = c
-	c.Files.c = c
-	c.Roles.c = c
-	client = c
-	return c
+	client.Users.c = client
+	client.Files.c = client
+	client.Roles.c = client
+	return client
 }
 
 // NewEnvClient constructs a client from environment variables
