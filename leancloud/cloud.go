@@ -64,6 +64,8 @@ type RunOption interface {
 
 type runOption struct {
 	remote       bool
+	rpc          bool
+	engine       *engine
 	user         *User
 	sessionToken string
 }
@@ -79,13 +81,6 @@ func (option *runOption) apply(runOption *map[string]interface{}) {
 
 	if option.sessionToken != "" {
 		(*runOption)["sessionToken"] = option.sessionToken
-	}
-}
-
-// WithRemote executes the Cloud Function from remote
-func WithRemote() RunOption {
-	return &runOption{
-		remote: true,
 	}
 }
 
@@ -115,26 +110,67 @@ func (engine *engine) Init(client *Client) {
 }
 
 // Define declares a Cloud Function with name & options of definition
-func Define(name string, fn func(*FunctionRequest) (interface{}, error), defineOptions ...DefineOption) {
-	if functions[name] != nil {
+func (engine *engine) Define(name string, fn func(*FunctionRequest) (interface{}, error), defineOptions ...DefineOption) {
+	if engine.functions[name] != nil {
 		panic(fmt.Errorf("%s alreay defined", name))
 	}
 
-	functions[name] = new(functionType)
-	functions[name].defineOption = map[string]interface{}{
+	engine.functions[name] = new(functionType)
+	engine.functions[name].defineOption = map[string]interface{}{
 		"fetchUser": true,
 		"internal":  false,
 	}
 
 	for _, v := range defineOptions {
-		v.apply(functions[name])
+		v.apply(engine.functions[name])
 	}
 
-	functions[name].call = fn
+	engine.functions[name].call = fn
 }
 
-// Run executes a Cloud Function with options
-func Run(name string, object interface{}, runOptions ...RunOption) (interface{}, error) {
+// Call cloud function locally
+func (engine *engine) Run(name string, params interface{}, runOptions ...RunOption) (interface{}, error) {
+	return callCloudFunction(engine.c, name, params, (append(runOptions, &runOption{
+		engine: engine,
+	}))...)
+}
+
+// Call cloud function locally, bind response into `results`
+func (engine *engine) RPC(name string, params interface{}, results interface{}, runOptions ...RunOption) error {
+	response, err := callCloudFunction(engine.c, name, params, (append(runOptions, &runOption{
+		rpc:    true,
+		engine: engine,
+	}))...)
+
+	if err := bind(reflect.Indirect(reflect.ValueOf(response)), reflect.Indirect(reflect.ValueOf(results))); err != nil {
+		return nil
+	}
+
+	return err
+}
+
+// Call cloud funcion remotely
+func (client *Client) Run(name string, params interface{}, runOptions ...RunOption) (interface{}, error) {
+	return callCloudFunction(client, name, params, (append(runOptions, &runOption{
+		remote: true,
+	}))...)
+}
+
+// Call cloud function remotely, bind response into `results`
+func (client *Client) RPC(name string, params interface{}, results interface{}, runOptions ...RunOption) error {
+	response, err := callCloudFunction(client, name, params, (append(runOptions, &runOption{
+		rpc:    true,
+		remote: true,
+	}))...)
+
+	if err := bind(reflect.Indirect(reflect.ValueOf(response)), reflect.Indirect(reflect.ValueOf(results))); err != nil {
+		return nil
+	}
+
+	return err
+}
+
+func callCloudFunction(client *Client, name string, params interface{}, runOptions ...RunOption) (interface{}, error) {
 	options := make(map[string]interface{})
 	sessionToken := ""
 	var currentUser *User
@@ -142,6 +178,8 @@ func Run(name string, object interface{}, runOptions ...RunOption) (interface{},
 	for _, v := range runOptions {
 		v.apply(&options)
 	}
+
+	isRpc := options["rpc"] != nil && options["rpc"] != false
 
 	if options["sessionToken"] != nil && options["user"] != nil {
 		return nil, fmt.Errorf("unable to set both of sessionToken & User")
@@ -158,115 +196,45 @@ func Run(name string, object interface{}, runOptions ...RunOption) (interface{},
 	if options["remote"] == true {
 		var err error
 		var resp *grequests.Response
-		path := fmt.Sprint("/1.1/functions/", name)
-		reqOption := client.getRequestOptions()
-		reqOption.JSON = object
-		if sessionToken != "" {
-			resp, err = client.request(methodPost, path, reqOption, UseSessionToken(sessionToken))
-		} else if currentUser != nil {
-			resp, err = client.request(methodPost, path, reqOption, UseUser(currentUser))
+		var path string
+
+		reqOptions := client.getRequestOptions()
+
+		if isRpc {
+			path = fmt.Sprint("/1.1/call/", name)
+			reqOptions.JSON = encode(params, true)
 		} else {
-			resp, err = client.request(methodPost, path, reqOption)
+			path = fmt.Sprint("/1.1/functions/", name)
+			reqOptions.JSON = params
 		}
+
+		if sessionToken != "" {
+			resp, err = client.request(methodPost, path, reqOptions, UseSessionToken(sessionToken))
+		} else if currentUser != nil {
+			resp, err = client.request(methodPost, path, reqOptions, UseUser(currentUser))
+		} else {
+			resp, err = client.request(methodPost, path, reqOptions)
+		}
+
 		if err != nil {
 			return nil, err
 		}
 
-		respJSON := new(functionResponse)
+		respJSON := &functionResponse{}
+
 		if err := json.Unmarshal(resp.Bytes(), respJSON); err != nil {
 			return nil, err
 		}
 
-		return respJSON.Result, err
+		if isRpc {
+			return decode(respJSON.Result)
+		} else {
+			return respJSON.Result, err
+		}
 	}
 
-	if functions[name] == nil {
+	if options["engine"].(*engine).functions[name] == nil {
 		return nil, fmt.Errorf("no such cloud function %s", name)
-	}
-
-	request := FunctionRequest{
-		Params: object,
-		Meta: map[string]string{
-			"remoteAddr": "",
-		},
-	}
-
-	if sessionToken != "" {
-		request.SessionToken = sessionToken
-		user, err := client.Users.Become(sessionToken)
-		if err != nil {
-			return nil, err
-		}
-		request.CurrentUser = user
-	}
-
-	if currentUser != nil {
-		request.CurrentUser = currentUser
-		request.SessionToken = currentUser.SessionToken
-	}
-
-	return functions[name].call(&request)
-}
-
-// RPC executes a Cloud Function with serialization/deserialization Object if possible
-func RPC(name string, params interface{}, results interface{}, runOptions ...RunOption) error {
-	options := make(map[string]interface{})
-	sessionToken := ""
-	var currentUser *User
-
-	for _, v := range runOptions {
-		v.apply(&options)
-	}
-
-	if options["sessionToken"] != nil && options["user"] != nil {
-		return fmt.Errorf("unable to set both of sessionToken & User")
-	}
-
-	if options["sessionToken"] != nil {
-		sessionToken = options["sessionToken"].(string)
-	}
-
-	if options["user"] != nil {
-		currentUser = options["user"].(*User)
-	}
-
-	if options["remote"] == true {
-		var err error
-		var resp *grequests.Response
-		path := fmt.Sprint("/1.1/call/", name)
-		reqOption := client.getRequestOptions()
-		reqOption.JSON = encode(params, true)
-		if sessionToken != "" {
-			resp, err = client.request(methodPost, path, reqOption, UseSessionToken(sessionToken))
-		} else if currentUser != nil {
-			resp, err = client.request(methodPost, path, reqOption, UseUser(currentUser))
-		} else {
-			resp, err = client.request(methodPost, path, reqOption)
-		}
-
-		if err != nil {
-			return err
-		}
-
-		respJSON := new(functionResponse)
-		if err := json.Unmarshal(resp.Bytes(), respJSON); err != nil {
-			return err
-		}
-
-		res, err := decode(respJSON.Result)
-		if err != nil {
-			return nil
-		}
-
-		if err := bind(reflect.Indirect(reflect.ValueOf(res)), reflect.Indirect(reflect.ValueOf(results))); err != nil {
-			return nil
-		}
-
-		return nil
-	}
-
-	if functions[name] == nil {
-		return fmt.Errorf("no such cloud function %s", name)
 	}
 
 	request := FunctionRequest{
@@ -280,24 +248,13 @@ func RPC(name string, params interface{}, results interface{}, runOptions ...Run
 		request.SessionToken = sessionToken
 		user, err := client.Users.Become(sessionToken)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		request.CurrentUser = user
-	}
-
-	if currentUser != nil {
+	} else if currentUser != nil {
 		request.CurrentUser = currentUser
 		request.SessionToken = currentUser.SessionToken
 	}
 
-	res, err := functions[name].call(&request)
-	if err != nil {
-		return err
-	}
-
-	if err := bind(reflect.Indirect(reflect.ValueOf(res)), reflect.Indirect(reflect.ValueOf(results))); err != nil {
-		return err
-	}
-
-	return nil
+	return options["engine"].(*engine).functions[name].call(&request)
 }

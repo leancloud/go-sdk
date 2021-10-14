@@ -4,7 +4,6 @@ type UserRef struct {
 	c     *Client
 	class string
 	ID    string
-	token string
 }
 
 func (client *Client) User(user interface{}) *UserRef {
