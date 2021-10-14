@@ -8,6 +8,13 @@ import (
 	"github.com/levigross/grequests"
 )
 
+type engine struct {
+	c         *Client
+	functions map[string]*functionType
+}
+
+var Engine engine
+
 // FunctionRequest contains request information of Cloud Function
 type FunctionRequest struct {
 	Params       interface{}
@@ -101,13 +108,10 @@ type functionType struct {
 	defineOption map[string]interface{}
 }
 
-var client *Client
-
-var functions map[string]*functionType
-
-func init() {
-	functions = make(map[string]*functionType)
-	client = NewEnvClient()
+// Init the LeanEngine part of Go SDK
+func (engine *engine) Init(client *Client) {
+	engine.c = client
+	engine.functions = make(map[string]*functionType)
 }
 
 // Define declares a Cloud Function with name & options of definition

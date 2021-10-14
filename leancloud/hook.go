@@ -2,7 +2,6 @@ package leancloud
 
 import (
 	"fmt"
-	"os"
 )
 
 // ClassHookRequest contains object and user passed by Class hook calling
@@ -34,27 +33,19 @@ var classHookmap = map[string]string{
 	"onLogin":      "__on_login_",
 }
 
-func hookAuthenticate(key string) bool {
-	if key != os.Getenv("LEANCLOUD_APP_HOOK_KEY") {
-		return false
-	}
-
-	return true
-}
-
-func defineClassHook(class, hook string, fn func(*ClassHookRequest) (interface{}, error)) {
+func (engine *engine) defineClassHook(class, hook string, fn func(*ClassHookRequest) (interface{}, error)) {
 	name := fmt.Sprint(hook, class)
-	if functions[name] != nil {
+	if engine.functions[name] != nil {
 		panic(fmt.Errorf("LeanEngine: %s of %s already defined", hook, class))
 	}
 
-	functions[name] = new(functionType)
-	functions[name].defineOption = map[string]interface{}{
+	engine.functions[name] = new(functionType)
+	engine.functions[name].defineOption = map[string]interface{}{
 		"fetchUser": true,
 		"internal":  false,
 		"hook":      true,
 	}
-	functions[name].call = func(r *FunctionRequest) (interface{}, error) {
+	engine.functions[name].call = func(r *FunctionRequest) (interface{}, error) {
 		if r.Params != nil {
 			req := new(ClassHookRequest)
 			params, ok := r.Params.(map[string]interface{})
@@ -81,44 +72,44 @@ func defineClassHook(class, hook string, fn func(*ClassHookRequest) (interface{}
 }
 
 // BeforeSave will be called before saving an Object
-func BeforeSave(class string, fn func(*ClassHookRequest) (interface{}, error)) {
-	defineClassHook(class, "__before_save_for_", fn)
+func (engine *engine) BeforeSave(class string, fn func(*ClassHookRequest) (interface{}, error)) {
+	engine.defineClassHook(class, "__before_save_for_", fn)
 }
 
 // AfterSave will be called after Object saved
-func AfterSave(class string, fn func(*ClassHookRequest) error) {
-	defineClassHook(class, "__after_save_for_", func(r *ClassHookRequest) (interface{}, error) {
+func (engine *engine) AfterSave(class string, fn func(*ClassHookRequest) error) {
+	engine.defineClassHook(class, "__after_save_for_", func(r *ClassHookRequest) (interface{}, error) {
 		return nil, fn(r)
 	})
 }
 
 // BeforeUpdate will be called before updating an Object
-func BeforeUpdate(class string, fn func(*ClassHookRequest) (interface{}, error)) {
-	defineClassHook(class, "__before_update_for_", fn)
+func (engine *engine) BeforeUpdate(class string, fn func(*ClassHookRequest) (interface{}, error)) {
+	engine.defineClassHook(class, "__before_update_for_", fn)
 }
 
 // AfterUpdate will be called after Object updated
-func AfterUpdate(class string, fn func(*ClassHookRequest) error) {
-	defineClassHook(class, "__after_update_for_", func(r *ClassHookRequest) (interface{}, error) {
+func (engine *engine) AfterUpdate(class string, fn func(*ClassHookRequest) error) {
+	engine.defineClassHook(class, "__after_update_for_", func(r *ClassHookRequest) (interface{}, error) {
 		return nil, fn(r)
 	})
 }
 
 // BeforeDelete will be called before deleting an Object
-func BeforeDelete(class string, fn func(*ClassHookRequest) (interface{}, error)) {
-	defineClassHook(class, "__before_delete_for_", fn)
+func (engine *engine) BeforeDelete(class string, fn func(*ClassHookRequest) (interface{}, error)) {
+	engine.defineClassHook(class, "__before_delete_for_", fn)
 }
 
 // AfterDelete will be called after Object deleted
-func AfterDelete(class string, fn func(*ClassHookRequest) error) {
-	defineClassHook(class, "__after_delete_for_", func(r *ClassHookRequest) (interface{}, error) {
+func (engine *engine) AfterDelete(class string, fn func(*ClassHookRequest) error) {
+	engine.defineClassHook(class, "__after_delete_for_", func(r *ClassHookRequest) (interface{}, error) {
 		return nil, fn(r)
 	})
 }
 
 // OnVerified will be called when user was online
-func OnVerified(verifyType string, fn func(*ClassHookRequest) error) {
-	Define(fmt.Sprint("__on_verified_", verifyType), func(r *FunctionRequest) (interface{}, error) {
+func (engine *engine) OnVerified(verifyType string, fn func(*ClassHookRequest) error) {
+	engine.Define(fmt.Sprint("__on_verified_", verifyType), func(r *FunctionRequest) (interface{}, error) {
 		params, ok := r.Params.(map[string]interface{})
 		if !ok {
 			return nil, fmt.Errorf("invalid request body")
@@ -136,8 +127,8 @@ func OnVerified(verifyType string, fn func(*ClassHookRequest) error) {
 }
 
 // OnLogin will be called when user logged in
-func OnLogin(fn func(*ClassHookRequest) error) {
-	Define("__on_login__User", func(r *FunctionRequest) (interface{}, error) {
+func (engine *engine) OnLogin(fn func(*ClassHookRequest) error) {
+	engine.Define("__on_login__User", func(r *FunctionRequest) (interface{}, error) {
 		params, ok := r.Params.(map[string]interface{})
 		if !ok {
 			return nil, fmt.Errorf("invalid request body")
@@ -154,8 +145,8 @@ func OnLogin(fn func(*ClassHookRequest) error) {
 	})
 }
 
-func defineRealtimeHook(name string, fn func(*RealtimeHookRequest) (interface{}, error)) {
-	Define(name, func(r *FunctionRequest) (interface{}, error) {
+func (engine *engine) defineRealtimeHook(name string, fn func(*RealtimeHookRequest) (interface{}, error)) {
+	engine.Define(name, func(r *FunctionRequest) (interface{}, error) {
 		params, ok := r.Params.(map[string]interface{})
 		if !ok {
 			return nil, fmt.Errorf("invalid request body")
@@ -166,69 +157,69 @@ func defineRealtimeHook(name string, fn func(*RealtimeHookRequest) (interface{},
 		}
 		return fn(&req)
 	})
-	functions[name].defineOption["hook"] = true
+	engine.functions[name].defineOption["hook"] = true
 }
 
-func OnIMMessageReceived(fn func(*RealtimeHookRequest) (interface{}, error)) {
-	defineRealtimeHook("_messageReceived", fn)
+func (engine *engine) OnIMMessageReceived(fn func(*RealtimeHookRequest) (interface{}, error)) {
+	engine.defineRealtimeHook("_messageReceived", fn)
 }
 
-func OnIMReceiversOffline(fn func(*RealtimeHookRequest) (interface{}, error)) {
-	defineRealtimeHook("_receiverOffline", fn)
+func (engine *engine) OnIMReceiversOffline(fn func(*RealtimeHookRequest) (interface{}, error)) {
+	engine.defineRealtimeHook("_receiverOffline", fn)
 }
 
-func OnIMMessageSent(fn func(*RealtimeHookRequest) error) {
-	defineRealtimeHook("_messageSent", func(r *RealtimeHookRequest) (interface{}, error) {
+func (engine *engine) OnIMMessageSent(fn func(*RealtimeHookRequest) error) {
+	engine.defineRealtimeHook("_messageSent", func(r *RealtimeHookRequest) (interface{}, error) {
 		return nil, fn(r)
 	})
 }
 
-func OnIMMessageUpdate(fn func(*RealtimeHookRequest) (interface{}, error)) {
-	defineRealtimeHook("_messageUpdate", fn)
+func (engine *engine) OnIMMessageUpdate(fn func(*RealtimeHookRequest) (interface{}, error)) {
+	engine.defineRealtimeHook("_messageUpdate", fn)
 }
 
-func OnIMConversationStart(fn func(*RealtimeHookRequest) (interface{}, error)) {
-	defineRealtimeHook("_conversationStart", fn)
+func (engine *engine) OnIMConversationStart(fn func(*RealtimeHookRequest) (interface{}, error)) {
+	engine.defineRealtimeHook("_conversationStart", fn)
 }
 
-func OnIMConversationStarted(fn func(*RealtimeHookRequest) error) {
-	defineRealtimeHook("_conversationStarted", func(r *RealtimeHookRequest) (interface{}, error) {
+func (engine *engine) OnIMConversationStarted(fn func(*RealtimeHookRequest) error) {
+	engine.defineRealtimeHook("_conversationStarted", func(r *RealtimeHookRequest) (interface{}, error) {
 		return nil, fn(r)
 	})
 }
 
-func OnIMConversationAdd(fn func(*RealtimeHookRequest) (interface{}, error)) {
-	defineRealtimeHook("_conversationStarted", fn)
+func (engine *engine) OnIMConversationAdd(fn func(*RealtimeHookRequest) (interface{}, error)) {
+	engine.defineRealtimeHook("_conversationStarted", fn)
 }
 
-func OnIMConversationRemove(fn func(*RealtimeHookRequest) (interface{}, error)) {
-	defineRealtimeHook("_conversationRemove", fn)
+func (engine *engine) OnIMConversationRemove(fn func(*RealtimeHookRequest) (interface{}, error)) {
+	engine.defineRealtimeHook("_conversationRemove", fn)
 }
 
-func OnIMConversationAdded(fn func(*RealtimeHookRequest) error) {
-	defineRealtimeHook("_conversationAdded", func(r *RealtimeHookRequest) (interface{}, error) {
+func (engine *engine) OnIMConversationAdded(fn func(*RealtimeHookRequest) error) {
+	engine.defineRealtimeHook("_conversationAdded", func(r *RealtimeHookRequest) (interface{}, error) {
 		return nil, fn(r)
 	})
 }
 
-func OnIMConversationRemoved(fn func(*RealtimeHookRequest) error) {
-	defineRealtimeHook("_conversationRemoved", func(r *RealtimeHookRequest) (interface{}, error) {
+func (engine *engine) OnIMConversationRemoved(fn func(*RealtimeHookRequest) error) {
+	engine.defineRealtimeHook("_conversationRemoved", func(r *RealtimeHookRequest) (interface{}, error) {
 		return nil, fn(r)
 	})
 }
 
-func OnIMConversationUpdate(fn func(*RealtimeHookRequest) (interface{}, error)) {
-	defineRealtimeHook("_conversationUpdate", fn)
+func (engine *engine) OnIMConversationUpdate(fn func(*RealtimeHookRequest) (interface{}, error)) {
+	engine.defineRealtimeHook("_conversationUpdate", fn)
 }
 
-func OnIMClientOnline(fn func(*RealtimeHookRequest) error) {
-	defineRealtimeHook("_clientOnline", func(r *RealtimeHookRequest) (interface{}, error) {
+func (engine *engine) OnIMClientOnline(fn func(*RealtimeHookRequest) error) {
+	engine.defineRealtimeHook("_clientOnline", func(r *RealtimeHookRequest) (interface{}, error) {
 		return nil, fn(r)
 	})
 }
 
-func OnIMClientOffline(fn func(*RealtimeHookRequest) error) {
-	defineRealtimeHook("_clientOffline", func(r *RealtimeHookRequest) (interface{}, error) {
+func (engine *engine) OnIMClientOffline(fn func(*RealtimeHookRequest) error) {
+	engine.defineRealtimeHook("_clientOffline", func(r *RealtimeHookRequest) (interface{}, error) {
 		return nil, fn(r)
 	})
 }
