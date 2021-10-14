@@ -74,7 +74,7 @@ func (q *Query) Order(keys ...string) *Query {
 }
 
 func (q *Query) Or(queries ...*Query) *Query {
-	qArray := make([]map[string]interface{}, 1)
+	qArray := []map[string]interface{}{}
 	for _, v := range queries {
 		qArray = append(qArray, v.where)
 	}
@@ -83,7 +83,7 @@ func (q *Query) Or(queries ...*Query) *Query {
 }
 
 func (q *Query) And(queries ...*Query) *Query {
-	qArray := make([]map[string]interface{}, 1)
+	qArray := []map[string]interface{}{}
 	for _, v := range queries {
 		qArray = append(qArray, v.where)
 	}
@@ -127,14 +127,12 @@ func (q *Query) Select(keys ...string) *Query {
 }
 
 func (q *Query) MatchesQuery(key string, query *Query) *Query {
-	q.where[key] = map[string]interface{}{
-		"$select": map[string]interface{}{
-			"query": map[string]interface{}{
-				"className": query.class,
-				"where":     query.where,
-			},
-		},
-	}
+	q.where[key] = wrapCondition("$inQuery", query, "")
+	return q
+}
+
+func (q *Query) NotMatchesQuery(key string, query *Query) *Query {
+	q.where[key] = wrapCondition("$notInQuery", query, "")
 	return q
 }
 
@@ -158,6 +156,14 @@ func (q *Query) EqualTo(key string, value interface{}) *Query {
 
 func (q *Query) NotEqualTo(key string, value interface{}) *Query {
 	q.where[key] = wrapCondition("$ne", value, "")
+	return q
+}
+func (q *Query) Exists(key string) *Query {
+	q.where[key] = wrapCondition("$exists", "", "")
+	return q
+}
+func (q *Query) NotExists(key string) *Query {
+	q.where[key] = wrapCondition("$notexists", "", "")
 	return q
 }
 
@@ -231,12 +237,38 @@ func wrapCondition(verb string, value interface{}, options string) interface{} {
 			"$regex":   value,
 			"$options": options,
 		}
+	case "$exists":
+		return map[string]interface{}{
+			"$exists": true,
+		}
+	case "$notexists":
+		return map[string]interface{}{
+			"$exists": false,
+		}
+	case "$inQuery":
+		queryMap, err := formatQuery(value, false, false)
+		if err != nil {
+			return nil
+		}
+		queryMap["className"] = value.(*Query).class.Name
+		return map[string]interface{}{
+			"$inQuery": queryMap,
+		}
+	case "$notInQuery":
+		queryMap, err := formatQuery(value, false, false)
+		if err != nil {
+			return nil
+		}
+		queryMap["className"] = value.(*Query).class.Name
+		return map[string]interface{}{
+			"$notInQuery": queryMap,
+		}
 	default:
 		switch v := value.(type) {
 		case time.Time:
 			return encodeDate(&v)
 		default:
-			return value
+			return encode(value, false)
 		}
 	}
 }
@@ -356,4 +388,18 @@ func wrapParams(query interface{}, count, first bool) (map[string]string, error)
 	}
 
 	return params, nil
+}
+
+func formatQuery(query interface{}, count, first bool) (map[string]interface{}, error) {
+	paramsInString, err := wrapParams(query, count, first)
+	if err != nil {
+		return nil, err
+	}
+	paramsInInterface := make(map[string]interface{})
+	for k, v := range paramsInString {
+		paramsInInterface[k] = interface{}(v)
+	}
+	paramsInInterface["where"] = query.(*Query).where
+
+	return paramsInInterface, nil
 }

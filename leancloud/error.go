@@ -11,7 +11,7 @@ import (
 // CloudError contains user-defined error
 type CloudError struct {
 	Code       int    `json:"code"`
-	Message    string `json:"message"`
+	Message    string `json:"error"`
 	StatusCode int    `json:"-"`
 	callStack  []byte
 }

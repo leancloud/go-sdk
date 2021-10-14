@@ -101,7 +101,7 @@ func TestHandler(t *testing.T) {
 		}
 	})
 
-	t.Run("function call shoud not found", func(t *testing.T) {
+	t.Run("function call should not found", func(t *testing.T) {
 		resp, err := grequests.Get(cloudEndpoint+"/1.1/functions/not_found", nil)
 		if err != nil {
 			if resp.StatusCode != http.StatusNotFound {

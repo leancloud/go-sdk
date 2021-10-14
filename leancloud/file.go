@@ -25,7 +25,7 @@ type File struct {
 	Meatadata map[string]interface{} `json:"metadata"`
 }
 
-func (file *File) fetchOwner(authOptions ...AuthOption) (*User, error) {
+func (file *File) fetchOwner(client *Client, authOptions ...AuthOption) (*User, error) {
 	options := client.getRequestOptions()
 	for _, authOption := range authOptions {
 		authOption.apply(client, options)
