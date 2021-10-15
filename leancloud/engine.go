@@ -2,6 +2,7 @@ package leancloud
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"reflect"
 
@@ -71,7 +72,7 @@ type runOption struct {
 }
 
 func (option *runOption) apply(runOption *map[string]interface{}) {
-	if option.remote == true {
+	if option.remote {
 		(*runOption)["remote"] = true
 	}
 
@@ -81,6 +82,14 @@ func (option *runOption) apply(runOption *map[string]interface{}) {
 
 	if option.sessionToken != "" {
 		(*runOption)["sessionToken"] = option.sessionToken
+	}
+
+	if option.engine != nil {
+		(*runOption)["engine"] = option.engine
+	}
+
+	if option.rpc {
+		(*runOption)["rpc"] = option.rpc
 	}
 }
 
@@ -103,10 +112,22 @@ type functionType struct {
 	defineOption map[string]interface{}
 }
 
+func init() {
+	Engine.functions = make(map[string]*functionType)
+}
+
 // Init the LeanEngine part of Go SDK
 func (engine *engine) Init(client *Client) {
 	engine.c = client
 	engine.functions = make(map[string]*functionType)
+}
+
+func (engine *engine) client() *Client {
+	if engine.c == nil {
+		panic(errors.New("not initialized (call leancloud.Engine.Init before use LeanEngine features)"))
+	}
+
+	return engine.c
 }
 
 // Define declares a Cloud Function with name & options of definition
@@ -130,14 +151,14 @@ func (engine *engine) Define(name string, fn func(*FunctionRequest) (interface{}
 
 // Call cloud function locally
 func (engine *engine) Run(name string, params interface{}, runOptions ...RunOption) (interface{}, error) {
-	return callCloudFunction(engine.c, name, params, (append(runOptions, &runOption{
+	return callCloudFunction(engine.client(), name, params, (append(runOptions, &runOption{
 		engine: engine,
 	}))...)
 }
 
 // Call cloud function locally, bind response into `results`
 func (engine *engine) RPC(name string, params interface{}, results interface{}, runOptions ...RunOption) error {
-	response, err := callCloudFunction(engine.c, name, params, (append(runOptions, &runOption{
+	response, err := callCloudFunction(engine.client(), name, params, (append(runOptions, &runOption{
 		rpc:    true,
 		engine: engine,
 	}))...)

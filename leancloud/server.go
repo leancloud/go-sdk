@@ -321,7 +321,7 @@ func (engine *engine) constructRequest(r *http.Request, name string, rpc bool) (
 	}
 
 	if engine.functions[name].defineOption["fetchUser"] == true && sessionToken != "" {
-		user, err := Engine.c.Users.Become(sessionToken)
+		user, err := Engine.client().Users.Become(sessionToken)
 		if err != nil {
 			return nil, err
 		}

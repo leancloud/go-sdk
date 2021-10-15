@@ -10,6 +10,7 @@ var client *Client
 
 func init() {
 	client = NewEnvClient()
+	Engine.Init(client)
 }
 
 func TestNewClient(t *testing.T) {
