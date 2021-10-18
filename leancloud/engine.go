@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
 	"reflect"
 
 	"github.com/levigross/grequests"
@@ -157,12 +158,13 @@ func init() {
 // Init the LeanEngine part of Go SDK
 func (engine *engine) Init(client *Client) {
 	engine.c = client
-	engine.functions = make(map[string]*functionType)
 }
 
 func (engine *engine) client() *Client {
 	if engine.c == nil {
-		panic(errors.New("not initialized (call leancloud.Engine.Init before use LeanEngine features)"))
+		err := errors.New("not initialized (call leancloud.Engine.Init before use LeanEngine features)")
+		fmt.Fprintf(os.Stderr, "Error: %s\n", err)
+		panic(err)
 	}
 
 	return engine.c

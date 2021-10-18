@@ -72,7 +72,7 @@ func (engine *engine) corsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (engine *engine) metadataHandler(w http.ResponseWriter, r *http.Request) {
-	if !validateMasterKey(r) {
+	if !engine.validateMasterKey(r) {
 		writeCloudError(w, r, CloudError{
 			Code:       http.StatusUnauthorized,
 			Message:    fmt.Sprintf("Master Key check failed, request from %s", r.RemoteAddr),
@@ -124,7 +124,7 @@ func (engine *engine) functionHandler(w http.ResponseWriter, r *http.Request, na
 	}
 
 	if engine.functions[name].defineOption["hook"] == true {
-		if !validateHookKey(r) {
+		if !engine.validateHookKey(r) {
 			writeCloudError(w, r, CloudError{
 				Code:       http.StatusUnauthorized,
 				Message:    fmt.Sprintf("Hook key check failed, request from %s", r.RemoteAddr),
@@ -135,9 +135,9 @@ func (engine *engine) functionHandler(w http.ResponseWriter, r *http.Request, na
 	}
 
 	if engine.functions[name].defineOption["internal"] == true {
-		if !validateMasterKey(r) {
-			if !validateHookKey(r) {
-				master, pass := validateSignature(r)
+		if !engine.validateMasterKey(r) {
+			if !engine.validateHookKey(r) {
+				master, pass := engine.validateSignature(r)
 				if !master || !pass {
 					writeCloudError(w, r, CloudError{
 						Code:       http.StatusUnauthorized,
@@ -150,9 +150,9 @@ func (engine *engine) functionHandler(w http.ResponseWriter, r *http.Request, na
 		}
 	}
 
-	if !validateAppKey(r) {
-		if !validateMasterKey(r) {
-			_, pass := validateSignature(r)
+	if !engine.validateAppKey(r) {
+		if !engine.validateMasterKey(r) {
+			_, pass := engine.validateSignature(r)
 			if !pass {
 				writeCloudError(w, r, CloudError{
 					Code:       http.StatusUnauthorized,
@@ -202,7 +202,7 @@ func (engine *engine) functionHandler(w http.ResponseWriter, r *http.Request, na
 }
 
 func (engine *engine) classHookHandler(w http.ResponseWriter, r *http.Request, class, hook string) {
-	if !validateHookKey(r) {
+	if !engine.validateHookKey(r) {
 		writeCloudError(w, r, CloudError{
 			Code:       http.StatusUnauthorized,
 			Message:    fmt.Sprintf("Hook key check failed, request from %s", r.RemoteAddr),
@@ -364,17 +364,17 @@ func (engine *engine) generateMetadata() ([]byte, error) {
 	return json.Marshal(meta)
 }
 
-func validateAppID(r *http.Request) bool {
+func (engine *engine) validateAppID(r *http.Request) bool {
 	if r.Header.Get("X-LC-Id") != "" {
-		if os.Getenv("LEANCLOUD_APP_ID") != r.Header.Get("X-LC-Id") {
+		if engine.client().appID != r.Header.Get("X-LC-Id") {
 			return false
 		}
 	} else if r.Header.Get("x-avoscloud-application-id") != "" {
-		if os.Getenv("LEANCLOUD_APP_ID") != r.Header.Get("x-avoscloud-application-id") {
+		if engine.client().appID != r.Header.Get("x-avoscloud-application-id") {
 			return false
 		}
 	} else if r.Header.Get("x-uluru-application-id") != "" {
-		if os.Getenv("LEANCLOUD_APP_ID") != r.Header.Get("x-uluru-application-id") {
+		if engine.client().appID != r.Header.Get("x-uluru-application-id") {
 			return false
 		}
 	} else {
@@ -384,21 +384,21 @@ func validateAppID(r *http.Request) bool {
 	return true
 }
 
-func validateAppKey(r *http.Request) bool {
-	if !validateAppID(r) {
+func (engine *engine) validateAppKey(r *http.Request) bool {
+	if !engine.validateAppID(r) {
 		return false
 	}
 
 	if r.Header.Get("X-LC-Key") != "" {
-		if os.Getenv("LEANCLOUD_APP_KEY") != r.Header.Get("X-LC-Key") {
+		if engine.client().appKey != r.Header.Get("X-LC-Key") {
 			return false
 		}
 	} else if r.Header.Get("x-avoscloud-application-key") != "" {
-		if os.Getenv("LEANCLOUD_APP_KEY") != r.Header.Get("x-avoscloud-application-key") {
+		if engine.client().appKey != r.Header.Get("x-avoscloud-application-key") {
 			return false
 		}
 	} else if r.Header.Get("x-uluru-application-key") != "" {
-		if os.Getenv("LEANCLOUD_APP_KEY") != r.Header.Get("x-uluru-application-key") {
+		if engine.client().appKey != r.Header.Get("x-uluru-application-key") {
 			return false
 		}
 	} else {
@@ -408,21 +408,21 @@ func validateAppKey(r *http.Request) bool {
 	return true
 }
 
-func validateMasterKey(r *http.Request) bool {
-	if !validateAppID(r) {
+func (engine *engine) validateMasterKey(r *http.Request) bool {
+	if !engine.validateAppID(r) {
 		return false
 	}
 
 	if r.Header.Get("X-LC-Key") != "" {
-		if strings.TrimSuffix(r.Header.Get("X-LC-Key"), ",master") != os.Getenv("LEANCLOUD_APP_MASTER_KEY") {
+		if strings.TrimSuffix(r.Header.Get("X-LC-Key"), ",master") != engine.client().masterKey {
 			return false
 		}
 	} else if r.Header.Get("x-avoscloud-master-key") != "" {
-		if r.Header.Get("x-avoscloud-master-key") != os.Getenv("LEANCLOUD_APP_MASTER_KEY") {
+		if r.Header.Get("x-avoscloud-master-key") != engine.client().masterKey {
 			return false
 		}
 	} else if r.Header.Get("x-uluru-master-key") != "" {
-		if r.Header.Get("x-uluru-master-key") != os.Getenv("LEANCLOUD_APP_MASTER_KEY") {
+		if r.Header.Get("x-uluru-master-key") != engine.client().masterKey {
 			return false
 		}
 	} else {
@@ -432,8 +432,8 @@ func validateMasterKey(r *http.Request) bool {
 	return true
 }
 
-func validateHookKey(r *http.Request) bool {
-	if !validateAppID(r) {
+func (engine *engine) validateHookKey(r *http.Request) bool {
+	if !engine.validateAppID(r) {
 		return false
 	}
 
@@ -444,9 +444,9 @@ func validateHookKey(r *http.Request) bool {
 	return true
 }
 
-func validateSignature(r *http.Request) (bool, bool) {
+func (engine *engine) validateSignature(r *http.Request) (bool, bool) {
 	var master, pass bool
-	if !validateAppID(r) {
+	if !engine.validateAppID(r) {
 		return master, pass
 	}
 
@@ -463,10 +463,10 @@ func validateSignature(r *http.Request) (bool, bool) {
 	signSlice := strings.Split(sign, ",")
 	var hash [16]byte
 	if len(signSlice) == 3 && signSlice[2] == "master" {
-		hash = md5.Sum([]byte(fmt.Sprint(signSlice[1], os.Getenv("LEANCLOUD_APP_MASTER_KEY"))))
+		hash = md5.Sum([]byte(fmt.Sprint(signSlice[1], engine.client().masterKey)))
 		master = true
 	} else {
-		hash = md5.Sum([]byte(fmt.Sprint(signSlice[1], os.Getenv("LEANCLOUD_APP_KEY"))))
+		hash = md5.Sum([]byte(fmt.Sprint(signSlice[1], engine.client().appKey)))
 	}
 	if signSlice[0] == fmt.Sprintf("%x", hash) {
 		pass = true
