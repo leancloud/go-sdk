@@ -4,17 +4,53 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"reflect"
 
 	"github.com/levigross/grequests"
 )
+
+type CloudEngine interface {
+	Init(client *Client)
+	Handler() http.Handler
+
+	Run(name string, params interface{}, runOptions ...RunOption) (interface{}, error)
+	RPC(name string, params interface{}, results interface{}, runOptions ...RunOption) error
+
+	Define(name string, fn func(*FunctionRequest) (interface{}, error), defineOptions ...DefineOption)
+
+	BeforeSave(class string, fn func(*ClassHookRequest) (interface{}, error))
+	AfterSave(class string, fn func(*ClassHookRequest) error)
+	BeforeUpdate(class string, fn func(*ClassHookRequest) (interface{}, error))
+	AfterUpdate(class string, fn func(*ClassHookRequest) error)
+	BeforeDelete(class string, fn func(*ClassHookRequest) (interface{}, error))
+	AfterDelete(class string, fn func(*ClassHookRequest) error)
+	OnVerified(verifyType string, fn func(*ClassHookRequest) error)
+	OnLogin(fn func(*ClassHookRequest) error)
+
+	OnIMMessageReceived(fn func(*RealtimeHookRequest) (interface{}, error))
+	OnIMReceiversOffline(fn func(*RealtimeHookRequest) (interface{}, error))
+	OnIMMessageSent(fn func(*RealtimeHookRequest) error)
+	OnIMMessageUpdate(fn func(*RealtimeHookRequest) (interface{}, error))
+	OnIMConversationStart(fn func(*RealtimeHookRequest) (interface{}, error))
+	OnIMConversationStarted(fn func(*RealtimeHookRequest) error)
+	OnIMConversationAdd(fn func(*RealtimeHookRequest) (interface{}, error))
+	OnIMConversationRemove(fn func(*RealtimeHookRequest) (interface{}, error))
+	OnIMConversationAdded(fn func(*RealtimeHookRequest) error)
+	OnIMConversationRemoved(fn func(*RealtimeHookRequest) error)
+	OnIMConversationUpdate(fn func(*RealtimeHookRequest) (interface{}, error))
+	OnIMClientOnline(fn func(*RealtimeHookRequest) error)
+	OnIMClientOffline(fn func(*RealtimeHookRequest) error)
+
+	client() *Client
+}
 
 type engine struct {
 	c         *Client
 	functions map[string]*functionType
 }
 
-var Engine engine
+var Engine CloudEngine
 
 // FunctionRequest contains request information of Cloud Function
 type FunctionRequest struct {
@@ -113,7 +149,9 @@ type functionType struct {
 }
 
 func init() {
-	Engine.functions = make(map[string]*functionType)
+	Engine = &engine{
+		functions: make(map[string]*functionType),
+	}
 }
 
 // Init the LeanEngine part of Go SDK
