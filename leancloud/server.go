@@ -25,7 +25,7 @@ type functionResponse struct {
 }
 
 // Handler takes all requests related to LeanEngine
-func (engine *engine) Handler(handler http.Handler) http.Handler {
+func (engine *engine) Handler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		uri := strings.Split(r.RequestURI, "/")
 		engine.corsHandler(w, r)

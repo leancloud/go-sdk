@@ -14,7 +14,7 @@ import (
 var cloudEndpoint = "http://localhost:3000"
 
 func TestMain(m *testing.M) {
-	go http.ListenAndServe(":3000", Engine.Handler(nil))
+	go http.ListenAndServe(":3000", Engine.Handler())
 
 	os.Exit(m.Run())
 }
@@ -32,7 +32,7 @@ func TestMetadataResponse(t *testing.T) {
 	}
 
 	for _, v := range metadata.Result {
-		if Engine.functions[v] == nil {
+		if Engine.(*engine).functions[v] == nil {
 			t.Fatal(fmt.Errorf("cannot found cloud function"))
 		}
 	}
