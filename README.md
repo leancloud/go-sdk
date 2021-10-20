@@ -21,3 +21,5 @@ Release:
 - Update `Version` in `leancloud/client.go`
 - `git tag v<major>.<minor>.<patch>`
 - Update pkg.go.dev via `GOPROXY=https://proxy.golang.org GO111MODULE=on go get github.com/leancloud/go-sdk@v<major>.<minor>.<patch>`
+- Write changelog on [GitHub Releases](https://github.com/leancloud/go-sdk/releases)
+- Upgrade [golang-getting-started](https://github.com/leancloud/golang-getting-started) to latest SDK
