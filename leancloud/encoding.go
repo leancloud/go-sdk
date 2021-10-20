@@ -598,14 +598,14 @@ func decodeObject(fields interface{}) (*Object, error) {
 	var decodedCreatedAt, decodedUpdatedAt time.Time
 	var ok bool
 
-	if decodedFields["objectId"] != "" {
+	if decodedFields["objectId"] != "" && decodedFields["objectId"] != nil {
 		objectID, ok = decodedFields["objectId"].(string)
 		if !ok {
 			return nil, fmt.Errorf("unexpected error when parse objectId: want type string but %v", reflect.TypeOf(decodedFields["objectId"]))
 		}
 	}
 
-	if decodedFields["createdAt"] != "" {
+	if decodedFields["createdAt"] != "" && decodedFields["createdAt"] != nil {
 		createdAt, ok = decodedFields["createdAt"].(string)
 		if !ok {
 			return nil, fmt.Errorf("unexpected error when parse createdAt: want type string but %v", reflect.TypeOf(decodedFields["createdAt"]))
@@ -617,7 +617,7 @@ func decodeObject(fields interface{}) (*Object, error) {
 		decodedFields["createdAt"] = decodedCreatedAt
 	}
 
-	if decodedFields["updatedAt"] != "" {
+	if decodedFields["updatedAt"] != "" && decodedFields["updatedAt"] != nil {
 		updatedAt, ok = decodedFields["updatedAt"].(string)
 		if !ok {
 			if decodedFields["updatedAt"] == nil {

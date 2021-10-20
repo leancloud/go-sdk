@@ -25,41 +25,41 @@ type functionResponse struct {
 }
 
 // Handler takes all requests related to LeanEngine
-func Handler(handler http.Handler) http.Handler {
+func (engine *engine) Handler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		uri := strings.Split(r.RequestURI, "/")
-		corsHandler(w, r)
+		engine.corsHandler(w, r)
 		if r.Method == "OPTIONS" {
 			w.WriteHeader(http.StatusOK)
 			return
 		}
 		if strings.HasPrefix(r.RequestURI, "/1.1/functions/") || strings.HasPrefix(r.RequestURI, "/1/functions/") {
 			if strings.Compare(r.RequestURI, "/1.1/functions/_ops/metadatas") == 0 || strings.Compare(r.RequestURI, "/1/functions/_ops/metadatas") == 0 {
-				metadataHandler(w, r)
+				engine.metadataHandler(w, r)
 			} else {
 				if uri[3] != "" {
 					if len(uri) == 5 {
-						classHookHandler(w, r, uri[3], uri[4])
+						engine.classHookHandler(w, r, uri[3], uri[4])
 					} else {
-						functionHandler(w, r, uri[3], false)
+						engine.functionHandler(w, r, uri[3], false)
 					}
 				} else {
 					w.WriteHeader(http.StatusNotFound)
 				}
 			}
 		} else if strings.HasPrefix(r.RequestURI, "/1.1/call/") || strings.HasPrefix(r.RequestURI, "/1/call/") {
-			if functions[uri[3]] != nil {
-				functionHandler(w, r, uri[3], true)
+			if engine.functions[uri[3]] != nil {
+				engine.functionHandler(w, r, uri[3], true)
 			} else {
 				w.WriteHeader(http.StatusNotFound)
 			}
 		} else if r.RequestURI == "/__engine/1/ping" || r.RequestURI == "/__engine/1.1/ping" {
-			healthCheckHandler(w, r)
+			engine.healthCheckHandler(w, r)
 		}
 	})
 }
 
-func corsHandler(w http.ResponseWriter, r *http.Request) {
+func (engine *engine) corsHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Header.Get("origin") != "" {
 		w.Header().Add("Access-Control-Allow-Origin", r.Header.Get("origin"))
 	}
@@ -71,8 +71,8 @@ func corsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func metadataHandler(w http.ResponseWriter, r *http.Request) {
-	if !validateMasterKey(r) {
+func (engine *engine) metadataHandler(w http.ResponseWriter, r *http.Request) {
+	if !engine.validateMasterKey(r) {
 		writeCloudError(w, r, CloudError{
 			Code:       http.StatusUnauthorized,
 			Message:    fmt.Sprintf("Master Key check failed, request from %s", r.RemoteAddr),
@@ -81,7 +81,7 @@ func metadataHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	meta, err := generateMetadata()
+	meta, err := engine.generateMetadata()
 	if err != nil {
 		writeCloudError(w, r, CloudError{
 			Code:       1,
@@ -95,7 +95,7 @@ func metadataHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(meta)
 }
 
-func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
+func (engine *engine) healthCheckHandler(w http.ResponseWriter, r *http.Request) {
 	resp, err := json.Marshal(map[string]string{
 		"runtime": runtime.Version(),
 		"version": Version,
@@ -113,8 +113,8 @@ func healthCheckHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(resp)
 }
 
-func functionHandler(w http.ResponseWriter, r *http.Request, name string, rpc bool) {
-	if functions[name] == nil {
+func (engine *engine) functionHandler(w http.ResponseWriter, r *http.Request, name string, rpc bool) {
+	if engine.functions[name] == nil {
 		writeCloudError(w, r, CloudError{
 			Code:       1,
 			Message:    fmt.Sprintf("No such cloud function %s", name),
@@ -123,8 +123,8 @@ func functionHandler(w http.ResponseWriter, r *http.Request, name string, rpc bo
 		return
 	}
 
-	if functions[name].defineOption["hook"] == true {
-		if !validateHookKey(r) {
+	if engine.functions[name].defineOption["hook"] == true {
+		if !engine.validateHookKey(r) {
 			writeCloudError(w, r, CloudError{
 				Code:       http.StatusUnauthorized,
 				Message:    fmt.Sprintf("Hook key check failed, request from %s", r.RemoteAddr),
@@ -134,10 +134,10 @@ func functionHandler(w http.ResponseWriter, r *http.Request, name string, rpc bo
 		}
 	}
 
-	if functions[name].defineOption["internal"] == true {
-		if !validateMasterKey(r) {
-			if !validateHookKey(r) {
-				master, pass := validateSignature(r)
+	if engine.functions[name].defineOption["internal"] == true {
+		if !engine.validateMasterKey(r) {
+			if !engine.validateHookKey(r) {
+				master, pass := engine.validateSignature(r)
 				if !master || !pass {
 					writeCloudError(w, r, CloudError{
 						Code:       http.StatusUnauthorized,
@@ -150,9 +150,9 @@ func functionHandler(w http.ResponseWriter, r *http.Request, name string, rpc bo
 		}
 	}
 
-	if !validateAppKey(r) {
-		if !validateMasterKey(r) {
-			_, pass := validateSignature(r)
+	if !engine.validateAppKey(r) {
+		if !engine.validateMasterKey(r) {
+			_, pass := engine.validateSignature(r)
 			if !pass {
 				writeCloudError(w, r, CloudError{
 					Code:       http.StatusUnauthorized,
@@ -164,7 +164,7 @@ func functionHandler(w http.ResponseWriter, r *http.Request, name string, rpc bo
 		}
 	}
 
-	request, err := constructRequest(r, name, rpc)
+	request, err := engine.constructRequest(r, name, rpc)
 	if err != nil {
 		writeCloudError(w, r, CloudError{
 			Code:       1,
@@ -175,7 +175,7 @@ func functionHandler(w http.ResponseWriter, r *http.Request, name string, rpc bo
 		return
 	}
 
-	ret, err := executeTimeout(request, name, cloudFunctionTimeout)
+	ret, err := engine.executeTimeout(request, name, cloudFunctionTimeout)
 	if err != nil {
 		writeCloudError(w, r, err)
 		return
@@ -201,8 +201,8 @@ func functionHandler(w http.ResponseWriter, r *http.Request, name string, rpc bo
 	w.Write(respJSON)
 }
 
-func classHookHandler(w http.ResponseWriter, r *http.Request, class, hook string) {
-	if !validateHookKey(r) {
+func (engine *engine) classHookHandler(w http.ResponseWriter, r *http.Request, class, hook string) {
+	if !engine.validateHookKey(r) {
 		writeCloudError(w, r, CloudError{
 			Code:       http.StatusUnauthorized,
 			Message:    fmt.Sprintf("Hook key check failed, request from %s", r.RemoteAddr),
@@ -213,7 +213,7 @@ func classHookHandler(w http.ResponseWriter, r *http.Request, class, hook string
 
 	name := fmt.Sprint(classHookmap[hook], class)
 
-	request, err := constructRequest(r, name, false)
+	request, err := engine.constructRequest(r, name, false)
 	if err != nil {
 		writeCloudError(w, r, CloudError{
 			Code:       1,
@@ -224,7 +224,7 @@ func classHookHandler(w http.ResponseWriter, r *http.Request, class, hook string
 		return
 	}
 
-	ret, err := executeTimeout(request, name, cloudFunctionTimeout)
+	ret, err := engine.executeTimeout(request, name, cloudFunctionTimeout)
 
 	if err != nil {
 		writeCloudError(w, r, err)
@@ -254,7 +254,7 @@ func classHookHandler(w http.ResponseWriter, r *http.Request, class, hook string
 	w.Write(respJSON)
 }
 
-func executeTimeout(r *FunctionRequest, name string, timeout time.Duration) (interface{}, error) {
+func (engine *engine) executeTimeout(r *FunctionRequest, name string, timeout time.Duration) (interface{}, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
@@ -273,7 +273,7 @@ func executeTimeout(r *FunctionRequest, name string, timeout time.Duration) (int
 				ch <- true
 			}
 		}()
-		ret, err = functions[name].call(r)
+		ret, err = engine.functions[name].call(r)
 		ch <- true
 	}()
 
@@ -289,7 +289,7 @@ func executeTimeout(r *FunctionRequest, name string, timeout time.Duration) (int
 	}
 }
 
-func unmarshalBody(r *http.Request) (interface{}, error) {
+func (engine *engine) unmarshalBody(r *http.Request) (interface{}, error) {
 	body := make(map[string]interface{})
 	err := json.NewDecoder(r.Body).Decode(&body)
 
@@ -306,7 +306,7 @@ func unmarshalBody(r *http.Request) (interface{}, error) {
 	return body, nil
 }
 
-func constructRequest(r *http.Request, name string, rpc bool) (*FunctionRequest, error) {
+func (engine *engine) constructRequest(r *http.Request, name string, rpc bool) (*FunctionRequest, error) {
 	request := new(FunctionRequest)
 	request.Meta = map[string]string{
 		"remoteAddr": r.RemoteAddr,
@@ -320,8 +320,8 @@ func constructRequest(r *http.Request, name string, rpc bool) (*FunctionRequest,
 		sessionToken = r.Header.Get("x-avoscloud-session-token")
 	}
 
-	if functions[name].defineOption["fetchUser"] == true && sessionToken != "" {
-		user, err := client.Users.Become(sessionToken)
+	if engine.functions[name].defineOption["fetchUser"] == true && sessionToken != "" {
+		user, err := Engine.client().Users.Become(sessionToken)
 		if err != nil {
 			return nil, err
 		}
@@ -334,7 +334,7 @@ func constructRequest(r *http.Request, name string, rpc bool) (*FunctionRequest,
 		return request, nil
 	}
 
-	params, err := unmarshalBody(r)
+	params, err := engine.unmarshalBody(r)
 	if err != nil {
 		return nil, err
 	}
@@ -353,28 +353,28 @@ func constructRequest(r *http.Request, name string, rpc bool) (*FunctionRequest,
 	return request, nil
 }
 
-func generateMetadata() ([]byte, error) {
+func (engine *engine) generateMetadata() ([]byte, error) {
 	meta := metadataResponse{
 		Result: []string{},
 	}
 
-	for k := range functions {
+	for k := range engine.functions {
 		meta.Result = append(meta.Result, k)
 	}
 	return json.Marshal(meta)
 }
 
-func validateAppID(r *http.Request) bool {
+func (engine *engine) validateAppID(r *http.Request) bool {
 	if r.Header.Get("X-LC-Id") != "" {
-		if os.Getenv("LEANCLOUD_APP_ID") != r.Header.Get("X-LC-Id") {
+		if engine.client().appID != r.Header.Get("X-LC-Id") {
 			return false
 		}
 	} else if r.Header.Get("x-avoscloud-application-id") != "" {
-		if os.Getenv("LEANCLOUD_APP_ID") != r.Header.Get("x-avoscloud-application-id") {
+		if engine.client().appID != r.Header.Get("x-avoscloud-application-id") {
 			return false
 		}
 	} else if r.Header.Get("x-uluru-application-id") != "" {
-		if os.Getenv("LEANCLOUD_APP_ID") != r.Header.Get("x-uluru-application-id") {
+		if engine.client().appID != r.Header.Get("x-uluru-application-id") {
 			return false
 		}
 	} else {
@@ -384,21 +384,21 @@ func validateAppID(r *http.Request) bool {
 	return true
 }
 
-func validateAppKey(r *http.Request) bool {
-	if !validateAppID(r) {
+func (engine *engine) validateAppKey(r *http.Request) bool {
+	if !engine.validateAppID(r) {
 		return false
 	}
 
 	if r.Header.Get("X-LC-Key") != "" {
-		if os.Getenv("LEANCLOUD_APP_KEY") != r.Header.Get("X-LC-Key") {
+		if engine.client().appKey != r.Header.Get("X-LC-Key") {
 			return false
 		}
 	} else if r.Header.Get("x-avoscloud-application-key") != "" {
-		if os.Getenv("LEANCLOUD_APP_KEY") != r.Header.Get("x-avoscloud-application-key") {
+		if engine.client().appKey != r.Header.Get("x-avoscloud-application-key") {
 			return false
 		}
 	} else if r.Header.Get("x-uluru-application-key") != "" {
-		if os.Getenv("LEANCLOUD_APP_KEY") != r.Header.Get("x-uluru-application-key") {
+		if engine.client().appKey != r.Header.Get("x-uluru-application-key") {
 			return false
 		}
 	} else {
@@ -408,21 +408,21 @@ func validateAppKey(r *http.Request) bool {
 	return true
 }
 
-func validateMasterKey(r *http.Request) bool {
-	if !validateAppID(r) {
+func (engine *engine) validateMasterKey(r *http.Request) bool {
+	if !engine.validateAppID(r) {
 		return false
 	}
 
 	if r.Header.Get("X-LC-Key") != "" {
-		if strings.TrimSuffix(r.Header.Get("X-LC-Key"), ",master") != os.Getenv("LEANCLOUD_APP_MASTER_KEY") {
+		if strings.TrimSuffix(r.Header.Get("X-LC-Key"), ",master") != engine.client().masterKey {
 			return false
 		}
 	} else if r.Header.Get("x-avoscloud-master-key") != "" {
-		if r.Header.Get("x-avoscloud-master-key") != os.Getenv("LEANCLOUD_APP_MASTER_KEY") {
+		if r.Header.Get("x-avoscloud-master-key") != engine.client().masterKey {
 			return false
 		}
 	} else if r.Header.Get("x-uluru-master-key") != "" {
-		if r.Header.Get("x-uluru-master-key") != os.Getenv("LEANCLOUD_APP_MASTER_KEY") {
+		if r.Header.Get("x-uluru-master-key") != engine.client().masterKey {
 			return false
 		}
 	} else {
@@ -432,8 +432,8 @@ func validateMasterKey(r *http.Request) bool {
 	return true
 }
 
-func validateHookKey(r *http.Request) bool {
-	if !validateAppID(r) {
+func (engine *engine) validateHookKey(r *http.Request) bool {
+	if !engine.validateAppID(r) {
 		return false
 	}
 
@@ -444,9 +444,9 @@ func validateHookKey(r *http.Request) bool {
 	return true
 }
 
-func validateSignature(r *http.Request) (bool, bool) {
+func (engine *engine) validateSignature(r *http.Request) (bool, bool) {
 	var master, pass bool
-	if !validateAppID(r) {
+	if !engine.validateAppID(r) {
 		return master, pass
 	}
 
@@ -463,10 +463,10 @@ func validateSignature(r *http.Request) (bool, bool) {
 	signSlice := strings.Split(sign, ",")
 	var hash [16]byte
 	if len(signSlice) == 3 && signSlice[2] == "master" {
-		hash = md5.Sum([]byte(fmt.Sprint(signSlice[1], os.Getenv("LEANCLOUD_APP_MASTER_KEY"))))
+		hash = md5.Sum([]byte(fmt.Sprint(signSlice[1], engine.client().masterKey)))
 		master = true
 	} else {
-		hash = md5.Sum([]byte(fmt.Sprint(signSlice[1], os.Getenv("LEANCLOUD_APP_KEY"))))
+		hash = md5.Sum([]byte(fmt.Sprint(signSlice[1], engine.client().appKey)))
 	}
 	if signSlice[0] == fmt.Sprintf("%x", hash) {
 		pass = true

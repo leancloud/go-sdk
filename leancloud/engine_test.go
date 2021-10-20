@@ -11,38 +11,38 @@ var testUserID string
 
 func init() {
 	testUserID = os.Getenv("TEST_USER_ID")
-	Define("hello", func(r *FunctionRequest) (interface{}, error) {
+	Engine.Define("hello", func(r *FunctionRequest) (interface{}, error) {
 		return map[string]string{
 			"Hello": "World",
 		}, nil
 	})
 
-	Define("hello_with_option_internal", func(r *FunctionRequest) (interface{}, error) {
+	Engine.Define("hello_with_option_internal", func(r *FunctionRequest) (interface{}, error) {
 		return map[string]string{
 			"Hello": "World",
 		}, nil
 	}, WithInternal(), WithoutFetchUser())
 
-	Define("hello_with_option_fetch_user", func(r *FunctionRequest) (interface{}, error) {
+	Engine.Define("hello_with_option_fetch_user", func(r *FunctionRequest) (interface{}, error) {
 		return map[string]string{
 			"sessionToken": r.SessionToken,
 		}, nil
 	})
 
-	Define("hello_with_option_not_fetch_user", func(r *FunctionRequest) (interface{}, error) {
+	Engine.Define("hello_with_option_not_fetch_user", func(r *FunctionRequest) (interface{}, error) {
 		return map[string]interface{}{
 			"sessionToken": r.SessionToken,
 		}, nil
 	}, WithoutFetchUser())
 
-	Define("hello_with_object", func(r *FunctionRequest) (interface{}, error) {
+	Engine.Define("hello_with_object", func(r *FunctionRequest) (interface{}, error) {
 		return r.CurrentUser, nil
 	})
 }
 
 func TestRun(t *testing.T) {
 	t.Run("local", func(t *testing.T) {
-		resp, err := Run("hello", nil)
+		resp, err := Engine.Run("hello", nil)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -60,7 +60,7 @@ func TestRun(t *testing.T) {
 
 	t.Run("hello_with_option_internal", func(t *testing.T) {
 		t.Run("remote", func(t *testing.T) {
-			_, err := Run("hello_with_option_internal", nil, WithRemote())
+			_, err := client.Run("hello_with_option_internal", nil)
 
 			if err != nil {
 				if !strings.Contains(err.Error(), "401 Internal cloud function") {
@@ -70,7 +70,7 @@ func TestRun(t *testing.T) {
 		})
 
 		t.Run("local", func(t *testing.T) {
-			resp, err := Run("hello_with_option_internal", nil)
+			resp, err := Engine.Run("hello_with_option_internal", nil)
 
 			if err != nil {
 				t.Fatal(err)
@@ -94,7 +94,7 @@ func TestRun(t *testing.T) {
 		}
 
 		t.Run("remote", func(t *testing.T) {
-			resp, err := Run("hello_with_option_fetch_user", nil, WithRemote(), WithSessionToken(user.SessionToken))
+			resp, err := client.Run("hello_with_option_fetch_user", nil, WithSessionToken(user.SessionToken))
 
 			if err != nil {
 				t.Fatal(err)
@@ -118,7 +118,7 @@ func TestRun(t *testing.T) {
 		})
 
 		t.Run("local", func(t *testing.T) {
-			resp, err := Run("hello_with_option_fetch_user", nil, WithSessionToken(user.SessionToken))
+			resp, err := Engine.Run("hello_with_option_fetch_user", nil, WithSessionToken(user.SessionToken))
 
 			if err != nil {
 				t.Fatal(err)
@@ -137,7 +137,7 @@ func TestRun(t *testing.T) {
 
 	t.Run("don't fetch user", func(t *testing.T) {
 		t.Run("remote", func(t *testing.T) {
-			resp, err := Run("hello_with_option_not_fetch_user", nil, WithRemote())
+			resp, err := client.Run("hello_with_option_not_fetch_user", nil)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -153,7 +153,7 @@ func TestRun(t *testing.T) {
 		})
 
 		t.Run("local", func(t *testing.T) {
-			resp, err := Run("hello_with_option_not_fetch_user", nil)
+			resp, err := Engine.Run("hello_with_option_not_fetch_user", nil)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -171,7 +171,7 @@ func TestRun(t *testing.T) {
 
 	t.Run("not_found", func(t *testing.T) {
 		t.Run("remote", func(t *testing.T) {
-			_, err := Run("not_found", nil, WithRemote())
+			_, err := client.Run("not_found", nil)
 
 			if err != nil {
 				if !strings.Contains(err.Error(), "No such cloud function") {
@@ -181,7 +181,7 @@ func TestRun(t *testing.T) {
 		})
 
 		t.Run("local", func(t *testing.T) {
-			_, err := Run("not_found", nil)
+			_, err := Engine.Run("not_found", nil)
 
 			if err != nil {
 				if !strings.Contains(err.Error(), "no such cloud function") {
@@ -200,7 +200,7 @@ func TestRPC(t *testing.T) {
 		}
 
 		retUser := new(User)
-		err := RPC("hello_with_object", nil, retUser, WithUser(user))
+		err := Engine.RPC("hello_with_object", nil, retUser, WithUser(user))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -217,7 +217,7 @@ func TestRPC(t *testing.T) {
 		}
 
 		retUser := new(User)
-		err := RPC("hello_with_object", nil, retUser, WithUser(user), WithRemote())
+		err := client.RPC("hello_with_object", nil, retUser, WithUser(user))
 		if err != nil {
 			t.Fatal(err)
 		}
