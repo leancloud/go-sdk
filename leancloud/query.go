@@ -2,6 +2,7 @@ package leancloud
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -316,16 +317,21 @@ func objectQuery(query interface{}, objects interface{}, count bool, first bool,
 	switch query.(type) {
 	case *Query:
 		decodedObjects, err := decodeArray(results, true)
+
 		if err != nil {
 			return nil, err
 		}
 
+		rDecodedObjects := reflect.ValueOf(decodedObjects)
+
 		if !first {
-			if err := bind(reflect.ValueOf(decodedObjects), reflect.ValueOf(objects).Elem()); err != nil {
+			if err := bind(rDecodedObjects, reflect.ValueOf(objects).Elem()); err != nil {
 				return nil, err
 			}
+		} else if rDecodedObjects.Len() == 0 {
+			return nil, errors.New("no matched object found")
 		} else {
-			if err := bind(reflect.ValueOf(decodedObjects).Index(0), reflect.ValueOf(objects).Elem()); err != nil {
+			if err := bind(rDecodedObjects.Index(0), reflect.ValueOf(objects).Elem()); err != nil {
 				return nil, err
 			}
 		}
