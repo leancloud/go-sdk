@@ -649,9 +649,11 @@ func decodeUser(fields interface{}) (*User, error) {
 	}
 
 	sessionToken, ok := object.fields["sessionToken"].(string)
-	if !ok {
+
+	if !ok && object.fields["sessionToken"] != nil {
 		return nil, fmt.Errorf("unexpected error when parse sessionToken: want type string but %v", reflect.TypeOf(object.fields["sessionToken"]))
 	}
+
 	return &User{
 		Object:       *object,
 		SessionToken: sessionToken,
@@ -819,25 +821,25 @@ func decodeFile(fields map[string]interface{}) (*File, error) {
 	file.UpdatedAt = decodedUpdatedAt
 
 	key, ok := decodedFields["key"].(string)
-	if !ok {
+	if !ok && decodedFields["key"] != nil {
 		return nil, fmt.Errorf("unexpected error when parse key from response: want type string but %v", reflect.TypeOf(decodedFields["key"]))
 	}
 	file.Key = key
 
 	url, ok := decodedFields["url"].(string)
-	if !ok {
+	if !ok && decodedFields["url"] != nil {
 		return nil, fmt.Errorf("unexpected error when parse url from response: want type string but %v", reflect.TypeOf(decodedFields["url"]))
 	}
 	file.URL = url
 
 	bucket, ok := decodedFields["bucket"].(string)
-	if !ok {
+	if !ok && decodedFields["bucket"] != nil {
 		return nil, fmt.Errorf("unexpected error when parse bucket from response: want type string but %v", reflect.TypeOf(decodedFields["bucket"]))
 	}
 	file.Bucket = bucket
 
 	provider, ok := decodedFields["provider"].(string)
-	if !ok {
+	if !ok && decodedFields["provider"] != nil {
 		return nil, fmt.Errorf("unexpected error when parse provider from response: want type string but %v", reflect.TypeOf(decodedFields["provider"]))
 	}
 	file.Provider = provider
