@@ -203,11 +203,11 @@ func (engine *engine) RPC(name string, params interface{}, results interface{}, 
 		engine: engine,
 	}))...)
 
-	if err := bind(reflect.Indirect(reflect.ValueOf(response)), reflect.Indirect(reflect.ValueOf(results))); err != nil {
-		return nil
+	if err != nil {
+		return err
 	}
 
-	return err
+	return bind(reflect.Indirect(reflect.ValueOf(response)), reflect.Indirect(reflect.ValueOf(results)))
 }
 
 // Call cloud funcion remotely
@@ -224,11 +224,11 @@ func (client *Client) RPC(name string, params interface{}, results interface{}, 
 		remote: true,
 	}))...)
 
-	if err := bind(reflect.Indirect(reflect.ValueOf(response)), reflect.Indirect(reflect.ValueOf(results))); err != nil {
-		return nil
+	if err != nil {
+		return err
 	}
 
-	return err
+	return bind(reflect.Indirect(reflect.ValueOf(response)), reflect.Indirect(reflect.ValueOf(results)))
 }
 
 func callCloudFunction(client *Client, name string, params interface{}, runOptions ...RunOption) (interface{}, error) {
