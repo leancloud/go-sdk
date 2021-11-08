@@ -14,6 +14,7 @@ type Client struct {
 	appID         string
 	appKey        string
 	masterKey     string
+	production    string
 	requestLogger *log.Logger
 	Users         Users
 	Files         Files
@@ -21,19 +22,21 @@ type Client struct {
 }
 
 type ClientOptions struct {
-	AppID     string
-	AppKey    string
-	MasterKey string
-	ServerURL string
+	AppID      string
+	AppKey     string
+	MasterKey  string
+	ServerURL  string
+	Production string
 }
 
 // NewClient constructs a client from parameters
 func NewClient(options *ClientOptions) *Client {
 	client := &Client{
-		appID:     options.AppID,
-		appKey:    options.AppKey,
-		masterKey: options.MasterKey,
-		serverURL: options.ServerURL,
+		appID:      options.AppID,
+		appKey:     options.AppKey,
+		masterKey:  options.MasterKey,
+		serverURL:  options.ServerURL,
+		production: options.Production,
 	}
 
 	if !strings.HasSuffix(options.AppID, "MdYXbMMI") {
@@ -63,7 +66,28 @@ func NewEnvClient() *Client {
 		ServerURL: os.Getenv("LEANCLOUD_API_SERVER"),
 	}
 
+	if appEnv := os.Getenv("LEANCLOUD_APP_ENV"); appEnv == "production" {
+		options.Production = "1"
+	} else if appEnv == "stage" {
+		options.Production = "0"
+	} else { // probably on local machine
+		if os.Getenv("LEAN_CLI_HAVE_STAGING") == "true" {
+			options.Production = "0"
+		} else { // free trial instance only
+			options.Production = "1"
+		}
+	}
+
 	return NewClient(options)
+}
+
+// SetProduction sets the production environment
+func (client *Client) SetProduction(production bool) {
+	if production {
+		client.production = "1"
+	} else {
+		client.production = "0"
+	}
 }
 
 // Class constructs a reference of Class

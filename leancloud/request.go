@@ -74,8 +74,9 @@ func (client *Client) getRequestOptions() *grequests.RequestOptions {
 	return &grequests.RequestOptions{
 		UserAgent: getUserAgent(),
 		Headers: map[string]string{
-			"X-LC-Id":  client.appID,
-			"X-LC-Key": client.appKey,
+			"X-LC-Id":   client.appID,
+			"X-LC-Key":  client.appKey,
+			"X-LC-Prod": client.production,
 		},
 	}
 }
