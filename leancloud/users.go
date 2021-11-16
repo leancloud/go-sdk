@@ -128,26 +128,6 @@ func (ref *Users) SignUpByMobilePhone(number, smsCode string) (*User, error) {
 	return decodedUser, nil
 }
 
-func (ref *Users) SignUpByEmail(email, password string) (*User, error) {
-	body := map[string]string{
-		"email": email,
-		// username & password fields are required for all users
-		"username": email,
-		"password": password,
-	}
-	decodedUser, err := objectCreate(ref, body)
-	if err != nil {
-		return nil, err
-	}
-
-	user, ok := decodedUser.(*User)
-	if !ok {
-		return nil, fmt.Errorf("unexpected error when parse User from response: want type *User but %v", reflect.TypeOf(decodedUser))
-	}
-
-	return user, nil
-}
-
 func (ref *Users) ResetPasswordBySMSCode(number, smsCode, password string, authOptions ...AuthOption) error {
 	path := "/1.1/resetPasswordBySmsCode/"
 	options := ref.c.getRequestOptions()
