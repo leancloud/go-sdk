@@ -130,7 +130,9 @@ func (ref *Users) SignUpByMobilePhone(number, smsCode string) (*User, error) {
 
 func (ref *Users) SignUpByEmail(email, password string) (*User, error) {
 	body := map[string]string{
-		"email":    email,
+		"email": email,
+		// username & password fields are required for all users
+		"username": email,
 		"password": password,
 	}
 	decodedUser, err := objectCreate(ref, body)
