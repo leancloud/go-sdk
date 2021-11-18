@@ -146,11 +146,13 @@ func objectCreate(class interface{}, object interface{}, authOptions ...AuthOpti
 				objectPtr, _ := object.(*Object)
 				objectPtr.ID = objectID
 				objectPtr.CreatedAt = decodedCreatedAt
+				objectPtr.UpdatedAt = decodedCreatedAt
 				objectPtr.ref = v
 			} else if meta := extractObjectMeta(rv.Interface()); meta != nil {
 				objectPtr := &Object{
 					ID:        objectID,
 					CreatedAt: decodedCreatedAt,
+					UpdatedAt: decodedCreatedAt,
 					ref: &ObjectRef{
 						ID:    objectID,
 						class: v.Name,

@@ -40,6 +40,12 @@ func TestObjectCreate(t *testing.T) {
 			if ref.class == "" || ref.ID == "" {
 				t.FailNow()
 			}
+			if meeting.CreatedAt.IsZero() || meeting.UpdatedAt.IsZero() {
+				t.FailNow()
+			}
+			if !meeting.CreatedAt.Equal(meeting.UpdatedAt) {
+				t.FailNow()
+			}
 		}
 	})
 
