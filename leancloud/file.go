@@ -15,14 +15,14 @@ import (
 
 type File struct {
 	Object
-	Key       string                 `json:"key"`
-	Name      string                 `json:"name"`
-	Provider  string                 `json:"provider"`
-	Bucket    string                 `json:"bucket"`
-	MIME      string                 `json:"mime_type"`
-	URL       string                 `json:"url"`
-	Size      int64                  `json:"size"`
-	Meatadata map[string]interface{} `json:"metadata"`
+	Key      string                 `json:"key"`
+	Name     string                 `json:"name"`
+	Provider string                 `json:"provider"`
+	Bucket   string                 `json:"bucket"`
+	MIME     string                 `json:"mime_type"`
+	URL      string                 `json:"url"`
+	Size     int64                  `json:"size"`
+	MetaData map[string]interface{} `json:"metadata"`
 }
 
 func (file *File) fetchOwner(client *Client, authOptions ...AuthOption) (*User, error) {

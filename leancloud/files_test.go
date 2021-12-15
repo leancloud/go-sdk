@@ -139,7 +139,7 @@ func TestFilesUploadFromFile(t *testing.T) {
 	defer os.Remove(filename)
 
 	file := &File{
-		Meatadata: map[string]interface{}{
+		MetaData: map[string]interface{}{
 			"comment": "This is a comment of Metadata",
 		},
 	}
