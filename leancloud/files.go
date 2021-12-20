@@ -42,14 +42,14 @@ func (ref *Files) Upload(file *File, reader io.ReadSeeker, authOptions ...AuthOp
 		file.Size = size
 	}
 
-	if reflect.ValueOf(file.Meatadata).IsNil() {
-		file.Meatadata = make(map[string]interface{})
+	if reflect.ValueOf(file.MetaData).IsNil() {
+		file.MetaData = make(map[string]interface{})
 	}
-	file.Meatadata["size"] = file.Size
+	file.MetaData["size"] = file.Size
 	if owner != nil {
-		file.Meatadata["owner"] = owner.ID
+		file.MetaData["owner"] = owner.ID
 	} else {
-		file.Meatadata["owner"] = "unknown"
+		file.MetaData["owner"] = "unknown"
 	}
 
 	token, uploadURL, err := file.fetchToken(ref.c, authOptions...)
@@ -90,18 +90,18 @@ func (ref *Files) Upload(file *File, reader io.ReadSeeker, authOptions ...AuthOp
 
 // UploadFromURL create an object of file in _File class with given file's url
 func (ref *Files) UploadFromURL(file *File, authOptions ...AuthOption) error {
-	if reflect.ValueOf(file.Meatadata).IsNil() {
-		file.Meatadata = make(map[string]interface{})
+	if reflect.ValueOf(file.MetaData).IsNil() {
+		file.MetaData = make(map[string]interface{})
 	}
 	owner, err := file.fetchOwner(ref.c, authOptions...)
 	if err != nil {
 		return fmt.Errorf("unexpected error when fetch owner: %v", err)
 	}
-	file.Meatadata["__source"] = "external"
+	file.MetaData["__source"] = "external"
 	if owner != nil {
-		file.Meatadata["owner"] = owner.ID
+		file.MetaData["owner"] = owner.ID
 	} else {
-		file.Meatadata["owner"] = "unknown"
+		file.MetaData["owner"] = "unknown"
 	}
 
 	path := "/1.1/files"

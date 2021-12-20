@@ -333,7 +333,7 @@ func encodeFile(file *File, embedded bool) map[string]interface{} {
 		"__type":    "File",
 		"name":      file.Name,
 		"mime_type": file.MIME,
-		"metaData":  file.Meatadata,
+		"metaData":  file.MetaData,
 	}
 }
 
