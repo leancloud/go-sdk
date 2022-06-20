@@ -269,7 +269,11 @@ func encodeStruct(object interface{}, ignoreZero bool) map[string]interface{} {
 	if v.IsValid() && v.Kind() == reflect.Struct {
 		encodedMap := make(map[string]interface{})
 		for i := 0; i < v.NumField(); i++ {
-			encodedMap[t.Field(i).Name] = encode(v.Field(i).Interface(), ignoreZero)
+			tag, ok := t.Field(i).Tag.Lookup("json")
+			if !ok || tag == "" {
+				tag = t.Field(i).Name
+			}
+			encodedMap[tag] = encode(v.Field(i).Interface(), ignoreZero)
 			if encodedMap[t.Field(i).Name] == nil {
 				delete(encodedMap, t.Field(i).Name)
 			}
