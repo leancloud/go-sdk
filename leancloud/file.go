@@ -176,6 +176,7 @@ func (file *File) uploadQiniu(token, uploadURL string, reader io.ReadSeeker) err
 	if err != nil {
 		return fmt.Errorf("unexpected error when upload file to Qiniu: %v", err)
 	}
+	defer resp.Body.Close()
 
 	err = <-done
 	if err != nil {
@@ -269,6 +270,7 @@ func (file *File) uploadCOS(token, uploadURL string, reader io.ReadSeeker) error
 	if err != nil {
 		return fmt.Errorf("unexpected error when upload file to COS: %v", err)
 	}
+	defer resp.Body.Close()
 
 	err = <-done
 	if err != nil {
