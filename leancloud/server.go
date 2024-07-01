@@ -170,7 +170,6 @@ func (engine *engine) functionHandler(w http.ResponseWriter, r *http.Request, na
 			Code:       1,
 			Message:    err.Error(),
 			StatusCode: http.StatusInternalServerError,
-			callStack:  debug.Stack(),
 		})
 		return
 	}
@@ -219,7 +218,6 @@ func (engine *engine) classHookHandler(w http.ResponseWriter, r *http.Request, c
 			Code:       1,
 			Message:    err.Error(),
 			StatusCode: http.StatusInternalServerError,
-			callStack:  debug.Stack(),
 		})
 		return
 	}
@@ -290,9 +288,10 @@ func (engine *engine) executeTimeout(r *FunctionRequest, name string, timeout ti
 }
 
 func (engine *engine) unmarshalBody(r *http.Request) (interface{}, error) {
+	defer r.Body.Close()
+
 	body := make(map[string]interface{})
 	err := json.NewDecoder(r.Body).Decode(&body)
-
 	if err == io.EOF {
 		return nil, nil
 	}
@@ -301,9 +300,28 @@ func (engine *engine) unmarshalBody(r *http.Request) (interface{}, error) {
 		return nil, err
 	}
 
-	defer r.Body.Close()
-
 	return body, nil
+}
+
+func printErrWithStack(errMsg string) {
+	// 输出错误
+	builder := new(strings.Builder)
+	fmt.Fprintf(builder, "%s\n", errMsg)
+	// 输出调用栈信息
+	pc := make([]uintptr, 50) // 最多获取 50 层调用栈信息
+	n := runtime.Callers(1, pc)
+	frames := runtime.CallersFrames(pc[:n-1])
+	// 跳过当前层级的信息
+	frames.Next()
+	// 打印剩余的调用栈信息
+	for {
+		frame, more := frames.Next()
+		if !more {
+			break
+		}
+		fmt.Fprintf(builder, "%s()\n\t%s:%d\n", frame.Function, frame.File, frame.Line)
+	}
+	fmt.Fprintf(os.Stderr, builder.String())
 }
 
 func (engine *engine) constructRequest(r *http.Request, name string, rpc bool) (*FunctionRequest, error) {
@@ -323,6 +341,7 @@ func (engine *engine) constructRequest(r *http.Request, name string, rpc bool) (
 	if engine.functions[name].defineOption["fetchUser"] == true && sessionToken != "" {
 		user, err := Engine.client().Users.Become(sessionToken)
 		if err != nil {
+			printErrWithStack(fmt.Sprintf("Users.Become() failed. req=%s, err=%v", r.RequestURI, err))
 			return nil, err
 		}
 		request.CurrentUser = user
@@ -336,12 +355,14 @@ func (engine *engine) constructRequest(r *http.Request, name string, rpc bool) (
 
 	params, err := engine.unmarshalBody(r)
 	if err != nil {
+		printErrWithStack(fmt.Sprintf("engine.unmarshalBody() failed. req=%s err=%v", r.RequestURI, err))
 		return nil, err
 	}
 
 	if rpc {
 		decodedParams, err := decode(params)
 		if err != nil {
+			printErrWithStack(fmt.Sprintf("decode() failed. req=%s err=%v", r.RequestURI, err))
 			return nil, err
 		}
 
