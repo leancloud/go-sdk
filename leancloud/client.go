@@ -19,6 +19,7 @@ type Client struct {
 	Users         Users
 	Files         Files
 	Roles         Roles
+	SMS           SMS
 }
 
 type ClientOptions struct {
@@ -54,6 +55,7 @@ func NewClient(options *ClientOptions) *Client {
 	client.Users.c = client
 	client.Files.c = client
 	client.Roles.c = client
+	client.SMS.c = client
 	return client
 }
 
